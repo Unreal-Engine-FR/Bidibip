@@ -30,7 +30,8 @@ module.exports = (client, msg) => {
             quotes : () => tryToSend(msg.channel, commands.quotes()),
             say    : (text) => {
                 if(msg.member.roles.cache.has(process.env.ROLE_ONLY)) {
-                    tryToSend(msg.channel, commands.say(text));   
+                    console.log("say")
+                    tryToSend(msg.channel, commands.say(text));
                 }
             },
             add: (messageId) => {
@@ -40,11 +41,9 @@ module.exports = (client, msg) => {
                         .catch(err => {
                             console.log(err);
                             tryToSend(msg.channel, `\`${messageId}\` pas trouvé :/`);
-                        });  
+                        });
                 }
-             
             }
-            
         };
 
         const quotedPersons = Object.keys(quotes).map(pseudo => pseudo.toLowerCase());
@@ -73,9 +72,9 @@ module.exports = (client, msg) => {
     // ----------------------------------
     // MESSAGE IN DM
     // ----------------------------------
-    
+
     const server = client.guilds.cache.get(process.env.SERVER_ID);
-    if (!msg.guildId && server.member(msg.author.id) && server.members.cache.get(msg.author.id).roles.cache.has(process.env.ROLE_MEMBER)){
+    if (!msg.guildId && server.members.cache.get(msg.author.id) && server.members.cache.get(msg.author.id).roles.cache.has(process.env.ROLE_MEMBER)){
         const mapping = {
             paid     : () => commands.paid(client, msg, msg.author),
             unpaid   : () => commands.unpaid(client, msg, msg.author),

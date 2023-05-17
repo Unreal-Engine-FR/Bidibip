@@ -44,11 +44,13 @@ module.exports = async (client, msg) => {
             }
         }
         await dmChannel.send(questionMsg);
-        if (questions[i].step === 'finish') await dmChannel.send(advertToEmbedUnpaid(answers, msg.author));
+        if (questions[i].step === 'finish') {
+            await dmChannel.send(advertToEmbedUnpaid(answers, msg.author));
+        }
 
         try {
             // Fetch message
-            const collected = await dmChannel.awaitMessages(m => m.channel.type === 'dm', {max: 1, time: 5 * 60 * 1000, errors: ['time']});
+            const collected = await dmChannel.awaitMessages({max: 1, time: 5 * 60 * 1000, errors: ['time']});
             const msgContent = collected.last().content.trim();
 
             // !stop command

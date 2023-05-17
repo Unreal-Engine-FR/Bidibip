@@ -65,7 +65,7 @@ module.exports = async (client, msg, user) => {
 
         try {
             // Fetch message
-            const collected = await dmChannel.awaitMessages(m => m.channel.type === 'dm', {
+            const collected = await dmChannel.awaitMessages({
                 max: 1, time: 5 * 60 * 1000, errors: ['time']
             });
             let msgContent = collected.last().content.trim();
@@ -108,7 +108,7 @@ module.exports = async (client, msg, user) => {
 
                 if (hasOptionsQuestions) {
                     await dmChannel.send(questions[i].optionsQuestions[msgContent - 1]);
-                    const collectedOption = await dmChannel.awaitMessages(m => m.channel.type === 'dm', {
+                    const collectedOption = await dmChannel.awaitMessages({
                         max: 1, time: 5 * 60 * 1000, errors: ['time']
                     });
                     msgContent = collectedOption.last().content.trim();

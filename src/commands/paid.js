@@ -143,7 +143,7 @@ module.exports = async (client, msg, user) => {
                 if (selectedQuestions[x].step === 'finish') await dmChannel.send(advertToEmbedPaid(answers, user));
                 try {
                     // Fetch message
-                    const collected = await dmChannel.awaitMessages(m => m.channel.type === 'dm', {
+                    const collected = await dmChannel.awaitMessages({
                         max: 1, time: 5 * 60 * 1000, errors: ['time']
                     });
                     let msgContent = collected.last().content.trim();
@@ -220,7 +220,7 @@ module.exports = async (client, msg, user) => {
 
         try {
             // Fetch message
-            const collected = await dmChannel.awaitMessages(m => m.channel.type === 'dm', {
+            const collected = await dmChannel.awaitMessages({
                 max: 1, time: 5 * 60 * 1000, errors: ['time']
             });
             let msgContent = collected.last().content.trim();

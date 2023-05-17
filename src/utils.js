@@ -9,20 +9,18 @@ module.exports = {
     tryToSend         : (channel, text) => {
         console.log(text)
         if (text.embed) {
-
-            console.log('PRE SEND')
             const newEmbed = new Discord.EmbedBuilder()
-                .setColor('#F90505')
-                .setTitle('Ping')
-                .setDescription(`toto`)
-
-            channel.send(newEmbed);
-            console.log('POST SEND')
-
-            //channel.send({embed: [text.embed]})
+                .setTitle(text.embed.title)
+                .setDescription(text.embed.description)
+                .setColor(Number(text.embed.color))
+            if (text.embed.author)
+                newEmbed.setAuthor({ name: text.embed.author.name, iconURL: text.embed.author.iconURL, url: 'https://discord.js.org' })
+            channel.send({embeds: [newEmbed]});
         }
+        else if (text.content)
+            channel.send(text);
         else
-            throw new Error('message type not handled')
+            channel.send({content: text});
     },
     tryToSendChannelId: (client, channelId, text) => {
         const channel = client.channels.cache.get(channelId);
@@ -56,14 +54,15 @@ module.exports = {
     },
 
     advertToEmbedUnpaid: (advert, user) => {
-        const embed = new Discord.MessageEmbed();
+        console.log(process.env.COLOR_PAID)
+        const embed = new Discord.EmbedBuilder();
 
-        embed.setColor(process.env.COLOR_UNPAID);
+        embed.setColor(Number(process.env.COLOR_UNPAID));
 
         const mapping = {
             title      : (text) => embed.setTitle(text),
             description: (text) => embed.setDescription(text),
-            contact    : (text) => embed.addField('**Contact**', text),
+            contact    : (text) => embed.addFields([{name: '**Contact**', value: text}]),
         };
 
         for (const key in advert) {
@@ -75,28 +74,26 @@ module.exports = {
 
         return {
             content: `Publié par : <@${user.id}>`,
-            embed
-
+            embeds: [embed]
         };
     },
 
     advertToEmbedPaid: (advert, user) => {
-        const embed = new Discord.MessageEmbed();
-
-        embed.setColor(process.env.COLOR_PAID);
+        const embed = new Discord.EmbedBuilder()
+            .setColor(process.env.COLOR_PAID)
 
         const mapping = {
             role  : () => embed.setTitle(`${advert.role} Chez ${advert.companyName}`),
             remote: (text) => {
                 if (text == 1) embed.setDescription(':globe_with_meridians: Remote accepté');
             },
-            localisation: (text) => embed.addField('**Localisation**', text, true),
+            localisation: (text) => embed.addFields([{name:'**Localisation**', value: text, inline: true}]),
             contract    : (text) => {
-                if (text == 2) embed.addField('**Durée du contrat**', advert.length, true);
+                if (text == 2) embed.addFields([{name:'**Durée du contrat**', value: advert.length, inline:true}]);
             },
-            responsabilities: (text) => embed.addField('**Responsabilités**\n', text),
-            qualifications  : (text) => embed.addField('**Qualifications**\n', text),
-            apply           : (text) => embed.addField('**Comment postuler**\n', text),
+            responsabilities: (text) => embed.addFields([{name: '**Responsabilités**\n', value: text}]),
+            qualifications  : (text) => embed.addFields([{name:'**Qualifications**\n', value:text}]),
+            apply           : (text) => embed.addFields([{name:'**Comment postuler**\n', value:text}]),
             pay             : () => { },
             companyName     : () => { },
         };
@@ -110,19 +107,19 @@ module.exports = {
 
         return {
             content: `Publié par : <@${user.id}>`,
-            embed
+            embeds: [embed]
         };
     },
     advertToEmbedFreelance: (advert, user) => {
-        const embed = new Discord.MessageEmbed();
+        const embed = new Discord.EmbedBuilder();
 
         embed.setColor(process.env.COLOR_FREELANCE);
 
         const mapping = {
             title      : (text) => embed.setTitle(text),
             url        : (text) => embed.setDescription(text),
-            description: (text) => embed.addField('**Services**\n', text),
-            contact    : (text) => embed.addField('**Contact**\n', text),
+            description: (text) => embed.addFields([{name:'**Services**\n', value:text}]),
+            contact    : (text) => embed.addFields([{name:'**Contact**\n', value:text}]),
         };
 
         for (const key in advert) {
@@ -134,7 +131,7 @@ module.exports = {
 
         return {
             content: `Publié par : <@${user.id}>`,
-            embed
+            embeds: [embed]
         };
     }
 };
