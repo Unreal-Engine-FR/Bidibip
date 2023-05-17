@@ -6,7 +6,24 @@ const Discord = require('discord.js');
 
 module.exports = {
     writeFile         : (absolutePath, str) => fs.writeFileSync(absolutePath, str),
-    tryToSend         : (channel, text) => channel.send(text || 'Vous devez spécifier un texte.'),
+    tryToSend         : (channel, text) => {
+        console.log(text)
+        if (text.embed) {
+
+            console.log('PRE SEND')
+            const newEmbed = new Discord.EmbedBuilder()
+                .setColor('#F90505')
+                .setTitle('Ping')
+                .setDescription(`toto`)
+
+            channel.send(newEmbed);
+            console.log('POST SEND')
+
+            //channel.send({embed: [text.embed]})
+        }
+        else
+            throw new Error('message type not handled')
+    },
     tryToSendChannelId: (client, channelId, text) => {
         const channel = client.channels.cache.get(channelId);
         if (!channel) throw new Error('Channel ID not found: ' + channelId);

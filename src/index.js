@@ -1,9 +1,20 @@
-const path = require('path'); 
+const path = require('path');
 require('dotenv').config({path: path.join(__dirname, '../.env')});
 const handlers = require('./handlers');
 
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client(
+    {
+        partials: [Discord.Partials.Channel],
+        intents: [
+            Discord.GatewayIntentBits.Guilds,
+            Discord.GatewayIntentBits.GuildMessages,
+            Discord.GatewayIntentBits.GuildMembers,
+            Discord.GatewayIntentBits.MessageContent,
+            Discord.GatewayIntentBits.DirectMessages
+        ]
+    }
+);
 
 // Overwrite console.log to keep log file
 if (process.env.ENV === 'PROD') {
@@ -18,9 +29,9 @@ if (process.env.ENV === 'PROD') {
         log_stdout.write(string);
 
     };
-    
+
     //Delete each month 2628000000
-    setInterval(() => fs.truncate('./debug.log', 0, ()=>console.log('[LOGS DELETED]')), 1209600000); 
+    setInterval(() => fs.truncate('./debug.log', 0, () => console.log('[LOGS DELETED]')), 1209600000);
 }
 
 client.inProcessAdvert = {};
@@ -31,7 +42,18 @@ client.on('guildMemberAdd', member => handlers.guildMemberAdd(client));
 client.on('guildMemberRemove', member => handlers.guildMemberRemove(client));
 client.on('messageDelete', msg => handlers.messageDelete(client, msg));
 client.on('messageUpdate', (oldMsg, newMsg) => handlers.messageUpdate(client, oldMsg, newMsg));
-client.on('message', msg => handlers.message(client, msg));
+client.on('messageCreate', msg => handlers.message(client, msg));
 client.on('voiceStateUpdate', (oldState, newState) => handlers.voiceStateUpdate(client, oldState, newState));
+
+/*
+client.on('ready', () => {console.log("ready")})
+client.on('guildMemberAdd', member => {console.log("guild member add")})
+client.on('guildMemberRemove', member => {console.log("guild member remove")})
+client.on('messageDelete', msg => {console.log("message delete")})
+client.on('messageUpdate', (oldMsg, newMsg) => {console.log("message update")})
+client.on('messageCreate', msg => {console.log("message")})
+client.on('voiceStateUpdate', (oldState, newState) => {console.log("voice state update")})
+*/
+
 
 client.login(process.env.TOKEN);

@@ -22,7 +22,7 @@ module.exports = (client, msg) => {
     // ----------------------------------
     // MESSAGES IN DISCORD SERVER
     // ----------------------------------
-    if (msg.channel.type === 'text' && msg.content[0] == '!') {
+    if (msg.guildId && msg.content[0] == '!') {
         const mapping = {
             link   : (text) => tryToSend(msg.channel, commands.link(text)),
             bidibip: () => tryToSend(msg.channel, commands.bidibip),
@@ -75,7 +75,7 @@ module.exports = (client, msg) => {
     // ----------------------------------
     
     const server = client.guilds.cache.get(process.env.SERVER_ID);
-    if (msg.channel.type === 'dm' && server.member(msg.author.id) && server.members.cache.get(msg.author.id).roles.cache.has(process.env.ROLE_MEMBER)){
+    if (!msg.guildId && server.member(msg.author.id) && server.members.cache.get(msg.author.id).roles.cache.has(process.env.ROLE_MEMBER)){
         const mapping = {
             paid     : () => commands.paid(client, msg, msg.author),
             unpaid   : () => commands.unpaid(client, msg, msg.author),
