@@ -2,6 +2,21 @@ const path = require('path');
 require('dotenv').config({path: path.join(__dirname, '../.env')});
 const handlers = require('./handlers');
 
+const AutoGitUpdate = require('auto-git-update');
+
+const config = {
+    repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
+    branch: 'bidibip-v3',
+    tempLocation: '../tmp/',
+    ignoreFiles: ['.env'],
+    //executeOnComplete: 'C:/Users/scheg/Desktop/worksapce/AutoGitUpdate/startTest.bat',
+    exitOnComplete: true
+}
+
+const updater = new AutoGitUpdate(config);
+
+updater.autoUpdate();
+
 const Discord = require('discord.js');
 const client = new Discord.Client(
     {
