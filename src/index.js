@@ -6,7 +6,7 @@ const AutoGitUpdate = require('auto-git-update');
 
 const config = {
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
-    branch: 'bidibip-v3',
+    branch: 'feature/bidibip-v3',
     tempLocation: '../tmp/',
     ignoreFiles: ['.env'],
     //executeOnComplete: 'C:/Users/scheg/Desktop/worksapce/AutoGitUpdate/startTest.bat',
