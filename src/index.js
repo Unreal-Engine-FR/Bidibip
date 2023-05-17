@@ -8,7 +8,6 @@ const config = {
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
     branch: 'feature/bidibip-v3',
     tempLocation: '../tmp/',
-    ignoreFiles: ['.env'],
     //executeOnComplete: 'C:/Users/scheg/Desktop/worksapce/AutoGitUpdate/startTest.bat',
     exitOnComplete: true
 }
