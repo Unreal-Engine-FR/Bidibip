@@ -2,6 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const DI = require('./discord_interface')
 const Discord = require('discord.js')
+const {Message} = require("./discord_interface");
 
 class CommandManager {
     constructor(client) {
@@ -15,9 +16,9 @@ class CommandManager {
             return // already added
 
         if (!module.commands)
-            return // doesn't implement commands
+            return // doesn't implement old
 
-        this.modules[module.name] = {module:module, command: module.commands}
+        this.modules[module.name] = {module: module, command: module.commands}
 
         for (const command of module.commands) {
             if (this.commands[command.name])
@@ -38,9 +39,11 @@ class CommandManager {
 
         delete this.modules[module.name]
 
-        for (const command of this.commands) {
+        for (const [key, command] of Object.entries(this.commands)) {
             if (command.modules.indexOf(module) !== -1)
                 command.modules.splice(command.modules.indexOf(module), 1)
+            if (command.modules.length === 0)
+                delete this.commands[key]
         }
 
         this._refresh_commands()
@@ -89,18 +92,25 @@ class EventManager {
         this._bound_modules = []
         this._command_modules = {}
         this._command_manager = new CommandManager(client)
+        this._interactions = {}
 
         client.on(Discord.Events.MessageDelete, msg => {
+            if (msg.author.bot)
+                return
             const message = new DI.Message().from_discord(msg)
             if (!message.dm)
                 this._server_message_delete(message)
         });
         client.on(Discord.Events.MessageUpdate, (old_message, new_message) => {
+            if (old_message.author.bot)
+                return
             const old = new DI.Message().from_discord(old_message)
             if (!old.dm)
-                this._server_message_updated(old_message, new DI.Message().from_discord(new_message))
+                this._server_message_updated(old, new DI.Message().from_discord(new_message))
         });
         client.on(Discord.Events.MessageCreate, msg => {
+            if (msg.author.bot)
+                return
             const message = new DI.Message().from_discord(msg)
             if (message.dm)
                 this._dm_message(message)
@@ -109,9 +119,28 @@ class EventManager {
 
         });
         client.on(Discord.Events.InteractionCreate, interaction => {
+
+            if (interaction.isButton()) {
+                const inter = this._interactions[interaction.message.interaction.id]
+                if (inter) {
+                    for (const module of inter) {
+                        if (module.receive_interaction) {
+                            module.receive_interaction(
+                                interaction.customId,
+                                interaction.message.interaction.id,
+                                new Message().from_discord(interaction.message)
+                            )
+                        }
+                    }
+                }
+                interaction.reply(new Message().set_text('Vu !').set_client_only().output_to_discord())
+                interaction.deleteReply()
+                return
+            }
+
             const command = this._command_manager.find(interaction.commandName)
             if (command === null) {
-                interaction.reply('Unknown command')
+                interaction.reply(new Message().set_text("Commande inconnue").set_client_only())
                 return;
             }
             this._command_manager.execute_command(new DI.Command(command, interaction))
@@ -123,7 +152,7 @@ class EventManager {
         if (index !== -1)
             return // already bound
 
-        // Register commands
+        // Register old
         if (module.commands)
             for (const command of module.commands) {
                 if (!this._command_modules[command.name])
@@ -144,9 +173,9 @@ class EventManager {
         this._command_manager.remove(module)
         this._bound_modules.splice(this._bound_modules.indexOf(module), 1)
 
-        // Unregister commands
+        // Unregister old
         for (const [, value] of Object.entries(this._command_modules))
-            if (value.contains(module))
+            if (value.indexOf(module) !== 0)
                 value.splice(value.indexOf(module), 1)
     }
 
@@ -176,6 +205,21 @@ class EventManager {
 
     get_commands() {
         return this._command_manager ? this._command_manager.get_commands() : null
+    }
+
+    watch_interaction(module, interaction_id) {
+        if (!this._interactions[interaction_id])
+            this._interactions[interaction_id] = [module]
+        else if (this._interactions[interaction_id].indexOf(module) === -1)
+            this._interactions[interaction_id].push(module)
+    }
+
+    release_interaction(module, interaction_id) {
+        if (this._interactions[interaction_id] && this._interactions[interaction_id].indexOf(module) !== -1) {
+            this._interactions[interaction_id].splice(this._interactions[interaction_id].indexOf(module), 1)
+            if (this._interactions[interaction_id].length === 0)
+                delete this._interactions[interaction_id]
+        }
     }
 }
 
@@ -322,8 +366,24 @@ class ModuleManager {
             console.log(`Module '${module_name}' is already disabled`)
     }
 
-    get_commands() {
-        return this._event_manager ? this._event_manager.get_commands() : null
+    event_manager() {
+        return this._event_manager
+    }
+
+    all_modules_info() {
+        const names = fs.readdirSync(path.join(__dirname, './modules'), {withFileTypes: true})
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => dirent.name)
+
+        let modules = []
+        for (const module_name of names) {
+            modules.push({
+                name: module_name,
+                loaded: !!this._module_list[module_name],
+                enabled: this._module_list[module_name] && this._module_list[module_name].enabled
+            })
+        }
+        return modules
     }
 }
 

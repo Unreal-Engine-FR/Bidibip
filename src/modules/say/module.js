@@ -16,6 +16,7 @@ class Module {
         this.commands = [
             new CommandInfo('say', 'Fait parler bidibip')
                 .add_text_option('message', 'Ce que bidibip dira pour vous', [], true)
+                .set_member_only()
         ]
     }
 
@@ -27,7 +28,7 @@ class Module {
     stop() {
     }
 
-    // When server command is issued
+    // When server command is executed
     server_command(command) {
         if (command.match('say')) {
             this.client.say(
@@ -43,8 +44,8 @@ class Module {
     server_message(message) {
     }
 
-    // On received dm message
-    dm_message(message) {
+    // When interaction button is clicked (interaction should have been bound before)
+    receive_interaction(value, id, message) {
     }
 
     // On update message on server

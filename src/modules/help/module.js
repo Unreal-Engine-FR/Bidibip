@@ -15,7 +15,7 @@ class Module {
     // When server command is issued
     server_command(command) {
         if (command.match('help')) {
-            const commands = MODULE_MANAGER.get_commands()
+            const commands = MODULE_MANAGER.event_manager().get_commands()
             if (!commands)
                 return
 

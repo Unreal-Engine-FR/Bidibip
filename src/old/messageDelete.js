@@ -1,4 +1,4 @@
-const {tryToSendChannelId} = require('../utils');
+const {tryToSendChannelId} = require('./utils');
 
 module.exports = (client, msg) => {
     if (msg.channel.type === 'dm') return;

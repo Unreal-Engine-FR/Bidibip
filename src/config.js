@@ -23,6 +23,9 @@ class Configuration {
         this.ADVERT_FREELANCE_ID = null
         this.SHARED = null
 
+        this.USER_PERMISSION_FLAG=16384 // Send link
+        this.ADMIN_PERMISSION_FLAG=4 // Ban member
+
 
         require('dotenv').config();
         for (const [key, value] of Object.entries(process.env)) {

@@ -9,9 +9,11 @@ class Module {
 
         this.commands = [
             new CommandInfo('quote', 'Envoyer une citation de la personne choisie')
-                .add_user_option('utilisateur', 'personne choisie'),
+                .add_user_option('utilisateur', 'personne choisie')
+                .set_member_only(),
             new CommandInfo('add_quote', 'Ajoute une citation à la base de donnée')
                 .add_text_option('message', 'id du message à citer')
+                .set_member_only()
         ]
 
         try {
