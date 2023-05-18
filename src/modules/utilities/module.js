@@ -21,6 +21,16 @@ class Module {
                 .add_text_option('nom', 'nom du module')
                 .set_admin_only()
         ]
+
+        const update_activity = () => {
+            create_infos.client.get_user_count().then(members => {
+                create_infos.client.set_activity(`${members} Utilisateurs`)
+            })
+                .catch(err => console.log(`failed to set activity : ${err}`))
+        }
+        update_activity()
+        setInterval(update_activity, 3600000)
+
     }
 
     server_command(command) {

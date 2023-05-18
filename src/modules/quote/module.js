@@ -32,7 +32,7 @@ class Module {
                 return;
             }
 
-            const selected_quote = quote[Math.floor(Math.random() * quote.length)];
+            const selected_quote = quote[Math.floor(Math.random() * quote.length)].text;
 
             this.client.say(
                 new Message()
@@ -48,13 +48,27 @@ class Module {
             this.client.get_message(command.channel, command.option_value('message'))
                 .then(message => {
                     if (!this.quotes[message.author.id])
-                        this.quotes[message.author.id] = [message.text]
-                    else
-                        this.quotes[message.author.id].push(message)
+                        this.quotes[message.author.id] = [{id: message.source_id, text: message.text}]
+                    else {
+                        for (const quote of this.quotes[message.author.id]) {
+                            if (quote.id === message.source_id) {
+                                command.reply(new Message().set_text('Message déjà en base de donnée !').set_client_only())
+                                return
+                            }
+                        }
+                        this.quotes[message.author.id].push({id: message.source_id, text: message.text})
+                    }
 
-                    fs.writeFile(__dirname + '/data/quotes.json', JSON.stringify(this.quotes), 'utf8', err => console.log(`failed to save quotes : ${err}`))
+                    if (!fs.existsSync(__dirname + '/data'))
+                        fs.mkdirSync(__dirname + '/data')
+                    fs.writeFile(__dirname + '/data/quotes.json', JSON.stringify(this.quotes), 'utf8', err => {
+                        if (err) {
+                            console.log(`failed to save quotes : ${err}`)
+                            command.skip()
+                        } else
+                            command.reply(new Message().set_text('Citation ajoutée à la base de donnée !'))
+                    })
 
-                    command.reply(new Message().set_text('Citation ajoutée à la base de donnée !'))
                 })
                 .catch(err => {
                     console.log(`failed to get message : ${err}`)

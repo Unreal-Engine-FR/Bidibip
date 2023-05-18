@@ -386,8 +386,18 @@ function patch_client(client) {
         if (!message_id) return console.log('invalid message id')
 
         const channel = client.channels.cache.get(channel_id)
-        const msg = await channel.messages.fetch(message_id)
+        const msg = await channel.messages.fetch(message_id).catch(error => `failed to fetch mesage : ${error}`)
         return new Message().from_discord(msg)
+    }
+
+    client.get_user_count = async () => {
+        const guild = await client.guilds.fetch(CONFIG.SERVER_ID)
+        const members = await guild.members.fetch()
+        return members.filter(member => member.user.bot === false).size
+    }
+
+    client.set_activity = (message) => {
+        client.user.setPresence({activities: [{name: message, type: Discord.ActivityType.Watching}]});
     }
 }
 
