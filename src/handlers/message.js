@@ -1,5 +1,5 @@
 const commands = require('../commands');
-const quotes = require('../../data/quotes.json');
+const quotes = require('../modules/quote/data/quotes.json');
 const {tryToSend} = require('../utils');
 const {errorMessage} = require('../../data/strings');
 const {Guild} = require('discord.js');

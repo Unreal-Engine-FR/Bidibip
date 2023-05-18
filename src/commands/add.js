@@ -1,5 +1,5 @@
 const {addQuote} = require('../utils');
-const quotes = require('../../data/quotes.json');
+const quotes = require('../modules/quote/data/quotes.json');
 
 module.exports = async (client, messageId, msg) => {
     const channels = client.guilds.cache.get(process.env.SERVER_ID).channels.cache;

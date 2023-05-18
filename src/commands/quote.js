@@ -1,4 +1,4 @@
-const quotes = require('../../data/quotes.json');
+const quotes = require('../modules/quote/data/quotes.json');
 
 module.exports = (userName, msg) => {
     const pseudos = Object.keys(quotes);

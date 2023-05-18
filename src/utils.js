@@ -1,8 +1,7 @@
 /* eslint-disable max-len */
 let fs = require('fs');
-const quotes = require('../data/quotes.json');
+const quotes = require('./modules/quote/data/quotes.json');
 const Discord = require('discord.js');
-
 
 module.exports = {
     writeFile         : (absolutePath, str) => fs.writeFileSync(absolutePath, str),
