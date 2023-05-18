@@ -302,7 +302,7 @@ function refresh_slash_commands(client, commands) {
         if (command._member_only || command._admin_only)
             discord_command.setDMPermission(false)
 
-        if (command._member_only)
+        if (command._admin_only)
             discord_command.setDefaultMemberPermissions(CONFIG.ADMIN_PERMISSION_FLAG)
 
         if (command._member_only)
