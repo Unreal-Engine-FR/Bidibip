@@ -267,20 +267,27 @@ class Command {
         try {
             const res = await this._interaction.reply(message.output_to_discord())
             return res.id
-        }
-        catch (err) {
+        } catch (err) {
             console.error(`failed to reply to command : ${err}`)
             return null
         }
     }
 
     async wait_reply() {
-        await this._interaction.deferReply({ ephemeral: true });
+        await this._interaction.deferReply({ephemeral: true});
     }
 
-    skip() {
-        this._interaction.reply(new Message().set_text('Vu !').set_client_only().output_to_discord())
-        this._interaction.deleteReply()
+    async skip() {
+        try {
+            await this._interaction.reply(new Message().set_text('Vu !').set_client_only().output_to_discord())
+        } catch (err) {
+            console.error(`Failed to respond : ${err}`)
+        }
+        try {
+            await this._interaction.deleteReply()
+        } catch (err) {
+            console.error(`Failed to delete reply : ${err}`)
+        }
     }
 
     option_value(option) {
