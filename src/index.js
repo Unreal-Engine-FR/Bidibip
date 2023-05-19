@@ -16,8 +16,6 @@ const updater = new AutoGitUpdate({
     exitOnComplete: true
 });
 
-
-udpater.compareVersions().then(res => console.log(res))
 updater.autoUpdate()
     .then(result => {
         if (result) {

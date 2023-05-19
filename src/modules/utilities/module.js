@@ -82,10 +82,13 @@ class Module {
             this.client.updater.compareVersions()
                 .then(res => {
                     if (res.upToDate) {
-                        command.reply(`Je suis à jour ! (version ${res.currentVersion})`)
-                    }
-                    else {
-                        command.reply(`Mise à jour disponible, Redémarage en cours ! (${res.currentVersion} => ${res.remoteVersion})`)
+                        command.reply(new Message()
+                            .set_text(`Je suis à jour ! (version ${res.currentVersion})`)
+                            .set_client_only())
+                    } else {
+                        command.reply(new Message()
+                            .set_text(`Mise à jour disponible, Redémarage en cours ! (${res.currentVersion} => ${res.remoteVersion})`)
+                            .set_client_only())
                             .then(_ => {
                                 console.warning("restarting for update...")
                                 process.exit(0)
