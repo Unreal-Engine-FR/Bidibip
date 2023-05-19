@@ -11,7 +11,7 @@ const AutoGitUpdate = require('auto-git-update')
 const Discord = require("discord.js");
 const updater = new AutoGitUpdate({
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
-    branch: 'dev',
+    branch: CONFIG.UPDATE_FOLLOW_BRANCH,
     tempLocation: CONFIG.CACHE_DIR + '/updater/',
     exitOnComplete: true
 });
@@ -33,6 +33,7 @@ updater.autoUpdate()
                         Discord.GatewayIntentBits.GuildMessages,
                         Discord.GatewayIntentBits.GuildMembers,
                         Discord.GatewayIntentBits.MessageContent,
+                        Discord.GatewayIntentBits.GuildMessageReactions,
                         Discord.GatewayIntentBits.DirectMessages
                     ]
                 }

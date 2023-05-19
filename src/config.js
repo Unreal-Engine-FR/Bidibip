@@ -18,6 +18,7 @@ class Configuration {
         this.SAVE_DIR='./saved/'
         this.LOG_KEEP_DAYS=14
         this.SERVICE_ROLE='<@285426910404673536>'
+        this.UPDATE_FOLLOW_BRANCH='dev'
 
         require('dotenv').config();
         for (const [key, value] of Object.entries(process.env)) {
