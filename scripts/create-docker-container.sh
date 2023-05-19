@@ -18,4 +18,4 @@ bidibip=`sudo docker ps -a | grep bidibip`
 }
 
 echo -n 'create new container... '
-sudo docker run -d --restart unless-stopped bidibip
+sudo docker run -d --restart unless-stopped --mount source=bidibip-saved,target=/app bidibip

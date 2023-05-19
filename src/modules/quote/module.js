@@ -1,6 +1,7 @@
 // MODULE QUOTE
 const {CommandInfo, Message, Embed} = require("../../discord_interface")
 const {resolve} = require('path')
+const CONFIG = require('../../config').get()
 
 const fs = require('fs')
 
@@ -18,7 +19,7 @@ class Module {
         ]
 
         try {
-            const data = fs.readFileSync(__dirname + '/data/quotes.json', 'utf8');
+            const data = fs.readFileSync(CONFIG.SAVE_DIR + '/quotes/quotes.json', 'utf8');
             this.quotes = JSON.parse(data)
         } catch (err) {
             this.quotes = {}
@@ -60,15 +61,15 @@ class Module {
                         this.quotes[message.author.id].push({id: message.source_id, text: message.text})
                     }
 
-                    if (!fs.existsSync(__dirname + '/data'))
-                        fs.mkdirSync(__dirname + '/data', {recursive: true})
-                    fs.writeFile(__dirname + '/data/quotes.json', JSON.stringify(this.quotes), 'utf8', err => {
+                    if (!fs.existsSync(CONFIG.SAVE_DIR + '/quotes'))
+                        fs.mkdirSync(CONFIG.SAVE_DIR + '/quotes', {recursive: true})
+                    fs.writeFile(CONFIG.SAVE_DIR + '/quotes/quotes.json', JSON.stringify(this.quotes), 'utf8', err => {
                         if (err) {
                             console.fatal(`failed to save quotes : ${err}`)
                             command.skip()
                         } else {
                             command.reply(new Message().set_text('Citation ajoutée à la base de donnée !'))
-                            console.info(`Saved quotes to file ${resolve(__dirname + '/data/quotes.json')}`)
+                            console.info(`Saved quotes to file ${resolve(CONFIG.SAVE_DIR + '/quotes/quotes.json')}`)
                         }
                     })
 

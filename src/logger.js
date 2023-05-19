@@ -40,7 +40,7 @@ class Logger {
         console.fatal = this.fatal
 
 
-        const log_dir = __dirname + '/../' + CONFIG.LOG_DIR
+        const log_dir = __dirname + '/../' + CONFIG.SAVE_DIR + "/log/"
         let date_str = new Date().toLocaleString().replaceAll('/', '-').replaceAll(':', '.').replaceAll(', ', '_')
         this.log_file = resolve(`${log_dir}/${date_str}.log`)
 
