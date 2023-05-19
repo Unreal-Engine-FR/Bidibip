@@ -10,6 +10,7 @@ class Module {
     }
 
     server_message_updated(old_message, new_message) {
+        console.info(`Message updated [${old_message.author.name}] :\n${old_message.text}\nto\n${new_message.text}`)
         this.client.say(
             new Message().set_channel(CONFIG.LOG_CHANNEL_ID)
                 .add_embed(
@@ -23,6 +24,7 @@ class Module {
     }
 
     server_message_delete(message) {
+        console.info(`Message deleted [${message.author.name}] :\n${message.text}`)
         this.client.say(
             new Message().set_channel(CONFIG.LOG_CHANNEL_ID)
                 .add_embed(

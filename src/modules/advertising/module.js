@@ -54,7 +54,7 @@ class Module {
                     new Button('cancel', 'Annuler').set_danger(),
                     new Button('send', 'Envoyer').set_success()
                 ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_paid(command).message}
+                this.pending_request[id] = {command: command, message: this._build_paid(command).message.set_channel(CONFIG.ADVERT_PAID_ID)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
             })
         }
@@ -66,7 +66,7 @@ class Module {
                     new Button('cancel', 'Annuler').set_danger(),
                     new Button('send', 'Envoyer').set_success()
                 ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_unpaid(command)}
+                this.pending_request[id] = {command: command, message: this._build_unpaid(command).set_channel(CONFIG.ADVERT_UNPAID_ID)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
             })
         }
@@ -85,7 +85,7 @@ class Module {
                     new Button('cancel', 'Annuler').set_danger(),
                     new Button('send', 'Envoyer').set_success()
                 ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_freelance(command).message}
+                this.pending_request[id] = {command: command, message: this._build_freelance(command).message.set_channel(CONFIG.ADVERT_FREELANCE_ID)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
             })
         }
@@ -95,7 +95,7 @@ class Module {
         MODULE_MANAGER.event_manager().release_interaction(this, id)
         const output_message = this.pending_request[id]
         if (value === 'send') {
-            this.client.say(output_message.message.set_channel(CONFIG.ADVERT_UNPAID_ID))
+            this.client.say(output_message.message)
             this.client.say(output_message.message.set_channel(CONFIG.SHARED))
                 .then(message => {
                     output_message.command.edit_reply(new Message()

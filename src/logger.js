@@ -57,6 +57,11 @@ class Logger {
             })
         })
 
+        this._delegates = []
+    }
+
+    bind(func) {
+        this._delegates.push(func)
     }
 
     info(message, ...args) {
@@ -86,6 +91,9 @@ class Logger {
         fs.appendFileSync(this.log_file, output_message);
 
         process.stdout.write(output_message)
+
+        for (const delegate of this._delegates)
+            delegate(level, message)
 
         if (level === 'F') {
             fs.appendFileSync(this.log_file, Error().stack + '\n');

@@ -76,7 +76,12 @@ class CommandManager {
         if (found_command)
             for (const module of found_command.modules)
                 if (module.server_command)
-                    module.server_command(command)
+                    try {
+                        module.server_command(command)
+                    } catch (err) {
+                        console.error(`Failed to call 'server_command()' on module ${module.name} : ${err}`)
+                    }
+
     }
 
     get_commands() {
@@ -138,6 +143,8 @@ class EventManager {
                 return
             }
 
+            console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] issued '${interaction.commandName}'`)
+
             const command = this._command_manager.find(interaction.commandName)
             if (command === null) {
                 interaction.reply(new Message().set_text("Commande inconnue").set_client_only())
@@ -182,25 +189,41 @@ class EventManager {
     _server_message(message) {
         for (const module of this._bound_modules)
             if (module.server_message)
-                module.server_message(message)
+                try {
+                    module.server_message(message)
+                } catch (err) {
+                    console.error(`Failed to call 'server_message()' on module ${module.name} : ${err}`)
+                }
     }
 
     _dm_message(message) {
         for (const module of this._bound_modules)
             if (module.dm_message)
-                module.dm_message(message)
+                try {
+                    module.dm_message(message)
+                } catch (err) {
+                    console.error(`Failed to call 'dm_message()' on module ${module.name} : ${err}`)
+                }
     }
 
     _server_message_updated(old_message, new_message) {
         for (const module of this._bound_modules)
             if (module.server_message_updated)
-                module.server_message_updated(old_message, new_message)
+                try {
+                    module.server_message_updated(old_message, new_message)
+                } catch (err) {
+                    console.error(`Failed to call 'server_message_updated()' on module ${module.name} : ${err}`)
+                }
     }
 
     _server_message_delete(message) {
         for (const module of this._bound_modules)
             if (module.server_message_delete)
-                module.server_message_delete(message)
+                try {
+                    module.server_message_delete(message)
+                } catch (err) {
+                    console.error(`Failed to call 'server_message_delete()' on module ${module.name} : ${err}`)
+                }
     }
 
     get_commands() {

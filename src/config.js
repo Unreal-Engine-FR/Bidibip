@@ -29,7 +29,7 @@ class Configuration {
         this.UPDATE_CACHE='../Bidibip_Cache/update/'
         this.LOG_DIR='../Bidibip_Cache/logs/'
         this.LOG_KEEP_DAYS=14
-
+        this.SERVICE_ROLE='<@285426910404673536>'
 
         require('dotenv').config();
         for (const [key, value] of Object.entries(process.env)) {

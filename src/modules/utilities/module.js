@@ -1,6 +1,8 @@
 // MODULE UTILITIES
 const {CommandInfo, Message, Embed} = require("../../discord_interface");
 const MODULE_MANAGER = require('../../module_manager').get()
+const LOGGER = require('../../logger').get()
+const CONFIG = require('../../config').get()
 
 class Module {
     constructor(create_infos) {
@@ -31,6 +33,16 @@ class Module {
         update_activity()
         setInterval(update_activity, 3600000)
 
+        LOGGER.bind((level, message) => {
+            if (level === 'E' || level === 'F') {
+                create_infos.client.say(new Message()
+                    .set_text(CONFIG.SERVICE_ROLE + ' !!!')
+                    .set_channel(CONFIG.LOG_CHANNEL_ID)
+                    .add_embed(new Embed()
+                        .set_title(level === 'E' ? 'Error' : 'Fatal')
+                        .set_description(message)))
+            }
+        })
     }
 
     server_command(command) {
