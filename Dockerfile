@@ -5,7 +5,7 @@ WORKDIR /home/node/Bidibip
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 # where available (npm@5+)
-COPY package*.json ./
+COPY /home/ubuntu/docker/Bidibip/package*.json ./
 
 RUN npm install --production
 RUN apk add git # required to auto-update app from git
@@ -13,6 +13,6 @@ RUN apk add git # required to auto-update app from git
 RUN npm ci --omit=dev
 
 # Bundle app source
-COPY . .
+COPY /home/ubuntu/docker/Bidibip/ .
 
 CMD [ "node", "src/index.js" ]
