@@ -252,7 +252,7 @@ class ModuleManager {
                 this.load_module(module)
             }
         } catch (err) {
-            console.log("failed to load modules : " + err)
+            console.fatal("failed to load modules : " + err)
         }
     }
 
@@ -264,7 +264,7 @@ class ModuleManager {
         import('./modules/' + module_name + '/module.js')
             .then(module => {
                 if (this._module_list[module_name])
-                    console.log(`Module '${module_name}' is already loaded`)
+                    console.warning(`Module '${module_name}' is already loaded`)
                 else {
                     let instance = new module.Module({
                         client: this._client,
@@ -277,11 +277,11 @@ class ModuleManager {
                         instance.enabled = false
                         this.start(module_name)
                     }
-                    console.log(`Successfully loaded module '${module_name}'`)
+                    console.validate(`Successfully loaded module '${module_name}'`)
                 }
             })
             .catch(error => {
-                console.log(`Failed to load module '${module_name}' : ${error}`)
+                console.fatal(`Failed to load module '${module_name}' : ${error}`)
             })
     }
 
@@ -291,8 +291,7 @@ class ModuleManager {
      */
     unload_module(module_name) {
         if (!this._module_list[module_name]) {
-            console.log(`Module '${module_name}' does not exists`)
-            return
+            return console.error(`Module '${module_name}' does not exists`)
         }
 
         // Disable module
@@ -301,7 +300,7 @@ class ModuleManager {
 
         delete this._module_list[module_name]
 
-        console.log(`Successfully unloaded module '${module_name}'`)
+        console.validate(`Successfully unloaded module '${module_name}'`)
     }
 
     /**
@@ -330,7 +329,7 @@ class ModuleManager {
      */
     start(module_name) {
         if (!this._module_list[module_name]) {
-            console.log(`There is no module called '${module_name}'`)
+            console.error(`There is no module called '${module_name}'`)
             return
         }
 
@@ -340,9 +339,9 @@ class ModuleManager {
             this._event_manager.bind(module)
             if (module.start)
                 module.start()
-            console.log(`Successfully enabled module '${module_name}'`)
+            console.validate(`Successfully enabled module '${module_name}'`)
         } else
-            console.log(`Module '${module_name}' is already enabled`)
+            console.warning(`Module '${module_name}' is already enabled`)
     }
 
     /**
@@ -351,7 +350,7 @@ class ModuleManager {
      */
     stop(module_name) {
         if (!this._module_list[module_name]) {
-            console.log(`There is no module called '${module_name}'`)
+            console.error(`There is no module called '${module_name}'`)
             return
         }
 
@@ -361,9 +360,9 @@ class ModuleManager {
                 module.stop()
             this._event_manager.unbind(module)
             module.enabled = false
-            console.log(`Successfully disabled module '${module_name}'`)
+            console.validate(`Successfully disabled module '${module_name}'`)
         } else
-            console.log(`Module '${module_name}' is already disabled`)
+            console.warning(`Module '${module_name}' is already disabled`)
     }
 
     event_manager() {

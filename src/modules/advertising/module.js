@@ -15,7 +15,7 @@ class Module {
                 .add_text_option('contrat', 'Est-ce un contrat permanent ou contractuel ?', ['Permanent', 'Contractuel'])
                 .add_text_option('role', 'Quel rôle recrutes-tu ? (Gameplay developer...)')
                 .add_text_option('societe', 'Quel est le nom de l\'entreprise ?')
-                .add_bool_option('remote', 'Est-ce que le remote est possible ?')
+                .add_text_option('remote', 'Est-ce que le remote est possible ?', [':globe_with_meridians: Distanciel accepté', ':post_office: Presentiel seulement'])
                 .add_text_option('responsabilites', 'Liste des responsabilites associes pour ce rôle ?')
                 .add_text_option('qualifications', 'Lister les qualifications pour ce rôle.')
                 .add_text_option('postuler', 'Comment peut-on postuler ?')
@@ -127,7 +127,7 @@ class Module {
 
         const embed = new Embed()
             .set_title((command.option_value('role') || 'option manquante') + " Chez " + (command.option_value('societe') || 'option manquante'))
-            .set_description(command.option_value('remote') === true ? ':globe_with_meridians: Remote accepté' : ':post_office: Présentiel')
+            .set_description(command.option_value('remote') || 'option manquante')
             .add_field('Durée du contrat', duree, true)
 
         if (command.option_value('localisation'))

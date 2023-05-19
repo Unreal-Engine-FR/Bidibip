@@ -63,7 +63,7 @@ class Module {
                         fs.mkdirSync(__dirname + '/data')
                     fs.writeFile(__dirname + '/data/quotes.json', JSON.stringify(this.quotes), 'utf8', err => {
                         if (err) {
-                            console.log(`failed to save quotes : ${err}`)
+                            console.fatal(`failed to save quotes : ${err}`)
                             command.skip()
                         } else
                             command.reply(new Message().set_text('Citation ajoutée à la base de donnée !'))
@@ -71,7 +71,7 @@ class Module {
 
                 })
                 .catch(err => {
-                    console.log(`failed to get message : ${err}`)
+                    console.fatal(`failed to get message : ${err}`)
                     command.reply(new Message().set_text(`Je n'ai pas trouvé le message :(`).set_client_only())
                 })
         }

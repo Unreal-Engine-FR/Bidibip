@@ -26,6 +26,10 @@ class Configuration {
         this.USER_PERMISSION_FLAG=16384 // Send link
         this.ADMIN_PERMISSION_FLAG=4 // Ban member
 
+        this.UPDATE_CACHE='../Bidibip_Cache/update/'
+        this.LOG_DIR='../Bidibip_Cache/logs/'
+        this.LOG_KEEP_DAYS=14
+
 
         require('dotenv').config();
         for (const [key, value] of Object.entries(process.env)) {

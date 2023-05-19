@@ -130,7 +130,7 @@ class Message {
 
     output_to_discord() {
         if (this.is_empty()) {
-            console.log('cannot send empty message')
+            console.fatal('cannot send empty message')
             return
         }
 
@@ -166,20 +166,15 @@ class Message {
     }
 
     async _get_discord_message(client) {
-        if (!this.channel) {
-            console.log('Missing channel')
-            return
-        }
+        if (!this.channel)
+            return console.fatal('Missing channel')
 
-        if (!this.source_id) {
-            console.log('Missing source id')
-        }
+        if (!this.source_id)
+            console.fatal('Missing source id')
 
         const channel = client.channels.cache.get(this.channel)
-        if (!channel) {
-            console.log('Unknown channel')
-            return;
-        }
+        if (!channel)
+            return console.fatal('Unknown channel')
 
         return await channel.messages.fetch(this.source_id)
     }
@@ -187,8 +182,7 @@ class Message {
     delete(client) {
         this._get_discord_message(client).then(di_message => {
             di_message.delete()
-                .then(res => console.log(res))
-                .catch(err => console.log(`Failed to delete message : ${err}`))
+                .catch(err => console.fatal(`Failed to delete message : ${err}`))
         })
     }
 
@@ -196,9 +190,9 @@ class Message {
         this._get_discord_message(client)
             .then(message => {
                 message.edit(new_message.output_to_discord())
-                    .catch(err => console.log(`Failed to update message : ${err}`))
+                    .catch(err => console.fatal(`Failed to update message : ${err}`))
             })
-            .catch(err => console.log(`Failed to update message : ${err}`))
+            .catch(err => console.fatal(`Failed to update message : ${err}`))
     }
 }
 
@@ -344,14 +338,14 @@ function refresh_slash_commands(client, commands) {
     // deploy old
     (async () => {
         try {
-            console.log(`Started refreshing ${command_data.length} application (/) commands.`);
+            console.info(`Started refreshing ${command_data.length} application (/) commands.`);
 
             // The put method is used to fully refresh all old in the guild with the current set
             const data2 = await rest.put(
                 Discord.Routes.applicationCommands(CONFIG.APP_ID),
                 {body: command_data},
             );
-            console.log(`Successfully reloaded ${data2.length} application (/) commands.`);
+            console.info(`Successfully reloaded ${data2.length} application (/) commands.`);
         } catch (error) {
             // And of course, make sure you catch and log any errors!
             console.error(error);
@@ -362,7 +356,7 @@ function refresh_slash_commands(client, commands) {
 function patch_client(client) {
     client.say = async (message) => {
         if (!message.channel) {
-            console.log('please provide a channel')
+            console.fatal('please provide a channel')
             return
         }
         const res = await client.channels.cache.get(message.channel).send(message.output_to_discord())
@@ -371,19 +365,19 @@ function patch_client(client) {
     }
 
     client.get_user_name = (client_id, full = false) => {
-        if (!client_id) return console.log('invalid client id')
+        if (!client_id) return console.fatal('invalid client id')
         const user = client.users.cache.get(client_id)
         return user.username + (full ? "#" + user.discriminator : '')
     }
 
     client.get_user_icon = (client_id) => {
-        if (!client_id) return console.log('invalid client id')
+        if (!client_id) return console.fatal('invalid client id')
         const user = client.users.cache.get(client_id)
         return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
     }
 
     client.get_message = async (channel_id, message_id) => {
-        if (!message_id) return console.log('invalid message id')
+        if (!message_id) return console.fatal('invalid message id')
 
         const channel = client.channels.cache.get(channel_id)
         const msg = await channel.messages.fetch(message_id).catch(error => `failed to fetch mesage : ${error}`)

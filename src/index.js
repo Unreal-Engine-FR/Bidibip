@@ -11,12 +11,12 @@ const AutoGitUpdate = require('auto-git-update')
 const updater = new AutoGitUpdate({
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
     branch: 'feature/bidibip-v3',
-    tempLocation: '../tmp/',
+    tempLocation: CONFIG.UPDATE_CACHE,
     exitOnComplete: true
 });
 updater.autoUpdate()
-    .then(result => console.log(result ? `Update complete !` : `Update failed`))
-    .catch(err => console.log(`Update failed : ${err}`))
+    .then(result => console.info(result ? `Update complete !` : `Update failed`))
+    .catch(err => console.error(`Update failed : ${err}`))
 
 /*
 CREATE DISCORD CLIENT
@@ -44,6 +44,6 @@ client.on('ready', () => {
 })
 client.login(CONFIG.TOKEN)
     .then(_token => {
-        console.log(`Successfully logged in !`)
+        console.validate(`Successfully logged in !`)
     })
-    .catch(error => console.log(`Failed to login : ${error}`))
+    .catch(error => console.fatal(`Failed to login : ${error}`))

@@ -26,7 +26,7 @@ class Module {
             create_infos.client.get_user_count().then(members => {
                 create_infos.client.set_activity(`${members} Utilisateurs`)
             })
-                .catch(err => console.log(`failed to set activity : ${err}`))
+                .catch(err => console.fatal(`failed to set activity : ${err}`))
         }
         update_activity()
         setInterval(update_activity, 3600000)
