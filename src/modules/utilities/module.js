@@ -38,7 +38,7 @@ class Module {
         LOGGER.bind((level, message) => {
             if (level === 'E' || level === 'F') {
                 create_infos.client.say(new Message()
-                    .set_text(CONFIG.SERVICE_ROLE + ' !!!')
+                    .set_text('A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
                     .set_channel(CONFIG.LOG_CHANNEL_ID)
                     .add_embed(new Embed()
                         .set_title(level === 'E' ? 'Error' : 'Fatal')

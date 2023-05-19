@@ -264,8 +264,18 @@ class Command {
     }
 
     async reply(message) {
-        const res = await this._interaction.reply(message.output_to_discord())
-        return res.id
+        try {
+            const res = await this._interaction.reply(message.output_to_discord())
+            return res.id
+        }
+        catch (err) {
+            console.error(`failed to reply to command : ${err}`)
+            return null
+        }
+    }
+
+    async wait_reply() {
+        await this._interaction.deferReply({ ephemeral: true });
     }
 
     skip() {
