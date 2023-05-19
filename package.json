@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/Mawiedev/Bot-discord#readme",
   "dependencies": {
+    "auto-git-update": "^2.1.2",
     "discord.js": "^14.11.0",
     "dotenv": "^16.0.3"
   },
