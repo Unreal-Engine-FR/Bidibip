@@ -8,43 +8,57 @@ const {patch_client} = require('./discord_interface')
 GIT AUTO-UPDATER
  */
 const AutoGitUpdate = require('auto-git-update')
+const Discord = require("discord.js");
 const updater = new AutoGitUpdate({
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
     branch: 'dev',
     tempLocation: CONFIG.UPDATE_CACHE,
     exitOnComplete: true
 });
+
+
+udpater.compareVersions().then(res => console.log(res))
 updater.autoUpdate()
-    .then(result => console.info(result ? `Update complete !` : `Update failed`))
-    .catch(err => console.error(`Update failed : ${err}`))
+    .then(result => {
+        if (result) {
+            console.validate('Application up to date !')
 
-/*
-CREATE DISCORD CLIENT
- */
-const Discord = require('discord.js');
-const client = new Discord.Client(
-    {
-        partials: [Discord.Partials.Channel],
-        intents: [
-            Discord.GatewayIntentBits.Guilds,
-            Discord.GatewayIntentBits.GuildMessages,
-            Discord.GatewayIntentBits.GuildMembers,
-            Discord.GatewayIntentBits.MessageContent,
-            Discord.GatewayIntentBits.DirectMessages
-        ]
-    }
-)
+            /*
+            CREATE DISCORD CLIENT
+             */
+            const Discord = require('discord.js');
+            const client = new Discord.Client(
+                {
+                    partials: [Discord.Partials.Channel],
+                    intents: [
+                        Discord.GatewayIntentBits.Guilds,
+                        Discord.GatewayIntentBits.GuildMessages,
+                        Discord.GatewayIntentBits.GuildMembers,
+                        Discord.GatewayIntentBits.MessageContent,
+                        Discord.GatewayIntentBits.DirectMessages
+                    ]
+                }
+            )
 
-/*
-START DISCORD CLIENT
- */
-client.on('ready', () => {
-    patch_client(client)
-    MODULE_MANAGER.init(client)
-    client.channels.cache.get(CONFIG.LOG_CHANNEL_ID).send({content: 'Coucou tout le monde ! :wave: '})
-})
-client.login(CONFIG.APP_TOKEN)
-    .then(_token => {
-        console.validate(`Successfully logged in !`)
+            client.updater = updater
+
+            /*
+            START DISCORD CLIENT
+             */
+            client.on('ready', () => {
+                patch_client(client)
+                MODULE_MANAGER.init(client)
+                client.channels.cache.get(CONFIG.LOG_CHANNEL_ID).send({content: 'Coucou tout le monde ! :wave: '})
+            })
+            client.login(CONFIG.APP_TOKEN)
+                .then(_token => {
+                    console.validate(`Successfully logged in !`)
+                })
+                .catch(error => console.fatal(`Failed to login : ${error}`))
+
+        }
+        else {
+            console.warning('Application outdated, waiting for update...')
+        }
     })
-    .catch(error => console.fatal(`Failed to login : ${error}`))
+    .catch(err => console.error(`Update failed : ${err}`))

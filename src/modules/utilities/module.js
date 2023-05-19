@@ -21,6 +21,8 @@ class Module {
                 .set_admin_only(),
             new CommandInfo('unload_module', 'Decharge un module')
                 .add_text_option('nom', 'nom du module')
+                .set_admin_only(),
+            new CommandInfo('update', 'Vérifie les mises à jour et les effectue le cas échéant')
                 .set_admin_only()
         ]
 
@@ -75,6 +77,24 @@ class Module {
         if (command.match('unload_module')) {
             MODULE_MANAGER.unload_module(command.option_value('nom'))
             command.skip()
+        }
+        if (command.match('update')) {
+            this.client.updater.compareVersions()
+                .then(res => {
+                    if (res.upToDate) {
+                        command.reply(`Je suis à jour ! (version ${res.currentVersion})`)
+                    }
+                    else {
+                        command.reply(`Mise à jour disponible, Redémarage en cours ! (${res.currentVersion} => ${res.remoteVersion})`)
+                            .then(_ => {
+                                console.warning("restarting for update...")
+                                process.exit(0)
+                            })
+                    }
+                })
+                .catch(err => {
+                    command.reply(new Message().set_text(`Impossible de vérifier les mises à jour : ${err}`).set_client_only())
+                })
         }
     }
 }
