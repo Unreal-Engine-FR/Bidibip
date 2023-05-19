@@ -1,6 +1,6 @@
 {
   "name": "bot-discord",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Bot discord for a specific server",
   "main": "index.js",
   "scripts": {
@@ -25,10 +25,11 @@
   },
   "homepage": "https://github.com/Mawiedev/Bot-discord#readme",
   "dependencies": {
-    "discord.js": "^12.5.3",
-    "dotenv": "^10.0.0"
+    "auto-git-update": "^2.1.2",
+    "discord.js": "^14.11.0",
+    "dotenv": "^16.0.3"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "nodemon": "^2.0.22"
   }
 }

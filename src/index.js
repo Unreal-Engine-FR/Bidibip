@@ -1,37 +1,63 @@
-const path = require('path'); 
-require('dotenv').config({path: path.join(__dirname, '../.env')});
-const handlers = require('./handlers');
+const MODULE_MANAGER = require('./module_manager').get()
+const CONFIG = require('./config').get()
+require('./logger').init()
 
-const Discord = require('discord.js');
-const client = new Discord.Client();
+const {patch_client} = require('./discord_interface')
 
-// Overwrite console.log to keep log file
-if (process.env.ENV === 'PROD') {
-    let fs = require('fs');
-    let log_file = fs.createWriteStream('./debug.log', {flags: 'a'});
-    let log_stdout = process.stdout;
-    console.log = (text) => {
-        const now = new Date().toISOString();
-        const date = now.substr(2, 8) + ' ' + now.substr(11, 8);
-        const string = `[${date}] ${text}\n`;
-        log_file.write(string);
-        log_stdout.write(string);
+/*
+GIT AUTO-UPDATER
+ */
+const AutoGitUpdate = require('auto-git-update')
+const Discord = require("discord.js");
+const updater = new AutoGitUpdate({
+    repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
+    branch: CONFIG.UPDATE_FOLLOW_BRANCH,
+    tempLocation: CONFIG.CACHE_DIR + '/updater/',
+    exitOnComplete: true
+});
 
-    };
-    
-    //Delete each month 2628000000
-    setInterval(() => fs.truncate('./debug.log', 0, ()=>console.log('[LOGS DELETED]')), 1209600000); 
-}
+updater.autoUpdate()
+    .then(result => {
+        if (result) {
+            console.validate('Application up to date !')
 
-client.inProcessAdvert = {};
+            /*
+            CREATE DISCORD CLIENT
+             */
+            const Discord = require('discord.js');
+            const client = new Discord.Client(
+                {
+                    partials: [Discord.Partials.Channel],
+                    intents: [
+                        Discord.GatewayIntentBits.Guilds,
+                        Discord.GatewayIntentBits.GuildMessages,
+                        Discord.GatewayIntentBits.GuildMembers,
+                        Discord.GatewayIntentBits.MessageContent,
+                        Discord.GatewayIntentBits.GuildMessageReactions,
+                        Discord.GatewayIntentBits.DirectMessages
+                    ]
+                }
+            )
 
-// All DiscordJs events here: https://discord.js.org/#/docs/main/stable/class/Client?scrollTo=e-channelCreate
-client.on('ready', () => handlers.ready(client));
-client.on('guildMemberAdd', member => handlers.guildMemberAdd(client));
-client.on('guildMemberRemove', member => handlers.guildMemberRemove(client));
-client.on('messageDelete', msg => handlers.messageDelete(client, msg));
-client.on('messageUpdate', (oldMsg, newMsg) => handlers.messageUpdate(client, oldMsg, newMsg));
-client.on('message', msg => handlers.message(client, msg));
-client.on('voiceStateUpdate', (oldState, newState) => handlers.voiceStateUpdate(client, oldState, newState));
+            client.updater = updater
 
-client.login(process.env.TOKEN);
+            /*
+            START DISCORD CLIENT
+             */
+            client.on('ready', () => {
+                patch_client(client)
+                MODULE_MANAGER.init(client)
+                client.channels.cache.get(CONFIG.LOG_CHANNEL_ID).send({content: 'Coucou tout le monde ! :wave: '})
+            })
+            client.login(CONFIG.APP_TOKEN)
+                .then(_token => {
+                    console.validate(`Successfully logged in !`)
+                })
+                .catch(error => console.fatal(`Failed to login : ${error}`))
+
+        }
+        else {
+            console.warning('Application outdated, waiting for update...')
+        }
+    })
+    .catch(err => console.error(`Update failed : ${err}`))
