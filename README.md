@@ -1,24 +1,80 @@
-# Bot discord
+# Blip bloup !
 
-## Install and run
+<img src="https://raw.githubusercontent.com/Unreal-Engine-FR/.github/main/resources/bidibip-icon/bidibip_close.png"  width="200" height="200">
 
-`> npm install`
+**Welcome to Bidibip's developers repository !**
 
-Rename `.env.template` to `.env` and put your Discord server [tokens/keys](https://www.writebots.com/discord-bot-token) in it
+## Deploy
 
-`> npm start`
+### Create and run
 
-The bot should be running on your server
+- Install docker on your server
+- Clone this repository (It should be cloned in a directory named `/home/ubuntu/docker/`)
+- Configure .env file (rename `./Bidibip/.env.template` to `./Bidibip/.env` and fill it with your [credentials](https://www.writebots.com/discord-bot-token))
+- Create docker image : `> source ./Bidibip/scripts/build-docker-image.sh`
+- Create a docker volume named `bidibip-saved` [https://docs.docker.com/storage/volumes/](https://docs.docker.com/storage/volumes/)
+- Run docker container : `> source ./Bidibip/scripts/create-docker-container.sh`
 
-## Command list
+### Stop the server
 
-You can run these commands with the bot : 
+- Find the container id with `> sudo docker ps -a`
+- stop the container with `> sudo docker stop <container_id>`
 
-* Create an ad with `!freelance` 
-* Create an ad with `!unpaid` 
-* Create an ad with `!paid` 
-* Create an ad with `!freelance` 
-* Create a quote with `!add [messageId]`
-* Say a random quote from this person `![person]`
-* List all persons usable for the quote `!quotes` 
-* List all linked reference `!link`
+
+## Development
+
+### Setup local repository
+
+- clone this repository
+- install node dependencies `> npm install`
+- Configure .env file (rename `./Bidibip/.env.template` to `./Bidibip/.env` and fill it with your [credentials](https://www.writebots.com/discord-bot-token))
+- switch to dev branch
+- setup git flow `> git flow init` (main branch:`main` / development branch:`dev` / Default configuration)
+- create a new feature `> git flow feature start 'your-feature-name'`
+
+### Run local instance
+
+- `> npm start`
+
+## Adding modules
+
+> Features are implemented in modules. [See some examples](./src/modules/)
+
+> To create a new module, add a new folder with your module's name under [src/modules](./src/modules/) directory, then add a module.js file that will contains all your module events.
+>
+> *Minimal module code example : `src/modules/my_feature/module.js`*
+> ```js
+> // MODULE MY_FEATURE
+> class Module {
+>     constructor(create_infos) {
+>     }
+> }
+> 
+> module.exports = {Module}
+> ``` 
+
+> Then, to receive events, implement corresponding method in your class.
+> Here are some examples
+> ```js
+> class Module {
+>    constructor(create_infos) {
+>        this.client = create_infos.client
+>
+>        // Add a dummy command
+>        this.commands = [
+>            new CommandInfo('my_dummy_command', 'what my command do').set_member_only()
+>        ]
+>    }
+>
+>    start() {}                                              // When module is started
+>    stop() {}                                               // When module is stopped
+>    server_command(command) {}                              // When server command is executed
+>    server_message(message) {}                              // On received server messages=
+>    receive_interaction(value, id, message) {}              // When interaction button is clicked (interaction should have been bound before)
+>    server_message_updated(old_message, new_message) {}     // On update message on server
+>    server_message_delete(message) {}                       // On delete message on server
+> }
+> ```
+> *a more complete list of available events is available in [src/modules/utilities/module.js](./src/modules/utilities/module.js)*
+
+That's all

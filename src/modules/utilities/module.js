@@ -5,7 +5,14 @@ const CONFIG = require('../../config').get()
 const LOGGER = require('../../logger').get()
 
 class Module {
+    /**
+     * @param create_infos contains module infos => {
+     *      client: discord_client
+     * }
+     */
     constructor(create_infos) {
+        this.enabled = true // default value is true
+
         this.client = create_infos.client
 
         // Command declaration
@@ -47,6 +54,14 @@ class Module {
                         .set_description(message)))
             }
         })
+    }
+
+    // When module is started
+    start() {
+    }
+
+    // When module is stopped
+    stop() {
     }
 
     server_command(command) {
@@ -110,6 +125,22 @@ class Module {
                     process.exit(0)
                 })
         }
+    }
+
+    // On received server messages=
+    server_message(message) {
+    }
+
+    // When interaction button is clicked (interaction should have been bound before)
+    receive_interaction(value, id, message) {
+    }
+
+    // On update message on server
+    server_message_updated(old_message, new_message) {
+    }
+
+    // On delete message on server
+    server_message_delete(message) {
     }
 }
 

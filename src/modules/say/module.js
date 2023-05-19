@@ -2,14 +2,7 @@
 const {CommandInfo, Message} = require("../../discord_interface");
 
 class Module {
-    /**
-     * @param create_infos contains module infos => {
-     *      client: discord_client
-     * }
-     */
     constructor(create_infos) {
-        this.enabled = true // default value is true
-
         this.client = create_infos.client
 
         // Command declaration
@@ -18,14 +11,6 @@ class Module {
                 .add_text_option('message', 'Ce que bidibip dira pour vous', [], true)
                 .set_member_only()
         ]
-    }
-
-    // When module is started
-    start() {
-    }
-
-    // When module is stopped
-    stop() {
     }
 
     // When server command is executed
@@ -38,22 +23,6 @@ class Module {
             )
             command.skip()
         }
-    }
-
-    // On received server messages=
-    server_message(message) {
-    }
-
-    // When interaction button is clicked (interaction should have been bound before)
-    receive_interaction(value, id, message) {
-    }
-
-    // On update message on server
-    server_message_updated(old_message, new_message) {
-    }
-
-    // On delete message on server
-    server_message_delete(message) {
     }
 }
 
