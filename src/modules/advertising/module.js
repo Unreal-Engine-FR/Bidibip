@@ -51,8 +51,8 @@ class Module {
                 .set_client_only()
                 .set_text('Prends le temps de vérifier ton message :')
                 .add_interaction_row([
-                    new Button('cancel', 'Annuler').set_danger(),
-                    new Button('send', 'Envoyer').set_success()
+                    new Button('cancel', 'Annuler').set_type(Button.Danger),
+                    new Button('send', 'Envoyer').set_type(Button.Success)
                 ])).then(id => {
                 this.pending_request[id] = {command: command, message: this._build_paid(command).message.set_channel(CONFIG.ADVERTISING_PAID_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
@@ -63,8 +63,8 @@ class Module {
                 .set_client_only()
                 .set_text('Prends le temps de vérifier ton message :')
                 .add_interaction_row([
-                    new Button('cancel', 'Annuler').set_danger(),
-                    new Button('send', 'Envoyer').set_success()
+                    new Button('cancel', 'Annuler').set_type(Button.Danger),
+                    new Button('send', 'Envoyer').set_type(Button.Success)
                 ])).then(id => {
                 this.pending_request[id] = {command: command, message: this._build_unpaid(command).set_channel(CONFIG.ADVERTISING_UNPAID_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
@@ -82,8 +82,8 @@ class Module {
                 .set_client_only()
                 .set_text('Prends le temps de vérifier ton message :')
                 .add_interaction_row([
-                    new Button('cancel', 'Annuler').set_danger(),
-                    new Button('send', 'Envoyer').set_success()
+                    new Button('cancel', 'Annuler').set_type(Button.Danger),
+                    new Button('send', 'Envoyer').set_type(Button.Success)
                 ])).then(id => {
                 this.pending_request[id] = {command: command, message: this._build_freelance(command).message.set_channel(CONFIG.ADVERTISING_FREELANCE_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)

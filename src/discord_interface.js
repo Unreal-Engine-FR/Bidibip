@@ -6,21 +6,43 @@ class Embed {
         this.fields = []
     }
 
-    set_title(name) {
-        this.title = name
+    /**
+     * Set embed title text
+     * @param title {string}
+     * @returns {Embed}
+     */
+    set_title(title) {
+        this.title = title
         return this
     }
 
+    /**
+     * Set embed description text
+     * @param description {string}
+     * @returns {Embed}
+     */
     set_description(description) {
         this.description = description
         return this
     }
 
+    /**
+     * Set embed thumbnail image
+     * @param thumbnail {string} url
+     * @returns {Embed}
+     */
     set_thumbnail(thumbnail) {
         this.thumbnail = thumbnail
         return this
     }
 
+    /**
+     * Add field to embed (a field contains a name and a description)
+     * @param name {string} field name
+     * @param value {string} field text
+     * @param inline {boolean} should be displayed as inline bloc
+     * @returns {Embed}
+     */
     add_field(name, value, inline = false) {
         this.fields.push({name: name, value: value, inline: inline})
         return this
@@ -33,28 +55,19 @@ class Button {
         this.id = id
     }
 
-    set_primary() {
-        this.type = 'Primary'
-        return this
-    }
+    static Primary = 'Primary'
+    static Secondary = 'Secondary'
+    static Success = 'Success'
+    static Danger = 'Danger'
+    static Link = 'Link'
 
-    set_secondary() {
-        this.type = 'Secondary'
-        return this
-    }
-
-    set_success() {
-        this.type = 'Success'
-        return this
-    }
-
-    set_danger() {
-        this.type = 'Danger'
-        return this
-    }
-
-    set_link() {
-        this.type = 'Link'
+    /**
+     * Set button display type
+     * @param type {string}
+     * @returns {Button}
+     */
+    set_type(type) {
+        this.type = type
         return this
     }
 
@@ -80,31 +93,61 @@ class Message {
         return this
     }
 
+    /**
+     * Set message text
+     * @param text {string}
+     * @returns {Message}
+     */
     set_text(text) {
         this.text = text
         return this
     }
 
+    /**
+     * Set initial message discord id (used to get extra infos about messages, or to get the discord identifier of the initial message)
+     * @param source_id {number}
+     * @returns {Message}
+     */
     set_source_id(source_id) {
         this.source_id = source_id
         return this
     }
 
+    /**
+     * Set channel ID (this is the channel the message will be sent to)
+     * @param id {number}
+     * @returns {Message}
+     */
     set_channel(id) {
         this.channel = id
         return this
     }
 
+    /**
+     * Is this message a DM message
+     * @param is_dm {boolean}
+     * @returns {Message}
+     */
     set_dm(is_dm) {
         this.dm = is_dm
         return this
     }
 
+    /**
+     * Add an embed to this message
+     * @param embed {Embed}
+     * @returns {Message}
+     */
     add_embed(embed) {
         this.embeds.push(embed)
         return this
     }
 
+    /**
+     * Add a row of user button under this message
+     * @param row {[Button]}
+     * @returns {Message}
+     */
     add_interaction_row(row) {
         this.interactions.push(row)
         return this
@@ -119,10 +162,18 @@ class Message {
         return this
     }
 
+    /**
+     * Does this message contains any text or embed
+     * @returns {boolean}
+     */
     is_empty() {
-        return this.text === null && this.embeds.length === 0
+        return !this.text && this.embeds.length === 0
     }
 
+    /**
+     * Set message ephemeral (and visible only by the client. Used with interactions)
+     * @returns {Message}
+     */
     set_client_only() {
         this.client_only = true
         return this
@@ -179,6 +230,10 @@ class Message {
         return await channel.messages.fetch(this.source_id)
     }
 
+    /**
+     * Delete this message
+     * @param client {Client} Discord client instance
+     */
     delete(client) {
         this._get_discord_message(client).then(di_message => {
             di_message.delete()
@@ -186,6 +241,11 @@ class Message {
         })
     }
 
+    /**
+     * Replace this message with a new one
+     * @param client {Client} Discord client instance
+     * @param new_message {Message}
+     */
     update(client, new_message) {
         this._get_discord_message(client)
             .then(message => {
