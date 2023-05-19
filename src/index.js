@@ -41,6 +41,7 @@ START DISCORD CLIENT
 client.on('ready', () => {
     patch_client(client)
     MODULE_MANAGER.init(client)
+    client.channels.cache.get(CONFIG.LOG_CHANNEL_ID).send({content: 'Coucou tout le monde ! :wave: '})
 })
 client.login(CONFIG.APP_TOKEN)
     .then(_token => {
