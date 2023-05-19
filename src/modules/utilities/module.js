@@ -23,6 +23,8 @@ class Module {
                 .add_text_option('nom', 'nom du module')
                 .set_admin_only(),
             new CommandInfo('update', 'Vérifie les mises à jour et les effectue le cas échéant')
+                .set_admin_only(),
+            new CommandInfo('restart', 'Fait redémarrer le bot')
                 .set_admin_only()
         ]
 
@@ -97,6 +99,15 @@ class Module {
                 })
                 .catch(err => {
                     command.reply(new Message().set_text(`Impossible de vérifier les mises à jour : ${err}`).set_client_only())
+                })
+        }
+        if (command.match('restart')) {
+            command.reply(new Message()
+                .set_text(`Redémarrage en cours...`)
+                .set_client_only())
+                .then(_ => {
+                    console.warning("restarting...")
+                    process.exit(0)
                 })
         }
     }
