@@ -105,10 +105,15 @@ class Logger {
     }
 }
 
-const LOGGER = new Logger()
+
+let LOGGER = null
+
+function init() {
+    LOGGER = new Logger()
+}
 
 function get() {
     return LOGGER
 }
 
-module.exports = {get}
+module.exports = {init, get}

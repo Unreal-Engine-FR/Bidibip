@@ -1,7 +1,7 @@
 class Configuration {
     constructor() {
 
-        this.TOKEN = null
+        this.APP_TOKEN = null
         this.APP_ID = null
         this.SERVER_ID = null
         this.LOG_CHANNEL_ID = null
@@ -18,12 +18,12 @@ class Configuration {
         this.COLOR_UNPAID = '0x0099ff'
         this.COLOR_FREELANCE = '993300'
 
-        this.ADVERT_UNPAID_ID = null
-        this.ADVERT_PAID_ID = null
-        this.ADVERT_FREELANCE_ID = null
-        this.SHARED = null
+        this.ADVERTISING_UNPAID_CHANNEL = null
+        this.ADVERTISING_PAID_CHANNEL = null
+        this.ADVERTISING_FREELANCE_CHANNEL = null
+        this.SHARED_SHARED_CHANNEL = null
 
-        this.USER_PERMISSION_FLAG=16384 // Send link
+        this.MEMBER_PERMISSION_FLAG=16384 // Send link
         this.ADMIN_PERMISSION_FLAG=4 // Ban member
 
         this.UPDATE_CACHE='../Bidibip_Cache/update/'

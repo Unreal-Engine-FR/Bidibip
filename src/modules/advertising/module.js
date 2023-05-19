@@ -54,7 +54,7 @@ class Module {
                     new Button('cancel', 'Annuler').set_danger(),
                     new Button('send', 'Envoyer').set_success()
                 ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_paid(command).message.set_channel(CONFIG.ADVERT_PAID_ID)}
+                this.pending_request[id] = {command: command, message: this._build_paid(command).message.set_channel(CONFIG.ADVERTISING_PAID_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
             })
         }
@@ -66,7 +66,7 @@ class Module {
                     new Button('cancel', 'Annuler').set_danger(),
                     new Button('send', 'Envoyer').set_success()
                 ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_unpaid(command).set_channel(CONFIG.ADVERT_UNPAID_ID)}
+                this.pending_request[id] = {command: command, message: this._build_unpaid(command).set_channel(CONFIG.ADVERTISING_UNPAID_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
             })
         }
@@ -85,7 +85,7 @@ class Module {
                     new Button('cancel', 'Annuler').set_danger(),
                     new Button('send', 'Envoyer').set_success()
                 ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_freelance(command).message.set_channel(CONFIG.ADVERT_FREELANCE_ID)}
+                this.pending_request[id] = {command: command, message: this._build_freelance(command).message.set_channel(CONFIG.ADVERTISING_FREELANCE_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
             })
         }
@@ -96,7 +96,7 @@ class Module {
         const output_message = this.pending_request[id]
         if (value === 'send') {
             this.client.say(output_message.message)
-            this.client.say(output_message.message.set_channel(CONFIG.SHARED))
+            this.client.say(output_message.message.set_channel(CONFIG.SHARED_SHARED_CHANNEL))
                 .then(message => {
                     output_message.command.edit_reply(new Message()
                         .set_text(`Ton annonce a bien été publiée : https://discord.com/channels/${CONFIG.SERVER_ID}/${message.channel}/${message.source_id}`))

@@ -300,7 +300,7 @@ function refresh_slash_commands(client, commands) {
             discord_command.setDefaultMemberPermissions(CONFIG.ADMIN_PERMISSION_FLAG)
 
         if (command._member_only)
-            discord_command.setDefaultMemberPermissions(CONFIG.USER_PERMISSION_FLAG)
+            discord_command.setDefaultMemberPermissions(CONFIG.MEMBER_PERMISSION_FLAG)
 
         for (const option of command.options) {
             switch (option.type) {
@@ -333,7 +333,7 @@ function refresh_slash_commands(client, commands) {
     }
 
     // Construct and prepare an instance of the REST module
-    const rest = new Discord.REST().setToken(CONFIG.TOKEN);
+    const rest = new Discord.REST().setToken(CONFIG.APP_TOKEN);
 
     // deploy old
     (async () => {

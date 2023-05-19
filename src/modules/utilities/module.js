@@ -1,8 +1,8 @@
 // MODULE UTILITIES
 const {CommandInfo, Message, Embed} = require("../../discord_interface");
 const MODULE_MANAGER = require('../../module_manager').get()
-const LOGGER = require('../../logger').get()
 const CONFIG = require('../../config').get()
+const LOGGER = require('../../logger').get()
 
 class Module {
     constructor(create_infos) {

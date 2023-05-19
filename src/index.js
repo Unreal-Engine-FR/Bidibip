@@ -1,6 +1,6 @@
 const MODULE_MANAGER = require('./module_manager').get()
 const CONFIG = require('./config').get()
-require('./logger').get()
+require('./logger').init()
 
 const {patch_client} = require('./discord_interface')
 
@@ -42,7 +42,7 @@ client.on('ready', () => {
     patch_client(client)
     MODULE_MANAGER.init(client)
 })
-client.login(CONFIG.TOKEN)
+client.login(CONFIG.APP_TOKEN)
     .then(_token => {
         console.validate(`Successfully logged in !`)
     })
