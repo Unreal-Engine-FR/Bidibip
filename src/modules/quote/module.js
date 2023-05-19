@@ -1,5 +1,6 @@
 // MODULE QUOTE
-const {CommandInfo, Message, Embed} = require("../../discord_interface");
+const {CommandInfo, Message, Embed} = require("../../discord_interface")
+const {resolve} = require('path')
 
 const fs = require('fs')
 
@@ -60,13 +61,15 @@ class Module {
                     }
 
                     if (!fs.existsSync(__dirname + '/data'))
-                        fs.mkdirSync(__dirname + '/data')
+                        fs.mkdirSync(__dirname + '/data', {recursive: true})
                     fs.writeFile(__dirname + '/data/quotes.json', JSON.stringify(this.quotes), 'utf8', err => {
                         if (err) {
                             console.fatal(`failed to save quotes : ${err}`)
                             command.skip()
-                        } else
+                        } else {
                             command.reply(new Message().set_text('Citation ajoutée à la base de donnée !'))
+                            console.info(`Saved quotes to file ${resolve(__dirname + '/data/quotes.json')}`)
+                        }
                     })
 
                 })

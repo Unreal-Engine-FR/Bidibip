@@ -1,4 +1,5 @@
 const fs = require('fs')
+const {resolve} = require("path");
 const CONFIG = require('./config').get()
 
 function arg_to_string(arg, depth = 0) {
@@ -41,7 +42,9 @@ class Logger {
 
         const log_dir = __dirname + '/../' + CONFIG.LOG_DIR
         let date_str = new Date().toLocaleString().replaceAll('/', '-').replaceAll(':', '.').replaceAll(', ', '_')
-        this.log_file = `${log_dir}/${date_str}.log`
+        this.log_file = resolve(`${log_dir}/${date_str}.log`)
+
+        process.stdout.write('created log file : ' + this.log_file + '\n')
 
         if (!fs.existsSync(log_dir))
             fs.mkdirSync(log_dir, {recursive: true})

@@ -10,7 +10,7 @@ GIT AUTO-UPDATER
 const AutoGitUpdate = require('auto-git-update')
 const updater = new AutoGitUpdate({
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
-    branch: 'feature/bidibip-v3',
+    branch: 'dev',
     tempLocation: CONFIG.UPDATE_CACHE,
     exitOnComplete: true
 });
