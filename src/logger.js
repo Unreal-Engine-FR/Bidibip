@@ -1,5 +1,5 @@
 const fs = require('fs')
-const {resolve} = require("path");
+const {resolve} = require("path")
 const CONFIG = require('./config').get()
 
 function arg_to_string(arg, depth = 0) {
@@ -29,9 +29,12 @@ function format_string(format, ...args) {
 
 class Logger {
     constructor() {
+        /*
         console.log = (message, ...args) => {
             this._internal_print('D', format_string(message, args))
         }
+
+         */
 
         console.info = this.info
         console.validate = this.validate
@@ -91,7 +94,7 @@ class Logger {
         let output_message = `[${new Date().toLocaleString()}] [${level}] ${message}\n`
 
 
-        fs.appendFileSync(this.log_file, output_message);
+        fs.appendFileSync(this.log_file, output_message)
 
         process.stdout.write(output_message)
 
@@ -99,7 +102,7 @@ class Logger {
             delegate(level, message)
 
         if (level === 'F') {
-            fs.appendFileSync(this.log_file, Error().stack + '\n');
+            fs.appendFileSync(this.log_file, Error().stack + '\n')
             throw new Error(message + '\n' + Error().stack)
         }
     }
@@ -116,4 +119,4 @@ function get() {
     return LOGGER
 }
 
-module.exports = {init, get}
+module.exports = {init_logger: init, get}

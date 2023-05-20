@@ -1,20 +1,22 @@
-const MODULE_MANAGER = require('./module_manager').get()
-const CONFIG = require('./config').get()
-require('./logger').init()
+const CONFIG = require('./config')
+const LOGGER = require('./logger')
+const {init} = require('./discord_interface')
+const MODULE_MANAGER = require('./module_manager')
 
-const {patch_client} = require('./discord_interface')
+
+LOGGER.init_logger()
 
 /*
 GIT AUTO-UPDATER
  */
 const AutoGitUpdate = require('auto-git-update')
-const Discord = require("discord.js");
+const Discord = require("discord.js")
 const updater = new AutoGitUpdate({
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
-    branch: CONFIG.UPDATE_FOLLOW_BRANCH,
-    tempLocation: CONFIG.CACHE_DIR + '/updater/',
+    branch: CONFIG.get().UPDATE_FOLLOW_BRANCH,
+    tempLocation: CONFIG.get().CACHE_DIR + '/updater/',
     exitOnComplete: true
-});
+})
 
 updater.autoUpdate()
     .then(result => {
@@ -24,7 +26,7 @@ updater.autoUpdate()
             /*
             CREATE DISCORD CLIENT
              */
-            const Discord = require('discord.js');
+            const Discord = require('discord.js')
             const client = new Discord.Client(
                 {
                     partials: [Discord.Partials.Channel],
@@ -39,17 +41,15 @@ updater.autoUpdate()
                 }
             )
 
-            client.updater = updater
-
             /*
             START DISCORD CLIENT
              */
             client.on('ready', () => {
-                patch_client(client)
-                MODULE_MANAGER.init(client)
-                client.channels.cache.get(CONFIG.LOG_CHANNEL_ID).send({content: 'Coucou tout le monde ! :wave: '})
+                init(client, updater)
+                MODULE_MANAGER.get().init(client)
+                client.channels.cache.get(CONFIG.get().LOG_CHANNEL_ID).send({content: 'Coucou tout le monde ! :wave: '})
             })
-            client.login(CONFIG.APP_TOKEN)
+            client.login(CONFIG.get().APP_TOKEN)
                 .then(_token => {
                     console.validate(`Successfully logged in !`)
                 })

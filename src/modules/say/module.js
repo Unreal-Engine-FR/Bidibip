@@ -1,5 +1,7 @@
 // MODULE SAY
-const {CommandInfo, Message} = require("../../discord_interface");
+const {CommandInfo} = require("../../utils/interaction")
+const {Message} = require('../../utils/message')
+const DI = require("../../discord_interface");
 
 class Module {
     constructor(create_infos) {
@@ -14,13 +16,12 @@ class Module {
     }
 
     // When server command is executed
-    server_command(command) {
+    async server_interaction(command) {
         if (command.match('say')) {
-            this.client.say(
-                new Message()
-                    .set_channel(command.channel)
-                    .set_text(command.option_value('message'))
-            )
+            await new Message()
+                .set_channel(command.channel())
+                .set_text(command.read('message'))
+                .send()
             command.skip()
         }
     }

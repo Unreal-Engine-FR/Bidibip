@@ -2,7 +2,10 @@ const fs = require('fs')
 const path = require('path')
 const DI = require('./discord_interface')
 const Discord = require('discord.js')
-const {Message} = require("./discord_interface");
+const {Message} = require('./utils/message')
+const {Interaction} = require("./utils/interaction");
+const CONFIG = require("./config");
+const {User} = require("./utils/user");
 
 class CommandManager {
     constructor(client) {
@@ -55,7 +58,7 @@ class CommandManager {
 
         const cm = this
         this.refresh_timer = setTimeout(() => {
-            DI.refresh_slash_commands(cm._client, cm.all_commands())
+            DI.get().set_slash_commands(cm.all_commands())
         }, 100)
     }
 
@@ -72,22 +75,22 @@ class CommandManager {
     }
 
     execute_command(command) {
-        const found_command = this.commands[command.info.name]
+        const found_command = this.commands[command.source_command().name]
         if (found_command)
             for (const module of found_command.modules)
-                if (module.server_command)
-                    try {
-                        module.server_command(command)
-                    } catch (err) {
-                        console.error(`Failed to call 'server_command()' on module ${module.name} : ${err}`)
-                    }
+                if (module.server_interaction)
+                    (async () => {
+                        module.server_interaction(command)
+                            .catch(err => console.error(`Failed to call 'server_interaction()' on module ${module.name} : ${err}`))
+                    })()
 
     }
 
-    get_commands() {
+    get_commands(permissions) {
         let commands = []
         for (const [_, command] of Object.entries(this.commands))
-            commands.push(command.command)
+            if (command.command.has_permission(permissions))
+                commands.push(command.command)
         return commands
     }
 }
@@ -99,32 +102,26 @@ class EventManager {
         this._command_manager = new CommandManager(client)
         this._interactions = {}
 
-        client.on(Discord.Events.MessageDelete, msg => {
-            if (msg.author.bot)
-                return
-            const message = new DI.Message().from_discord(msg)
+        DI.get().on_message_delete = msg => {
+            const message = new Message(msg)
             if (!message.dm)
                 this._server_message_delete(message)
-        });
-        client.on(Discord.Events.MessageUpdate, (old_message, new_message) => {
-            if (old_message.author.bot)
-                return
-            const old = new DI.Message().from_discord(old_message)
+        }
+        DI.get().on_message_update = (old_message, new_message) => {
+            const old = new Message(old_message)
             if (!old.dm)
-                this._server_message_updated(old, new DI.Message().from_discord(new_message))
-        });
-        client.on(Discord.Events.MessageCreate, msg => {
-            if (msg.author.bot)
-                return
-            const message = new DI.Message().from_discord(msg)
+                this._server_message_updated(old, new Message(new_message))
+        }
+
+        DI.get().on_message = msg => {
+            const message = new Message(msg)
             if (message.dm)
                 this._dm_message(message)
             else
                 this._server_message(message)
+        }
 
-        });
-        client.on(Discord.Events.InteractionCreate, interaction => {
-
+        DI.get().on_interaction = interaction => {
             if (interaction.isButton()) {
                 const inter = this._interactions[interaction.message.interaction.id]
                 if (inter) {
@@ -133,29 +130,53 @@ class EventManager {
                             module.receive_interaction(
                                 interaction.customId,
                                 interaction.message.interaction.id,
-                                new Message().from_discord(interaction.message)
+                                new Message(interaction.message)
                             )
                         }
                     }
                 }
-                interaction.reply(new Message().set_text('Vu !').set_client_only().output_to_discord())
-                interaction.deleteReply()
+                new Interaction(null, interaction).skip()
                 return
             }
 
-            console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] issued '${interaction.commandName}'`)
+            let options = ''
+            for (const option of interaction.options._hoistedOptions) {
+                options += option.name + ': ' + option.value + ', '
+            }
+            options = options.substring(0, options.length - 2)
+
+            console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] issued {'${interaction.commandName} ${options}'}`)
 
             const command = this._command_manager.find(interaction.commandName)
             if (command === null) {
                 interaction.reply(new Message().set_text("Commande inconnue").set_client_only())
-                return;
+                return
             }
-            this._command_manager.execute_command(new DI.Command(command, interaction))
-        });
+
+            const command_interaction = new Interaction(command, interaction)
+            if (!command.has_permission(command_interaction.permissions())) {
+                console.log('a')
+                new User(interaction.user).full_name()
+                    .then(name => {
+                        new Message()
+                            .set_channel(CONFIG.get().LOG_CHANNEL_ID)
+                            .set_text(`${name} (${'<@' + new User(interaction.user).id() + '>'}) a essayé d'exécuter la commande '${command.name}' sans en avoir la permission ${CONFIG.get().SERVICE_ROLE} !`)
+                            .send()
+                            .catch(err => console.fatal(`failed to notify usage error : ${err}`))
+                        console.warning(`@${name} a essayé d\'exécuter la commande \'${command.name}\' sans en avoir la permission !`)
+                    })
+                    .catch(err => {
+                        console.fatal(`failed to notify usage error : ${err}`)
+                    })
+                console.warning('Invalid permission usage !')
+                command_interaction.skip()
+            } else
+                this._command_manager.execute_command(command_interaction)
+        }
     }
 
     bind(module) {
-        const index = this._bound_modules.indexOf(module);
+        const index = this._bound_modules.indexOf(module)
         if (index !== -1)
             return // already bound
 
@@ -173,7 +194,7 @@ class EventManager {
     }
 
     unbind(module) {
-        const index = this._bound_modules.indexOf(module);
+        const index = this._bound_modules.indexOf(module)
         if (index === -1)
             return // already unbound
 
@@ -189,45 +210,41 @@ class EventManager {
     _server_message(message) {
         for (const module of this._bound_modules)
             if (module.server_message)
-                try {
+                (async () => {
                     module.server_message(message)
-                } catch (err) {
-                    console.error(`Failed to call 'server_message()' on module ${module.name} : ${err}`)
-                }
+                        .catch(err => console.error(`Failed to call 'server_message()' on module ${module.name} : ${err}`))
+                })()
     }
 
     _dm_message(message) {
         for (const module of this._bound_modules)
             if (module.dm_message)
-                try {
+                (async () => {
                     module.dm_message(message)
-                } catch (err) {
-                    console.error(`Failed to call 'dm_message()' on module ${module.name} : ${err}`)
-                }
+                        .catch(err => console.error(`Failed to call 'dm_message()' on module ${module.name} : ${err}`))
+                })()
     }
 
     _server_message_updated(old_message, new_message) {
         for (const module of this._bound_modules)
             if (module.server_message_updated)
-                try {
+                (async () => {
                     module.server_message_updated(old_message, new_message)
-                } catch (err) {
-                    console.error(`Failed to call 'server_message_updated()' on module ${module.name} : ${err}`)
-                }
+                        .catch(err => console.error(`Failed to call 'server_message_updated()' on module ${module.name} : ${err}`))
+                })()
     }
 
     _server_message_delete(message) {
         for (const module of this._bound_modules)
             if (module.server_message_delete)
-                try {
+                (async () => {
                     module.server_message_delete(message)
-                } catch (err) {
-                    console.error(`Failed to call 'server_message_delete()' on module ${module.name} : ${err}`)
-                }
+                        .catch(err => console.error(`Failed to call 'server_message_delete()' on module ${module.name} : ${err}`))
+                })()
     }
 
-    get_commands() {
-        return this._command_manager ? this._command_manager.get_commands() : null
+    get_commands(permissions) {
+        return this._command_manager ? this._command_manager.get_commands(permissions) : null
     }
 
     watch_interaction(module, interaction_id) {

@@ -20,7 +20,7 @@ class Configuration {
         this.SERVICE_ROLE='<@285426910404673536>'
         this.UPDATE_FOLLOW_BRANCH='dev'
 
-        require('dotenv').config();
+        require('dotenv').config()
         for (const [key, value] of Object.entries(process.env)) {
             this[key] = value
         }

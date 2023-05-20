@@ -1,6 +1,8 @@
 // MODULE HELP
-const {CommandInfo, Message, Embed} = require("../../discord_interface");
-
+const {CommandInfo} = require("../../utils/interaction")
+const {Message} = require('../../utils/message')
+const {Embed} = require('../../utils/embed')
+const {get} = require("../../config");
 MODULE_MANAGER = require("../../module_manager").get()
 
 class Module {
@@ -13,9 +15,9 @@ class Module {
     }
 
     // When server command is issued
-    server_command(command) {
+    async server_interaction(command) {
         if (command.match('help')) {
-            const commands = MODULE_MANAGER.event_manager().get_commands()
+            const commands = MODULE_MANAGER.event_manager().get_commands(command.permissions())
             if (!commands)
                 return
 
