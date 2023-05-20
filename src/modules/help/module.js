@@ -2,7 +2,6 @@
 const {CommandInfo} = require("../../utils/interaction")
 const {Message} = require('../../utils/message')
 const {Embed} = require('../../utils/embed')
-const {get} = require("../../config");
 MODULE_MANAGER = require("../../module_manager").get()
 
 class Module {

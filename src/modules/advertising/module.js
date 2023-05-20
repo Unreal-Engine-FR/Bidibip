@@ -6,7 +6,6 @@ MODULE_MANAGER = require("../../module_manager").get()
 const {Message} = require('../../utils/message')
 const {Embed} = require('../../utils/embed')
 const {Button} = require('../../utils/button')
-const DI = require("../../discord_interface");
 
 class Module {
     constructor(create_infos) {
@@ -114,7 +113,7 @@ class Module {
         }
     }
 
-    async receive_interaction(value, id, message) {
+    async receive_interaction(value, id, _message) {
         MODULE_MANAGER.event_manager().release_interaction(this, id)
         const output_message = this.pending_request[id]
         if (value === 'send') {
@@ -124,9 +123,10 @@ class Module {
                 .then(message => {
                     output_message.command.edit_reply(new Message()
                         .set_text(`Ton annonce a bien été publiée : https://discord.com/channels/${CONFIG.SERVER_ID}/${message.channel()}/${message.id()}`))
+                        .catch(err => console.fatal(`failed to edit reply : ${err}`))
                 })
         } else
-            output_message.command.delete_reply()
+            await output_message.command.delete_reply()
     }
 
     _build_paid(command) {
@@ -180,7 +180,7 @@ class Module {
     _build_freelance(command) {
 
         const url = command.read('portfolio') || 'option manquante'
-        const url_regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)/g
+        const url_regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\\+.~#?&/=]*)/g
         if (!url_regex.test(url)) {
             return {message: new Message().set_client_only().set_text('Le portfolio doit être une URL'), valid: false}
         }

@@ -90,11 +90,6 @@ class Message {
         return this
     }
 
-    set_server(server) {
-        this._server = server
-        return this
-    }
-
     /**
      * @returns {Promise<User>}
      */
@@ -118,12 +113,8 @@ class Message {
         return this._channel
     }
 
-    server() {
-        return this._server
-    }
-
     is_dm() {
-        return !this._server
+        return this._is_dm
     }
 
     async _fill_internal() {
@@ -155,7 +146,7 @@ class Message {
         this._text = _api_handle.content
         this._id = _api_handle.id
         this._channel = _api_handle.channelId
-        this._server = _api_handle.guildId
+        this._is_dm = !_api_handle.guildId
         this._embeds = []
         this._interactions = []
         if (_api_handle.embeds)

@@ -1,17 +1,15 @@
 const fs = require('fs')
 const path = require('path')
 const DI = require('./discord_interface')
-const Discord = require('discord.js')
 const {Message} = require('./utils/message')
 const {Interaction} = require("./utils/interaction");
 const CONFIG = require("./config");
 const {User} = require("./utils/user");
 
 class CommandManager {
-    constructor(client) {
+    constructor() {
         this.modules = {}
         this.commands = {}
-        this._client = client
     }
 
     add(module) {
@@ -104,18 +102,18 @@ class EventManager {
 
         DI.get().on_message_delete = msg => {
             const message = new Message(msg)
-            if (!message.dm)
+            if (!message.is_dm())
                 this._server_message_delete(message)
         }
         DI.get().on_message_update = (old_message, new_message) => {
             const old = new Message(old_message)
-            if (!old.dm)
+            if (!old.is_dm())
                 this._server_message_updated(old, new Message(new_message))
         }
 
         DI.get().on_message = msg => {
             const message = new Message(msg)
-            if (message.dm)
+            if (message.is_dm())
                 this._dm_message(message)
             else
                 this._server_message(message)
@@ -136,6 +134,7 @@ class EventManager {
                     }
                 }
                 new Interaction(null, interaction).skip()
+                    .catch(err => console.fatal(`failed to skip interaction : ${err}`))
                 return
             }
 
@@ -170,6 +169,7 @@ class EventManager {
                     })
                 console.warning('Invalid permission usage !')
                 command_interaction.skip()
+                    .catch(err => console.fatal(`failed to skip interaction : ${err}`))
             } else
                 this._command_manager.execute_command(command_interaction)
         }

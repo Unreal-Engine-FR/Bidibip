@@ -106,12 +106,12 @@ class Interaction {
         return this._options[option]
     }
 
-    delete_reply() {
-        this._interaction.deleteReply()
+    async delete_reply() {
+        await this._interaction.deleteReply()
     }
 
-    edit_reply(message) {
-        this._interaction.editReply(message._output_to_discord())
+    async edit_reply(message) {
+        await this._interaction.editReply(message._output_to_discord())
     }
 
     source_command() {

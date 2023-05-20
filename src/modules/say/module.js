@@ -1,7 +1,6 @@
 // MODULE SAY
 const {CommandInfo} = require("../../utils/interaction")
 const {Message} = require('../../utils/message')
-const DI = require("../../discord_interface");
 
 class Module {
     constructor(create_infos) {

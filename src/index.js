@@ -1,6 +1,6 @@
 const CONFIG = require('./config')
 const LOGGER = require('./logger')
-const {init} = require('./discord_interface')
+const DI = require('./discord_interface')
 const MODULE_MANAGER = require('./module_manager')
 
 
@@ -10,7 +10,7 @@ LOGGER.init_logger()
 GIT AUTO-UPDATER
  */
 const AutoGitUpdate = require('auto-git-update')
-const Discord = require("discord.js")
+const {Message} = require("./utils/message");
 const updater = new AutoGitUpdate({
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
     branch: CONFIG.get().UPDATE_FOLLOW_BRANCH,
@@ -45,9 +45,13 @@ updater.autoUpdate()
             START DISCORD CLIENT
              */
             client.on('ready', () => {
-                init(client, updater)
-                MODULE_MANAGER.get().init(client)
-                client.channels.cache.get(CONFIG.get().LOG_CHANNEL_ID).send({content: 'Coucou tout le monde ! :wave: '})
+                DI.init(client, updater)
+                MODULE_MANAGER.get().init()
+                new Message()
+                    .set_text('Coucou tout le monde ! :wave:')
+                    .set_channel(CONFIG.get().LOG_CHANNEL_ID)
+                    .send()
+                    .catch(err => console.fatal(`failed to send welcome message : ${err}`))
             })
             client.login(CONFIG.get().APP_TOKEN)
                 .then(_token => {

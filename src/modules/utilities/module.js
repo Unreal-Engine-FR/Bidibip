@@ -55,6 +55,7 @@ class Module {
                         .set_title(level === 'E' ? 'Error' : 'Fatal')
                         .set_description(message))
                     .send()
+                    .catch(err => console.fatal(`failed to send error message ${err}`))
             }
         })
     }
