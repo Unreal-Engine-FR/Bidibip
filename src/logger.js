@@ -2,6 +2,8 @@ const fs = require('fs')
 const {resolve} = require("path")
 const CONFIG = require('./config').get()
 
+const is_big_number = num => !Number.isSafeInteger(+num)
+
 function arg_to_string(arg, depth = 0) {
     if (Array.isArray(arg)) {
         let res = ''
@@ -9,7 +11,10 @@ function arg_to_string(arg, depth = 0) {
             res += `${arg_to_string(item, depth + 1)} `
         return res.substring(0, res.length - 1)
     } else if (arg === Object(arg))
-        return arg.constructor.name + ' ' + JSON.stringify(arg, null, 4)
+        return arg.constructor.name + ' ' + JSON.stringify(
+            arg,
+            (key, value) => typeof value === 'bigint' ? value.toString() : value,
+            4)
 
     return String(arg)
 }
@@ -29,12 +34,9 @@ function format_string(format, ...args) {
 
 class Logger {
     constructor() {
-        /*
         console.log = (message, ...args) => {
             this._internal_print('D', format_string(message, args))
         }
-
-         */
 
         console.info = this.info
         console.validate = this.validate
@@ -105,6 +107,23 @@ class Logger {
             fs.appendFileSync(this.log_file, Error().stack + '\n')
             throw new Error(message + '\n' + Error().stack)
         }
+
+        if (level === 'E' || level === 'F')
+            this._crash_dump()
+    }
+
+    _crash_dump() {
+        const crash_dir = __dirname + '/../' + CONFIG.SAVE_DIR + "/crash/"
+
+        if (!fs.existsSync(crash_dir))
+            fs.mkdirSync(crash_dir, {recursive: true})
+
+        let date_str = new Date().toLocaleString().replaceAll('/', '-').replaceAll(':', '.').replaceAll(', ', '_')
+        const crash_file = resolve(`${crash_dir}/${date_str}.crash`)
+
+        fs.copyFile(this.log_file, crash_file, (err) => {
+            if (err) throw new Error(`failed to copy crash dump : ${err}`)
+        });
     }
 }
 
