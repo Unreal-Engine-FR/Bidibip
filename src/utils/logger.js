@@ -1,6 +1,6 @@
 const fs = require('fs')
-const {resolve} = require("path");
-const CONFIG = require('./config').get()
+const {resolve} = require("path")
+const CONFIG = require('../config').get()
 
 function arg_to_string(arg, depth = 0) {
     if (Array.isArray(arg)) {
@@ -9,7 +9,10 @@ function arg_to_string(arg, depth = 0) {
             res += `${arg_to_string(item, depth + 1)} `
         return res.substring(0, res.length - 1)
     } else if (arg === Object(arg))
-        return arg.constructor.name + ' ' + JSON.stringify(arg, null, 4)
+        return arg.constructor.name + ' ' + JSON.stringify(
+            arg,
+            (key, value) => typeof value === 'bigint' ? value.toString() : value,
+            4)
 
     return String(arg)
 }
@@ -27,6 +30,20 @@ function format_string(format, ...args) {
     return text
 }
 
+/**
+ * @param stack {string}
+ */
+function filter_call_stack(stack) {
+    result = stack.split('\n').filter(function(line){
+        return line.indexOf( "logger.js:" ) === -1 && line.indexOf( "process.processTicksAndRejections" ) === -1;
+    }).join('\n')
+
+    return result
+}
+
+/**
+ * When used, allow to use this class members on console (console.error, console.info etc...)
+ */
 class Logger {
     constructor() {
         console.log = (message, ...args) => {
@@ -63,26 +80,55 @@ class Logger {
         this._delegates = []
     }
 
+    /**
+     * Bind a delegate that will receive log events
+     * @param func {function}
+     */
     bind(func) {
         this._delegates.push(func)
     }
 
+    /**
+     * Send information message
+     * @param message {*}
+     * @param args {*}
+     */
     info(message, ...args) {
         LOGGER._internal_print('I', format_string(message, args))
     }
 
+    /**
+     * Send validation message
+     * @param message {*}
+     * @param args {*}
+     */
     validate(message, ...args) {
         LOGGER._internal_print('V', format_string(message, args))
     }
 
+    /**
+     * Send warning message
+     * @param message {*}
+     * @param args {*}
+     */
     warning(message, ...args) {
         LOGGER._internal_print('W', format_string(message, args))
     }
 
+    /**
+     * Send error message (will include a stack trace)
+     * @param message {*}
+     * @param args {*}
+     */
     error(message, ...args) {
-        LOGGER._internal_print('E', format_string(message, args) + '\n' + Error().stack)
+        LOGGER._internal_print('E', format_string(message, args) + '\n' + filter_call_stack(Error().stack))
     }
 
+    /**
+     * Send assertion message and throw error
+     * @param message {*}
+     * @param args {*}
+     */
     fatal(message, ...args) {
         LOGGER._internal_print('F', format_string(message, args))
     }
@@ -91,7 +137,7 @@ class Logger {
         let output_message = `[${new Date().toLocaleString()}] [${level}] ${message}\n`
 
 
-        fs.appendFileSync(this.log_file, output_message);
+        fs.appendFileSync(this.log_file, output_message)
 
         process.stdout.write(output_message)
 
@@ -99,9 +145,26 @@ class Logger {
             delegate(level, message)
 
         if (level === 'F') {
-            fs.appendFileSync(this.log_file, Error().stack + '\n');
-            throw new Error(message + '\n' + Error().stack)
+            fs.appendFileSync(this.log_file, filter_call_stack(Error().stack) + '\n')
+            throw new Error(message + '\n' + filter_call_stack(Error().stack))
         }
+
+        if (level === 'E' || level === 'F')
+            this._crash_dump()
+    }
+
+    _crash_dump() {
+        const crash_dir = __dirname + '/../' + CONFIG.SAVE_DIR + "/crash/"
+
+        if (!fs.existsSync(crash_dir))
+            fs.mkdirSync(crash_dir, {recursive: true})
+
+        let date_str = new Date().toLocaleString().replaceAll('/', '-').replaceAll(':', '.').replaceAll(', ', '_')
+        const crash_file = resolve(`${crash_dir}/${date_str}.crash`)
+
+        fs.copyFile(this.log_file, crash_file, (err) => {
+            if (err) throw new Error(`failed to copy crash dump : ${err}`)
+        });
     }
 }
 
@@ -116,4 +179,4 @@ function get() {
     return LOGGER
 }
 
-module.exports = {init, get}
+module.exports = {init_logger: init, get}

@@ -1,7 +1,11 @@
 // MODULE ADVERTISING
-const {CommandInfo, Message, Embed, Button} = require("../../discord_interface");
+const {CommandInfo} = require("../../utils/interaction")
 const CONFIG = require('../../config').get()
-MODULE_MANAGER = require("../../module_manager").get()
+MODULE_MANAGER = require("../../core/module_manager").get()
+
+const {Message} = require('../../utils/message')
+const {Embed} = require('../../utils/embed')
+const {Button} = require('../../utils/button')
 
 class Module {
     constructor(create_infos) {
@@ -15,7 +19,7 @@ class Module {
                 .add_text_option('contrat', 'Est-ce un contrat permanent ou contractuel ?', ['Permanent', 'Contractuel'])
                 .add_text_option('role', 'Quel rôle recrutes-tu ? (Gameplay developer...)')
                 .add_text_option('societe', 'Quel est le nom de l\'entreprise ?')
-                .add_text_option('remote', 'Est-ce que le remote est possible ?', [':globe_with_meridians: Distanciel accepté', ':post_office: Presentiel seulement'])
+                .add_text_option('remote', 'Est-ce que le remote est possible ?', ['🌐 Distanciel accepté', '🏣 Presentiel seulement'])
                 .add_text_option('responsabilites', 'Liste des responsabilites associes pour ce rôle ?')
                 .add_text_option('qualifications', 'Lister les qualifications pour ce rôle.')
                 .add_text_option('postuler', 'Comment peut-on postuler ?')
@@ -37,7 +41,7 @@ class Module {
     }
 
     // When server command is executed
-    server_command(command) {
+    async server_interaction(command) {
 
         if (command.match('paid')) {
             const result = this._build_paid(command)
@@ -51,8 +55,14 @@ class Module {
                 .set_client_only()
                 .set_text('Prends le temps de vérifier ton message :')
                 .add_interaction_row([
-                    new Button('cancel', 'Annuler').set_danger(),
-                    new Button('send', 'Envoyer').set_success()
+                    new Button()
+                        .set_id('cancel')
+                        .set_label('Annuler')
+                        .set_type(Button.Danger),
+                    new Button()
+                        .set_id('send')
+                        .set_label('Envoyer')
+                        .set_type(Button.Success)
                 ])).then(id => {
                 this.pending_request[id] = {command: command, message: this._build_paid(command).message.set_channel(CONFIG.ADVERTISING_PAID_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
@@ -63,8 +73,14 @@ class Module {
                 .set_client_only()
                 .set_text('Prends le temps de vérifier ton message :')
                 .add_interaction_row([
-                    new Button('cancel', 'Annuler').set_danger(),
-                    new Button('send', 'Envoyer').set_success()
+                    new Button()
+                        .set_id('cancel')
+                        .set_label('Annuler')
+                        .set_type(Button.Danger),
+                    new Button()
+                        .set_id('send')
+                        .set_label('Envoyer')
+                        .set_type(Button.Success)
                 ])).then(id => {
                 this.pending_request[id] = {command: command, message: this._build_unpaid(command).set_channel(CONFIG.ADVERTISING_UNPAID_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
@@ -82,8 +98,14 @@ class Module {
                 .set_client_only()
                 .set_text('Prends le temps de vérifier ton message :')
                 .add_interaction_row([
-                    new Button('cancel', 'Annuler').set_danger(),
-                    new Button('send', 'Envoyer').set_success()
+                    new Button()
+                        .set_id('cancel')
+                        .set_label('Annuler')
+                        .set_type(Button.Danger),
+                    new Button()
+                        .set_id('send')
+                        .set_label('Envoyer')
+                        .set_type(Button.Success)
                 ])).then(id => {
                 this.pending_request[id] = {command: command, message: this._build_freelance(command).message.set_channel(CONFIG.ADVERTISING_FREELANCE_CHANNEL)}
                 MODULE_MANAGER.event_manager().watch_interaction(this, id)
@@ -91,23 +113,25 @@ class Module {
         }
     }
 
-    receive_interaction(value, id, message) {
+    async receive_interaction(value, id, _message) {
         MODULE_MANAGER.event_manager().release_interaction(this, id)
         const output_message = this.pending_request[id]
         if (value === 'send') {
-            this.client.say(output_message.message)
-            this.client.say(output_message.message.set_channel(CONFIG.SHARED_SHARED_CHANNEL))
+            output_message.message.send()
+            output_message.message.set_channel(CONFIG.SHARED_SHARED_CHANNEL)
+                .send()
                 .then(message => {
                     output_message.command.edit_reply(new Message()
-                        .set_text(`Ton annonce a bien été publiée : https://discord.com/channels/${CONFIG.SERVER_ID}/${message.channel}/${message.source_id}`))
+                        .set_text(`Ton annonce a bien été publiée : https://discord.com/channels/${CONFIG.SERVER_ID}/${message.channel()}/${message.id()}`))
+                        .catch(err => console.fatal(`failed to edit reply : ${err}`))
                 })
         } else
-            output_message.command.delete_reply()
+            await output_message.command.delete_reply()
     }
 
     _build_paid(command) {
 
-        if (command.option_value('remuneration') !== 'Rémunération')
+        if (command.read('remuneration') !== 'Rémunération')
             return {
                 message: new Message()
                     .set_text('Pour les projets de loisirs ou pour tout autre type de payement, veuillez utiliser la commande /unpaid.')
@@ -115,7 +139,7 @@ class Module {
                 valid: false
             }
 
-        if (command.option_value('contrat') === 'Contractuel' && !command.option_value('duree'))
+        if (command.read('contrat') === 'Contractuel' && !command.read('duree'))
             return {
                 message: new Message()
                     .set_text('Veuillez spécifier l\'option \'duree\' dans le cas d\'un contrat temporaire')
@@ -123,19 +147,19 @@ class Module {
                 valid: false
             }
 
-        const duree = command.option_value('contrat') === 'Contractuel' ? command.option_value('duree') : 'permanent'
+        const duree = command.read('contrat') === 'Contractuel' ? command.read('duree') : 'permanent'
 
         const embed = new Embed()
-            .set_title((command.option_value('role') || 'option manquante') + " Chez " + (command.option_value('societe') || 'option manquante'))
-            .set_description(command.option_value('remote') || 'option manquante')
+            .set_title((command.read('role') || 'option manquante') + " Chez " + (command.read('societe') || 'option manquante'))
+            .set_description(command.read('remote') || 'option manquante')
             .add_field('Durée du contrat', duree, true)
 
-        if (command.option_value('localisation'))
-            embed.add_field('Localisation', command.option_value('localisation'), true)
+        if (command.read('localisation'))
+            embed.add_field('Localisation', command.read('localisation'), true)
 
-        embed.add_field('Responsabilités', command.option_value('responsabilites') || 'valeur manquante')
-            .add_field('Qualifications\n', command.option_value('qualifications') || 'valeur manquante')
-            .add_field('Comment postuler\n', command.option_value('postuler') || 'valeur manquante')
+        embed.add_field('Responsabilités', command.read('responsabilites') || 'valeur manquante')
+            .add_field('Qualifications\n', command.read('qualifications') || 'valeur manquante')
+            .add_field('Comment postuler\n', command.read('postuler') || 'valeur manquante')
 
         return {
             message: new Message()
@@ -147,16 +171,16 @@ class Module {
     _build_unpaid(command) {
         return new Message()
             .add_embed(new Embed()
-                .set_title(command.option_value('titre') || 'Option manquante')
-                .set_description(command.option_value('description') || 'Option manquante')
-                .add_field('contact', command.option_value('contact') || 'Option manquante')
+                .set_title(command.read('titre') || 'Option manquante')
+                .set_description(command.read('description') || 'Option manquante')
+                .add_field('contact', command.read('contact') || 'Option manquante')
             )
     }
 
     _build_freelance(command) {
 
-        const url = command.option_value('portfolio') || 'option manquante'
-        const url_regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)/g;
+        const url = command.read('portfolio') || 'option manquante'
+        const url_regex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\\+.~#?&/=]*)/g
         if (!url_regex.test(url)) {
             return {message: new Message().set_client_only().set_text('Le portfolio doit être une URL'), valid: false}
         }
@@ -164,10 +188,10 @@ class Module {
         return {
             message: new Message()
                 .add_embed(new Embed()
-                    .set_title(command.option_value('nom') || 'Option manquante')
+                    .set_title(command.read('nom') || 'Option manquante')
                     .set_description(url)
-                    .add_field('Services', command.option_value('services') || 'Option manquante')
-                    .add_field('Contacts', command.option_value('contact') || 'Option manquante')),
+                    .add_field('Services', command.read('services') || 'Option manquante')
+                    .add_field('Contacts', command.read('contact') || 'Option manquante')),
             valid: true
         }
     }

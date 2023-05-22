@@ -1,9 +1,11 @@
 // MODULE UTILITIES
-const {CommandInfo, Message, Embed} = require("../../discord_interface");
-const MODULE_MANAGER = require('../../module_manager').get()
+const {CommandInfo} = require("../../utils/interaction")
+const MODULE_MANAGER = require('../../core/module_manager').get()
 const CONFIG = require('../../config').get()
-const LOGGER = require('../../logger').get()
-
+const LOGGER = require('../../utils/logger').get()
+const {Embed} = require('../../utils/embed')
+const {Message} = require('../../utils/message')
+const DI = require('../../utils/discord_interface')
 class Module {
     /**
      * @param create_infos contains module infos => {
@@ -36,8 +38,8 @@ class Module {
         ]
 
         const update_activity = () => {
-            create_infos.client.get_user_count().then(members => {
-                create_infos.client.set_activity(`${members} Utilisateurs`)
+            DI.get().get_user_count().then(members => {
+                DI.get().set_activity(`${members} Utilisateurs`)
             })
                 .catch(err => console.fatal(`failed to set activity : ${err}`))
         }
@@ -46,25 +48,27 @@ class Module {
 
         LOGGER.bind((level, message) => {
             if (level === 'E' || level === 'F') {
-                create_infos.client.say(new Message()
+                new Message()
                     .set_text('A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
                     .set_channel(CONFIG.LOG_CHANNEL_ID)
                     .add_embed(new Embed()
                         .set_title(level === 'E' ? 'Error' : 'Fatal')
-                        .set_description(message)))
+                        .set_description(message))
+                    .send()
+                    .catch(err => console.fatal(`failed to send error message ${err}`))
             }
         })
     }
 
     // When module is started
-    start() {
+    async start() {
     }
 
     // When module is stopped
-    stop() {
+    async stop() {
     }
 
-    server_command(command) {
+    async server_interaction(command) {
         if (command.match('modules_infos')) {
             const embed = new Embed()
                 .set_title('modules')
@@ -81,22 +85,22 @@ class Module {
             )
         }
         if (command.match('set_module_enabled')) {
-            if (command.option_value('enabled') === true)
-                MODULE_MANAGER.start(command.option_value('nom'))
+            if (command.read('enabled') === true)
+                MODULE_MANAGER.start(command.read('nom'))
             else
-                MODULE_MANAGER.stop(command.option_value('nom'))
+                MODULE_MANAGER.stop(command.read('nom'))
             command.skip()
         }
         if (command.match('load_module')) {
-            MODULE_MANAGER.load_module(command.option_value('nom'))
+            MODULE_MANAGER.load_module(command.read('nom'))
             command.skip()
         }
         if (command.match('unload_module')) {
-            MODULE_MANAGER.unload_module(command.option_value('nom'))
+            MODULE_MANAGER.unload_module(command.read('nom'))
             command.skip()
         }
         if (command.match('update')) {
-            this.client.updater.compareVersions()
+            DI.get().check_updates()
                 .then(res => {
                     if (res.upToDate) {
                         command.reply(new Message()
@@ -128,19 +132,19 @@ class Module {
     }
 
     // On received server messages=
-    server_message(message) {
+    async server_message(message) {
     }
 
     // When interaction button is clicked (interaction should have been bound before)
-    receive_interaction(value, id, message) {
+    async receive_interaction(value, id, message) {
     }
 
     // On update message on server
-    server_message_updated(old_message, new_message) {
+    async server_message_updated(old_message, new_message) {
     }
 
     // On delete message on server
-    server_message_delete(message) {
+    async server_message_delete(message) {
     }
 }
 

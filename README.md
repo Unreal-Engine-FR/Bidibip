@@ -66,13 +66,13 @@
 >        ]
 >    }
 >
->    start() {}                                              // When module is started
->    stop() {}                                               // When module is stopped
->    server_command(command) {}                              // When server command is executed
->    server_message(message) {}                              // On received server messages=
->    receive_interaction(value, id, message) {}              // When interaction button is clicked (interaction should have been bound before)
->    server_message_updated(old_message, new_message) {}     // On update message on server
->    server_message_delete(message) {}                       // On delete message on server
+>    async start() {}                                              // When module is started
+>    async stop() {}                                               // When module is stopped
+>    async server_interaction(command) {}                              // When server command is executed
+>    async server_message(message) {}                              // On received server messages=
+>    async receive_interaction(value, id, message) {}              // When interaction button is clicked (interaction should have been bound before)
+>    async server_message_updated(old_message, new_message) {}     // On update message on server
+>    async server_message_delete(message) {}                       // On delete message on server
 > }
 > ```
 > *a more complete list of available events is available in [src/modules/utilities/module.js](./src/modules/utilities/module.js)*
