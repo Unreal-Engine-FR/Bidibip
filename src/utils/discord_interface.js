@@ -1,4 +1,4 @@
-const CONFIG = require("./config.js").get()
+const CONFIG = require("../config.js").get()
 const {REST, ActivityType, SlashCommandBuilder, Routes} = require("discord.js")
 const Discord = require("discord.js");
 

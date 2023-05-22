@@ -1,7 +1,7 @@
 // MODULE ADVERTISING
 const {CommandInfo} = require("../../utils/interaction")
 const CONFIG = require('../../config').get()
-MODULE_MANAGER = require("../../module_manager").get()
+MODULE_MANAGER = require("../../core/module_manager").get()
 
 const {Message} = require('../../utils/message')
 const {Embed} = require('../../utils/embed')

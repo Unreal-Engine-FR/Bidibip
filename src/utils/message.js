@@ -2,7 +2,7 @@ const Discord = require("discord.js")
 const {User} = require("./user")
 const {Embed} = require("./embed");
 const {InteractionRow} = require("./interaction_row");
-const DI = require("../discord_interface");
+const DI = require("./discord_interface");
 
 class Message {
     constructor(api_handle) {
@@ -99,20 +99,36 @@ class Message {
         return this._author
     }
 
+    /**
+     * Get text
+     * @returns {Promise<string>}
+     */
     async text() {
         if (!this._text && this.is_empty())
             await this._fill_internal()
         return this._text
     }
 
+    /**
+     * Get id
+     * @returns {number}
+     */
     id() {
         return this._id
     }
 
+    /**
+     * Get channel id
+     * @returns {number}
+     */
     channel() {
         return this._channel
     }
 
+    /**
+     * Have this message been sent in DM
+     * @returns {boolean}
+     */
     is_dm() {
         return this._is_dm
     }
@@ -197,6 +213,10 @@ class Message {
         }
     }
 
+    /**
+     * Send this message
+     * @returns {Message} sent message
+     */
     async send() {
         if (!this._channel) {
             console.fatal('please provide a channel')

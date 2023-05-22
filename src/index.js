@@ -1,10 +1,9 @@
 const CONFIG = require('./config')
-const LOGGER = require('./logger')
-const DI = require('./discord_interface')
-const MODULE_MANAGER = require('./module_manager')
+const DI = require('./utils/discord_interface')
+const MODULE_MANAGER = require('./core/module_manager')
+const {Client, Partials, GatewayIntentBits} = require('discord.js')
 
-
-LOGGER.init_logger()
+require('./utils/logger').init_logger()
 
 /*
 GIT AUTO-UPDATER
@@ -18,26 +17,26 @@ const updater = new AutoGitUpdate({
     exitOnComplete: true
 })
 
+// Check for update before starting the app
 updater.autoUpdate()
     .then(result => {
         if (result) {
-            console.validate('Application up to date !')
+            console.validate('Application up to date ! Starting client...')
 
             /*
             CREATE DISCORD CLIENT
              */
-            const Discord = require('discord.js')
-            const client = new Discord.Client(
+            const client = new Client(
                 {
-                    partials: [Discord.Partials.Channel],
+                    partials: [Partials.Channel],
                     intents: [
-                        Discord.GatewayIntentBits.Guilds,
-                        Discord.GatewayIntentBits.GuildMessages,
-                        Discord.GatewayIntentBits.GuildMembers,
-                        Discord.GatewayIntentBits.MessageContent,
-                        Discord.GatewayIntentBits.GuildMessageReactions,
-                        Discord.GatewayIntentBits.DirectMessages
-                    ]
+                        GatewayIntentBits.Guilds,
+                        GatewayIntentBits.GuildMessages,
+                        GatewayIntentBits.GuildMembers,
+                        GatewayIntentBits.MessageContent,
+                        GatewayIntentBits.GuildMessageReactions,
+                        GatewayIntentBits.DirectMessages
+                    ] // This is the action the bot will be able to do
                 }
             )
 
@@ -45,9 +44,9 @@ updater.autoUpdate()
             START DISCORD CLIENT
              */
             client.on('ready', () => {
-                DI.init(client, updater)
-                MODULE_MANAGER.get().init()
-                new Message()
+                DI.init(client, updater) // Setup interface
+                MODULE_MANAGER.get().init() // load modules
+                new Message() // Send welcome message
                     .set_text('Coucou tout le monde ! :wave:')
                     .set_channel(CONFIG.get().LOG_CHANNEL_ID)
                     .send()
@@ -59,8 +58,7 @@ updater.autoUpdate()
                 })
                 .catch(error => console.fatal(`Failed to login : ${error}`))
 
-        }
-        else {
+        } else {
             console.warning('Application outdated, waiting for update...')
         }
     })

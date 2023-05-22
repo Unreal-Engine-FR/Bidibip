@@ -2,7 +2,6 @@ const {ButtonBuilder} = require("discord.js");
 
 class Button {
     constructor(_api_handle) {
-
         if (_api_handle) {
             this._label = _api_handle.label
             this._id = _api_handle.custom_id
@@ -16,11 +15,21 @@ class Button {
     static Danger = 4
     static Link = 5
 
+    /**
+     * Set button unique id
+     * @param id {string}
+     * @returns {Button}
+     */
     set_id(id) {
         this._id = id
         return this
     }
 
+    /**
+     * Set button label
+     * @param label {string}
+     * @returns {Button}
+     */
     set_label(label) {
         this._label = label
         return this

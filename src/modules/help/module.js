@@ -2,7 +2,7 @@
 const {CommandInfo} = require("../../utils/interaction")
 const {Message} = require('../../utils/message')
 const {Embed} = require('../../utils/embed')
-MODULE_MANAGER = require("../../module_manager").get()
+MODULE_MANAGER = require("../../core/module_manager").get()
 
 class Module {
     constructor(create_infos) {

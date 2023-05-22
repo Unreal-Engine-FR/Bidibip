@@ -1,11 +1,11 @@
 // MODULE UTILITIES
 const {CommandInfo} = require("../../utils/interaction")
-const MODULE_MANAGER = require('../../module_manager').get()
+const MODULE_MANAGER = require('../../core/module_manager').get()
 const CONFIG = require('../../config').get()
-const LOGGER = require('../../logger').get()
+const LOGGER = require('../../utils/logger').get()
 const {Embed} = require('../../utils/embed')
 const {Message} = require('../../utils/message')
-const DI = require('../../discord_interface')
+const DI = require('../../utils/discord_interface')
 class Module {
     /**
      * @param create_infos contains module infos => {

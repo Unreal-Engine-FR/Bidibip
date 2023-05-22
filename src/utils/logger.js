@@ -1,8 +1,6 @@
 const fs = require('fs')
 const {resolve} = require("path")
-const CONFIG = require('./config').get()
-
-const is_big_number = num => !Number.isSafeInteger(+num)
+const CONFIG = require('../config').get()
 
 function arg_to_string(arg, depth = 0) {
     if (Array.isArray(arg)) {
@@ -32,6 +30,20 @@ function format_string(format, ...args) {
     return text
 }
 
+/**
+ * @param stack {string}
+ */
+function filter_call_stack(stack) {
+    result = stack.split('\n').filter(function(line){
+        return line.indexOf( "logger.js:" ) === -1 && line.indexOf( "process.processTicksAndRejections" ) === -1;
+    }).join('\n')
+
+    return result
+}
+
+/**
+ * When used, allow to use this class members on console (console.error, console.info etc...)
+ */
 class Logger {
     constructor() {
         console.log = (message, ...args) => {
@@ -68,26 +80,55 @@ class Logger {
         this._delegates = []
     }
 
+    /**
+     * Bind a delegate that will receive log events
+     * @param func {function}
+     */
     bind(func) {
         this._delegates.push(func)
     }
 
+    /**
+     * Send information message
+     * @param message {*}
+     * @param args {*}
+     */
     info(message, ...args) {
         LOGGER._internal_print('I', format_string(message, args))
     }
 
+    /**
+     * Send validation message
+     * @param message {*}
+     * @param args {*}
+     */
     validate(message, ...args) {
         LOGGER._internal_print('V', format_string(message, args))
     }
 
+    /**
+     * Send warning message
+     * @param message {*}
+     * @param args {*}
+     */
     warning(message, ...args) {
         LOGGER._internal_print('W', format_string(message, args))
     }
 
+    /**
+     * Send error message (will include a stack trace)
+     * @param message {*}
+     * @param args {*}
+     */
     error(message, ...args) {
-        LOGGER._internal_print('E', format_string(message, args) + '\n' + Error().stack)
+        LOGGER._internal_print('E', format_string(message, args) + '\n' + filter_call_stack(Error().stack))
     }
 
+    /**
+     * Send assertion message and throw error
+     * @param message {*}
+     * @param args {*}
+     */
     fatal(message, ...args) {
         LOGGER._internal_print('F', format_string(message, args))
     }
@@ -104,8 +145,8 @@ class Logger {
             delegate(level, message)
 
         if (level === 'F') {
-            fs.appendFileSync(this.log_file, Error().stack + '\n')
-            throw new Error(message + '\n' + Error().stack)
+            fs.appendFileSync(this.log_file, filter_call_stack(Error().stack) + '\n')
+            throw new Error(message + '\n' + filter_call_stack(Error().stack))
         }
 
         if (level === 'E' || level === 'F')
