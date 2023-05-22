@@ -77,7 +77,7 @@ class ModuleManager {
                 }
             })
             .catch(error => {
-                console.fatal(`Failed to load module '${module_name}' : ${error}`)
+                console.error(`Failed to load module '${module_name}' : ${error}`)
             })
     }
 

@@ -16,13 +16,22 @@ class DiscordInterface {
         this.on_message_delete = null
         this.on_message_update = null
         this.on_interaction = null
+        this.on_thread_create = null
 
+        client.on(Discord.Events.ThreadCreate, this._on_thread_create)
+        //client.on(Discord.Events.ChannelUpdate, channel => console.log('ChannelUpdate :', channel))
+        //client.on(Discord.Events.ChannelCreate, channel => console.log('ChannelCreate :', channel))
         client.on(Discord.Events.MessageCreate, this._on_message)
         client.on(Discord.Events.MessageDelete, this._on_message_delete)
         client.on(Discord.Events.MessageUpdate, this._on_message_udpate)
         client.on(Discord.Events.InteractionCreate, this._on_interaction)
 
         this.module_manager = null
+    }
+
+    _on_thread_create(thread) {
+        if (DISCORD_CLIENT.on_thread_create)
+            DISCORD_CLIENT.on_thread_create(thread)
     }
 
     _on_message(msg) {
@@ -65,8 +74,6 @@ class DiscordInterface {
 
             discord_command.setDMPermission(!command.has_permission(CONFIG.MEMBER_PERMISSION_FLAG) && !command.has_permission(CONFIG.ADMIN_PERMISSION_FLAG))
 
-            console.log(command.name, ' => ', command.has_permission(CONFIG.ADMIN_PERMISSION_FLAG))
-
             if (command._min_permissions !== 0n)
                 discord_command.setDefaultMemberPermissions(command._min_permissions)
             else
@@ -92,6 +99,13 @@ class DiscordInterface {
                         break
                     case 'user':
                         discord_command.addUserOption(opt =>
+                            opt.setName(option.name)
+                                .setDescription(option.description)
+                                .setRequired(option.required)
+                        )
+                        break
+                    case 'channel':
+                        discord_command.addChannelOption(opt =>
                             opt.setName(option.name)
                                 .setDescription(option.description)
                                 .setRequired(option.required)
