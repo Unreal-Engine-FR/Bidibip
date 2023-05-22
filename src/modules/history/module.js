@@ -1,6 +1,7 @@
 // MODULE HISTORY
-const {CommandInfo, Message, Embed} = require("../../discord_interface");
 const CONFIG = require("../../config").get()
+const {Message} = require('../../utils/message')
+const {Embed} = require('../../utils/embed')
 
 class Module {
     constructor(create_infos) {
@@ -9,31 +10,29 @@ class Module {
         this.client = create_infos.client
     }
 
-    server_message_updated(old_message, new_message) {
-        console.info(`Message updated [${old_message.author.name}] :\n${old_message.text}\nto\n${new_message.text}`)
-        this.client.say(
-            new Message().set_channel(CONFIG.LOG_CHANNEL_ID)
-                .add_embed(
-                    new Embed()
-                        .set_description('Message modifié :')
-                        .set_title(old_message.author.name)
-                        .add_field('ancien', old_message.text)
-                        .add_field('nouveau', new_message.text)
-                )
-        )
+    async server_message_updated(old_message, new_message) {
+        const author = await old_message.author()
+        console.info(`Message updated [${await author.full_name()}] :\n${await old_message.text()}\nto\n${await new_message.text()}`)
+        await new Message().set_channel(CONFIG.LOG_CHANNEL_ID)
+            .add_embed(
+                new Embed()
+                    .set_title(`@${await author.full_name()} (${author.id()})`)
+                    .set_description('Message modifié :')
+                    .add_field('ancien', await old_message.text())
+                    .add_field('nouveau', await new_message.text())
+            ).send().catch(err => console.error(`failed to send log message : ${err}`))
     }
 
-    server_message_delete(message) {
-        console.info(`Message deleted [${message.author.name}] :\n${message.text}`)
-        this.client.say(
-            new Message().set_channel(CONFIG.LOG_CHANNEL_ID)
-                .add_embed(
-                    new Embed()
-                        .set_description('Message supprimé :')
-                        .set_title(message.author.name)
-                        .add_field('Contenu', message.text)
-                )
-        )
+    async server_message_delete(message) {
+        const author = await message.author()
+        console.info(`Message deleted [${await author.full_name()}] :\n${await message.text()}`)
+        await new Message().set_channel(CONFIG.LOG_CHANNEL_ID)
+            .add_embed(
+                new Embed()
+                    .set_title(`@${await author.full_name()} (${author.id()})`)
+                    .set_description('Message supprimé :')
+                    .add_field('Contenu', await message.text())
+            ).send()
     }
 }
 

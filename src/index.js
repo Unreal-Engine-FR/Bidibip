@@ -1,62 +1,64 @@
-const MODULE_MANAGER = require('./module_manager').get()
-const CONFIG = require('./config').get()
-require('./logger').init()
+const CONFIG = require('./config')
+const DI = require('./utils/discord_interface')
+const MODULE_MANAGER = require('./core/module_manager')
+const {Client, Partials, GatewayIntentBits} = require('discord.js')
 
-const {patch_client} = require('./discord_interface')
+require('./utils/logger').init_logger()
 
 /*
 GIT AUTO-UPDATER
  */
 const AutoGitUpdate = require('auto-git-update')
-const Discord = require("discord.js");
+const {Message} = require("./utils/message");
 const updater = new AutoGitUpdate({
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
-    branch: CONFIG.UPDATE_FOLLOW_BRANCH,
-    tempLocation: CONFIG.CACHE_DIR + '/updater/',
+    branch: CONFIG.get().UPDATE_FOLLOW_BRANCH,
+    tempLocation: CONFIG.get().CACHE_DIR + '/updater/',
     exitOnComplete: true
-});
+})
 
+// Check for update before starting the app
 updater.autoUpdate()
     .then(result => {
         if (result) {
-            console.validate('Application up to date !')
+            console.validate('Application up to date ! Starting client...')
 
             /*
             CREATE DISCORD CLIENT
              */
-            const Discord = require('discord.js');
-            const client = new Discord.Client(
+            const client = new Client(
                 {
-                    partials: [Discord.Partials.Channel],
+                    partials: [Partials.Channel],
                     intents: [
-                        Discord.GatewayIntentBits.Guilds,
-                        Discord.GatewayIntentBits.GuildMessages,
-                        Discord.GatewayIntentBits.GuildMembers,
-                        Discord.GatewayIntentBits.MessageContent,
-                        Discord.GatewayIntentBits.GuildMessageReactions,
-                        Discord.GatewayIntentBits.DirectMessages
-                    ]
+                        GatewayIntentBits.Guilds,
+                        GatewayIntentBits.GuildMessages,
+                        GatewayIntentBits.GuildMembers,
+                        GatewayIntentBits.MessageContent,
+                        GatewayIntentBits.GuildMessageReactions,
+                        GatewayIntentBits.DirectMessages
+                    ] // This is the action the bot will be able to do
                 }
             )
-
-            client.updater = updater
 
             /*
             START DISCORD CLIENT
              */
             client.on('ready', () => {
-                patch_client(client)
-                MODULE_MANAGER.init(client)
-                client.channels.cache.get(CONFIG.LOG_CHANNEL_ID).send({content: 'Coucou tout le monde ! :wave: '})
+                DI.init(client, updater) // Setup interface
+                MODULE_MANAGER.get().init() // load modules
+                new Message() // Send welcome message
+                    .set_text('Coucou tout le monde ! :wave:')
+                    .set_channel(CONFIG.get().LOG_CHANNEL_ID)
+                    .send()
+                    .catch(err => console.fatal(`failed to send welcome message : ${err}`))
             })
-            client.login(CONFIG.APP_TOKEN)
+            client.login(CONFIG.get().APP_TOKEN)
                 .then(_token => {
                     console.validate(`Successfully logged in !`)
                 })
                 .catch(error => console.fatal(`Failed to login : ${error}`))
 
-        }
-        else {
+        } else {
             console.warning('Application outdated, waiting for update...')
         }
     })
