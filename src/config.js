@@ -27,6 +27,7 @@ class Configuration {
 
         /* The admin and member roles are defined using their permission level
         * If the user does not have theses permissions, it's because they don't have the role */
+        this.EVERYONE_PERMISSION_FLAG = 2048 // Send message
         this.MEMBER_PERMISSION_FLAG = 16384 // Can send link
         this.ADMIN_PERMISSION_FLAG = 4 // Can ban member
 

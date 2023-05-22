@@ -63,11 +63,14 @@ class DiscordInterface {
                 .setName(command.name)
                 .setDescription(command.description)
 
-            if (command._member_only || command._admin_only)
-                discord_command.setDMPermission(false)
+            discord_command.setDMPermission(!command.has_permission(CONFIG.MEMBER_PERMISSION_FLAG) && !command.has_permission(CONFIG.ADMIN_PERMISSION_FLAG))
+
+            console.log(command.name, ' => ', command.has_permission(CONFIG.ADMIN_PERMISSION_FLAG))
 
             if (command._min_permissions !== 0n)
                 discord_command.setDefaultMemberPermissions(command._min_permissions)
+            else
+                discord_command.setDefaultMemberPermissions(CONFIG.EVERYONE_PERMISSION_FLAG)
 
             for (const option of command.options) {
                 switch (option.type) {
@@ -105,14 +108,15 @@ class DiscordInterface {
         /*
         rest.get(Routes.applicationCommands(CONFIG.APP_ID))
             .then(data => {
-                const promises = [];
+                const promises = []
                 for (const command of data) {
-                    const deleteUrl = `${Routes.applicationCommands(CONFIG.APP_ID)}/${command.id}`;
-                    promises.push(rest.delete(deleteUrl));
+                    const deleteUrl = `${Routes.applicationCommands(CONFIG.APP_ID)}/${command.id}`
+                    promises.push(rest.delete(deleteUrl))
                 }
-                return Promise.all(promises);
-            });
+                return Promise.all(promises)
+            })
          */
+
         try {
             console.info(`Started refreshing ${command_data.length} application (/) commands.`)
 

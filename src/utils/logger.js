@@ -2,17 +2,33 @@ const fs = require('fs')
 const {resolve} = require("path")
 const CONFIG = require('../config').get()
 
-function arg_to_string(arg, depth = 0) {
-    if (Array.isArray(arg)) {
+function arg_to_string(arg, depth = '  ', object_map = new Set()) {
+    if (arg instanceof Function) {
+        return `\x1b[36m[Function ${arg.name || '(anonymous)'}]\x1b[0m`
+    } else if (Array.isArray(arg)) {
         let res = ''
         for (const item of arg)
-            res += `${arg_to_string(item, depth + 1)} `
+            res += `${arg_to_string(item, depth, object_map)} `
         return res.substring(0, res.length - 1)
-    } else if (arg === Object(arg))
-        return arg.constructor.name + ' ' + JSON.stringify(
-            arg,
-            (key, value) => typeof value === 'bigint' ? value.toString() : value,
-            4)
+    } else if (arg === Object(arg)) {
+        if (object_map.has(arg))
+            return `\x1b[36m[Circular]\x1b[0m`;
+        object_map.add(arg)
+        let string = (arg.constructor ? arg.constructor.name : '') + ' {'
+        let started = false
+        for (const [key, value] of Object.entries(arg)) {
+            string += started ? ',\n' : '\n'
+            started = true
+            string += `${depth}${key}: ` + arg_to_string(value, depth + '  ', object_map)
+        }
+        return started ? string + '\n' + depth.substring(2) + '}' : string + '}'
+    } else if (typeof arg === 'number' || typeof arg === 'boolean') {
+        return `\x1b[33m${arg.toString()}\x1b[0m`
+    } else if (typeof arg === 'string' && depth !== '  ') {
+        return `\x1b[32m'${arg.toString()}'\x1b[0m`
+    } else if (arg === null && depth !== '  ') {
+        return `\x1b[1m${arg}\x1b[0m`
+    }
 
     return String(arg)
 }
@@ -34,8 +50,8 @@ function format_string(format, ...args) {
  * @param stack {string}
  */
 function filter_call_stack(stack) {
-    result = stack.split('\n').filter(function(line){
-        return line.indexOf( "logger.js:" ) === -1 && line.indexOf( "process.processTicksAndRejections" ) === -1;
+    result = stack.split('\n').filter(function (line) {
+        return line.indexOf("logger.js:") === -1 && line.indexOf("process.processTicksAndRejections") === -1;
     }).join('\n')
 
     return result
@@ -134,12 +150,31 @@ class Logger {
     }
 
     _internal_print(level, message) {
-        let output_message = `[${new Date().toLocaleString()}] [${level}] ${message}\n`
+        fs.appendFileSync(this.log_file, `[${new Date().toLocaleString()}] [${level}] ${message}\n`)
 
+        let level_var = `[${level}]`
+        switch (level) {
+            case 'V':
+                level_var = '\x1b[32m[V]\x1b[0m'
+                break
+            case 'I':
+                level_var = '\x1b[36m[I]\x1b[0m'
+                break
+            case 'W':
+                level_var = '\x1b[35m[V]\x1b[0m'
+                break
+            case 'D':
+                level_var = '\x1b[1m\x1b[90m[D]\x1b[0m'
+                break
+            case 'E':
+                level_var = '\x1b[1m\x1b[31m[E]\x1b[0m'
+                break
+            case 'F':
+                level_var = '\x1b[1m\x1b[35m[F]\x1b[0m'
+                break
+        }
 
-        fs.appendFileSync(this.log_file, output_message)
-
-        process.stdout.write(output_message)
+        process.stdout.write(`[${new Date().toLocaleString()}] ${level_var} ${message}\n`)
 
         for (const delegate of this._delegates)
             delegate(level, message)
