@@ -10,13 +10,9 @@ class Button {
     constructor(_api_handle) {
         this._type = Button.Primary
         if (_api_handle) {
-            const api_handle = JSON.parse(JSON.stringify(_api_handle))
-            if (api_handle.custom_id === null)
-                console.fatal('invalid _handle : ', api_handle)
-
-            this._type = api_handle.style
-            this._label = api_handle.label
-            this._id = api_handle.custom_id
+            this._type = _api_handle.data.style
+            this._label = _api_handle.data.label
+            this._id = _api_handle.data.custom_id
             this.source = api_handle
         }
     }
