@@ -49,8 +49,11 @@ class CommandDispatcher {
             clearInterval(this.refresh_timer)
 
         const cm = this
+
         this.refresh_timer = setTimeout(() => {
-            DI.get().set_slash_commands(cm.all_commands())
+            (async () => {
+                await DI.get().set_slash_commands(cm.all_commands())
+            })().catch(err => console.error(`Failed to update discord commands : ${err}`))
         }, 100)
     }
 
@@ -73,7 +76,7 @@ class CommandDispatcher {
                 if (module.server_interaction)
                     (async () => {
                         module.server_interaction(command)
-                            .catch(err => console.error(`Failed to call 'server_interaction()' on module ${module.name} : ${err}`))
+                            .catch(err => console.error(`Failed to call 'server_interaction()' on module ${module.name} :\n${err}`))
                     })()
 
     }

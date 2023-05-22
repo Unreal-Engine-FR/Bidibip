@@ -1,7 +1,10 @@
 
 class Embed {
-    constructor() {
+    constructor(_api_handle) {
         this.fields = []
+
+        if (_api_handle)
+            this._from_discord_api(_api_handle)
     }
 
     /**
@@ -44,6 +47,16 @@ class Embed {
     add_field(name, value, inline = false) {
         this.fields.push({name: name, value: value, inline: inline})
         return this
+    }
+
+    _from_discord_api(_api_handle) {
+        this.title = _api_handle.title
+        this.description = _api_handle.description
+        this.thumbnail = _api_handle.thumbnail ? _api_handle.thumbnail.url : null
+        if (_api_handle.fields)
+            for (const field of _api_handle.fields) {
+                this.add_field(field.name, field.value, field.inline)
+            }
     }
 }
 
