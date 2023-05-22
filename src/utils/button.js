@@ -13,7 +13,6 @@ class Button {
             this._type = _api_handle.data.style
             this._label = _api_handle.data.label
             this._id = _api_handle.data.custom_id
-            this.source = api_handle
         }
     }
 
