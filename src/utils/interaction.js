@@ -55,7 +55,7 @@ class CommandInfo {
      * @returns {CommandInfo}
      */
     set_admin_only() {
-        this._min_permissions = BigInt(CONFIG.get().ADMIN_PERMISSION_FLAG)
+        this._min_permissions = BigInt(CONFIG.get().ADMIN_PERMISSION_FLAG) | BigInt(CONFIG.get().MEMBER_PERMISSION_FLAG)
         return this
     }
 
@@ -64,7 +64,7 @@ class CommandInfo {
      * @returns {CommandInfo}
      */
     set_member_only() {
-        this._min_permissions = BigInt(CONFIG.get().MEMBER_PERMISSION_FLAG) | BigInt(CONFIG.get().ADMIN_PERMISSION_FLAG)
+        this._min_permissions = BigInt(CONFIG.get().MEMBER_PERMISSION_FLAG)
         return this
     }
 
@@ -74,7 +74,7 @@ class CommandInfo {
      * @returns {boolean}
      */
     has_permission(permissions) {
-        return this._min_permissions === 0n || (this._min_permissions & BigInt(permissions)) !== 0n
+        return this._min_permissions === 0n || (this._min_permissions & BigInt(permissions)) === this._min_permissions
     }
 
     _add_option_internal(type, name, description, choices, required, default_value) {

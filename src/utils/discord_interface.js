@@ -66,7 +66,8 @@ class DiscordInterface {
             if (command._member_only || command._admin_only)
                 discord_command.setDMPermission(false)
 
-            discord_command.setDefaultMemberPermissions(command._min_permissions)
+            if (command._min_permissions !== 0n)
+                discord_command.setDefaultMemberPermissions(command._min_permissions)
 
             for (const option of command.options) {
                 switch (option.type) {
@@ -101,7 +102,17 @@ class DiscordInterface {
         // Construct and prepare an instance of the REST module
         const rest = new REST().setToken(CONFIG.APP_TOKEN); // don't remove this semicolon
 
-        // deploy old
+        /*
+        rest.get(Routes.applicationCommands(CONFIG.APP_ID))
+            .then(data => {
+                const promises = [];
+                for (const command of data) {
+                    const deleteUrl = `${Routes.applicationCommands(CONFIG.APP_ID)}/${command.id}`;
+                    promises.push(rest.delete(deleteUrl));
+                }
+                return Promise.all(promises);
+            });
+         */
         try {
             console.info(`Started refreshing ${command_data.length} application (/) commands.`)
 
