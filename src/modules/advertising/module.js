@@ -1,17 +1,36 @@
 // MODULE ADVERTISING
 const {CommandInfo} = require("../../utils/interaction")
 const CONFIG = require('../../config').get()
-MODULE_MANAGER = require("../../core/module_manager").get()
+const MODULE_MANAGER = require("../../core/module_manager")
 
 const {Message} = require('../../utils/message')
 const {Embed} = require('../../utils/embed')
 const {Button} = require('../../utils/button')
+const {InteractionRow} = require("../../utils/interaction_row");
+
+const PENDING_REQUESTS= {}
+function receive_interaction_result(button_id, interaction_id, message) {
+    if (button_id === 'send') {
+        PENDING_REQUESTS[interaction_id].message.set_text('').set_client_only(false).send()
+        PENDING_REQUESTS[interaction_id].message.set_text('').set_client_only(false).set_channel(CONFIG.SHARED_SHARED_CHANNEL)
+            .send()
+            .then(message => {
+                PENDING_REQUESTS[interaction_id].command.edit_reply(new Message()
+                    .set_text(`Ton annonce a bien été publiée : https://discord.com/channels/${CONFIG.SERVER_ID}/${message.channel()}/${message.id()}`))
+                    .catch(err => console.fatal(`failed to edit reply : ${err}`))
+                delete PENDING_REQUESTS[interaction_id]
+            })
+    } else {
+        PENDING_REQUESTS[interaction_id].command.delete_reply()
+            .catch(err => console.fatal(`Failed to delete reply ${err}`))
+        delete PENDING_REQUESTS[interaction_id]
+    }
+    return false
+}
 
 class Module {
     constructor(create_infos) {
         this.client = create_infos.client
-
-        this.pending_request = {}
 
         this.commands = [
             new CommandInfo('paid', 'Ajouter une annonce payante')
@@ -40,7 +59,11 @@ class Module {
         ]
     }
 
-    // When server command is executed
+    /**
+     * // When command is executed
+     * @param command {Interaction}
+     * @return {Promise<void>}
+     */
     async server_interaction(command) {
 
         if (command.match('paid')) {
@@ -52,38 +75,46 @@ class Module {
             }
 
             command.reply(result.message
-                .set_client_only()
-                .set_text('Prends le temps de vérifier ton message :')
-                .add_interaction_row([
-                    new Button()
-                        .set_id('cancel')
-                        .set_label('Annuler')
-                        .set_type(Button.Danger),
-                    new Button()
-                        .set_id('send')
-                        .set_label('Envoyer')
-                        .set_type(Button.Success)
-                ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_paid(command).message.set_channel(CONFIG.ADVERTISING_PAID_CHANNEL)}
-                MODULE_MANAGER.event_manager().watch_interaction(this, id)
+                    .set_client_only()
+                    .set_text('Prends le temps de vérifier ton message :')
+                    .add_interaction_row(
+                        new InteractionRow()
+                            .add_button(new Button()
+                                .set_id('cancel')
+                                .set_label('Annuler')
+                                .set_type(Button.Danger))
+                            .add_button(new Button()
+                                .set_id('send')
+                                .set_label('Envoyer')
+                                .set_type(Button.Success))),
+                receive_interaction_result
+            ).then(id => {
+                PENDING_REQUESTS[id] = {
+                    command: command,
+                    message: this._build_paid(command).message.set_channel(CONFIG.ADVERTISING_PAID_CHANNEL)
+                }
             })
         }
         if (command.match('unpaid')) {
             command.reply(this._build_unpaid(command)
-                .set_client_only()
-                .set_text('Prends le temps de vérifier ton message :')
-                .add_interaction_row([
-                    new Button()
-                        .set_id('cancel')
-                        .set_label('Annuler')
-                        .set_type(Button.Danger),
-                    new Button()
-                        .set_id('send')
-                        .set_label('Envoyer')
-                        .set_type(Button.Success)
-                ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_unpaid(command).set_channel(CONFIG.ADVERTISING_UNPAID_CHANNEL)}
-                MODULE_MANAGER.event_manager().watch_interaction(this, id)
+                    .set_client_only()
+                    .set_text('Prends le temps de vérifier ton message :')
+                    .add_interaction_row(
+                        new InteractionRow()
+                            .add_button(new Button()
+                                .set_id('cancel')
+                                .set_label('Annuler')
+                                .set_type(Button.Danger))
+                            .add_button(new Button()
+                                .set_id('send')
+                                .set_label('Envoyer')
+                                .set_type(Button.Success))),
+                receive_interaction_result
+            ).then(id => {
+                PENDING_REQUESTS[id] = {
+                    command: command,
+                    message: this._build_unpaid(command).set_channel(CONFIG.ADVERTISING_UNPAID_CHANNEL)
+                }
             })
         }
         if (command.match('freelance')) {
@@ -95,42 +126,29 @@ class Module {
             }
 
             command.reply(result.message
-                .set_client_only()
-                .set_text('Prends le temps de vérifier ton message :')
-                .add_interaction_row([
-                    new Button()
-                        .set_id('cancel')
-                        .set_label('Annuler')
-                        .set_type(Button.Danger),
-                    new Button()
-                        .set_id('send')
-                        .set_label('Envoyer')
-                        .set_type(Button.Success)
-                ])).then(id => {
-                this.pending_request[id] = {command: command, message: this._build_freelance(command).message.set_channel(CONFIG.ADVERTISING_FREELANCE_CHANNEL)}
-                MODULE_MANAGER.event_manager().watch_interaction(this, id)
+                    .set_client_only()
+                    .set_text('Prends le temps de vérifier ton message :')
+                    .add_interaction_row(
+                        new InteractionRow()
+                            .add_button(new Button()
+                                .set_id('cancel')
+                                .set_label('Annuler')
+                                .set_type(Button.Danger))
+                            .add_button(new Button()
+                                .set_id('send')
+                                .set_label('Envoyer')
+                                .set_type(Button.Success))),
+                receive_interaction_result
+            ).then(id => {
+                PENDING_REQUESTS[id] = {
+                    command: command,
+                    message: this._build_freelance(command).message.set_channel(CONFIG.ADVERTISING_FREELANCE_CHANNEL)
+                }
             })
         }
     }
 
-    async receive_interaction(value, id, _message) {
-        MODULE_MANAGER.event_manager().release_interaction(this, id)
-        const output_message = this.pending_request[id]
-        if (value === 'send') {
-            output_message.message.send()
-            output_message.message.set_channel(CONFIG.SHARED_SHARED_CHANNEL)
-                .send()
-                .then(message => {
-                    output_message.command.edit_reply(new Message()
-                        .set_text(`Ton annonce a bien été publiée : https://discord.com/channels/${CONFIG.SERVER_ID}/${message.channel()}/${message.id()}`))
-                        .catch(err => console.fatal(`failed to edit reply : ${err}`))
-                })
-        } else
-            await output_message.command.delete_reply()
-    }
-
     _build_paid(command) {
-
         if (command.read('remuneration') !== 'Rémunération')
             return {
                 message: new Message()

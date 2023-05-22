@@ -2,7 +2,6 @@ const CONFIG = require("../config.js").get()
 const {REST, ActivityType, SlashCommandBuilder, Routes} = require("discord.js")
 const Discord = require("discord.js");
 
-
 /**
  * @type {DiscordInterface}
  */
@@ -22,6 +21,8 @@ class DiscordInterface {
         client.on(Discord.Events.MessageDelete, this._on_message_delete)
         client.on(Discord.Events.MessageUpdate, this._on_message_udpate)
         client.on(Discord.Events.InteractionCreate, this._on_interaction)
+
+        this.module_manager = null
     }
 
     _on_message(msg) {
@@ -55,7 +56,7 @@ class DiscordInterface {
         this._client.user.setPresence({activities: [{name: message, type: ActivityType.Watching}]})
     }
 
-    set_slash_commands(commands) {
+    async set_slash_commands(commands) {
         const command_data = []
         for (const command of commands) {
             const discord_command = new SlashCommandBuilder()
@@ -101,21 +102,19 @@ class DiscordInterface {
         const rest = new REST().setToken(CONFIG.APP_TOKEN); // don't remove this semicolon
 
         // deploy old
-        (async () => {
-            try {
-                console.info(`Started refreshing ${command_data.length} application (/) commands.`)
+        try {
+            console.info(`Started refreshing ${command_data.length} application (/) commands.`)
 
-                // The put method is used to fully refresh all old in the guild with the current set
-                const data2 = await rest.put(
-                    Routes.applicationCommands(CONFIG.APP_ID),
-                    {body: command_data},
-                )
-                console.info(`Successfully reloaded ${data2.length} application (/) commands.`)
-            } catch (error) {
-                // And of course, make sure you catch and log any errors!
-                console.error(error)
-            }
-        })()
+            // The put method is used to fully refresh all old in the guild with the current set
+            const data2 = await rest.put(
+                Routes.applicationCommands(CONFIG.APP_ID),
+                {body: command_data},
+            )
+            console.info(`Successfully reloaded ${data2.length} application (/) commands.`)
+        } catch (error) {
+            // And of course, make sure you catch and log any errors!
+            console.error(error)
+        }
     }
 
     async check_updates() {
@@ -137,7 +136,7 @@ function init(client, updater) {
  */
 function get() {
     if (!DISCORD_CLIENT)
-        throw new Error('discord client have not been initialized yet')
+        console.fatal('discord client have not been initialized yet')
     return DISCORD_CLIENT
 }
 

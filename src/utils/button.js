@@ -1,19 +1,25 @@
 const {ButtonBuilder} = require("discord.js");
 
 class Button {
-    constructor(_api_handle) {
-        if (_api_handle) {
-            this._label = _api_handle.label
-            this._id = _api_handle.custom_id
-            this._type = _api_handle.style
-        }
-    }
-
     static Primary = 1
     static Secondary = 2
     static Success = 3
     static Danger = 4
     static Link = 5
+
+    constructor(_api_handle) {
+        this._type = Button.Primary
+        if (_api_handle) {
+            const api_handle = JSON.parse(JSON.stringify(_api_handle))
+            if (api_handle.custom_id === null)
+                console.fatal('invalid _handle : ', api_handle)
+
+            this._type = api_handle.style
+            this._label = api_handle.label
+            this._id = api_handle.custom_id
+            this.source = api_handle
+        }
+    }
 
     /**
      * Set button unique id
@@ -46,6 +52,8 @@ class Button {
     }
 
     _to_discord_item() {
+        if (!this._id)
+            console.fatal(`undefined id :`, this)
         return new ButtonBuilder()
             .setCustomId(this._id)
             .setLabel(this._label)

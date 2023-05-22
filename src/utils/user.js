@@ -98,7 +98,7 @@ class User {
             this._id = _api_handle.id
             this._name = _api_handle.username
             this._discriminator = _api_handle.discriminator
-            this._profile_picture = _api_handle.displayAvatarURL || _api_handle.avatarURL || _api_handle.defaultAvatarURL
+            this._profile_picture = _api_handle.displayAvatarURL() || _api_handle.avatarURL() || _api_handle.defaultAvatarURL()
         } catch (err) {
             console.fatal(`failed to parse discord user ${_api_handle} : ${err}`)
         }
@@ -107,12 +107,12 @@ class User {
 
     async _fill_internal() {
         if (!this._id)
-            throw console.fatal('Cannot retrieve user infs : user.id is null')
+            console.fatal('Cannot retrieve user infs : user.id is null')
         let user = DI.get()._client.users.cache.get(this._id)
         if (!user) {
             user = DI.get()._client.users.fetch(this._id)
                 .catch(err => {
-                    throw new Error(`failed to fetch discord user ${this._id} : ${err}`)
+                    console.fatal(`failed to fetch discord user ${this._id} : ${err}`)
                 })
         }
 

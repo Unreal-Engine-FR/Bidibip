@@ -29,6 +29,11 @@ class Module {
         }
     }
 
+    /**
+     * // When command is executed
+     * @param command {Interaction}
+     * @return {Promise<void>}
+     */
     async server_interaction(command) {
         if (command.match('quote')) {
             const quote = this.quotes[command.read('utilisateur')]

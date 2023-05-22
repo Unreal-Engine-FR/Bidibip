@@ -9,7 +9,7 @@ class InteractionRow {
         if (_api_handle) {
             for (const component of _api_handle.components) {
                 if (component.type === 2) {
-                    this._items.push(new Button(component))
+                    this.add_button(new Button(component))
                 }
                 else {
                     console.log(_api_handle)
