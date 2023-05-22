@@ -74,7 +74,7 @@ class EventManager {
             }
 
             const command_interaction = new Interaction(command, interaction)
-            if (!command.has_permission(command_interaction.permissions())) {
+            if (command_interaction.permissions() && !command.has_permission(command_interaction.permissions())) {
                 new User(interaction.user).full_name()
                     .then(name => {
                         new Message()
