@@ -2,8 +2,6 @@ const fs = require('fs')
 const path = require('path')
 const {EventManager} = require("./event_manager");
 const CONFIG = require("../config");
-const {Message} = require("../utils/message");
-const {resolve} = require("path");
 
 class ModuleManager {
     constructor() {
@@ -41,6 +39,7 @@ class ModuleManager {
         } catch (err) {
             console.fatal("failed to load modules : " + err)
         }
+        return this
     }
 
     /**
@@ -234,5 +233,4 @@ get() {
     return MODULE_MANAGER
 }
 
-module
-    .exports = {get}
+module.exports = {get}

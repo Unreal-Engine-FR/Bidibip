@@ -14,7 +14,11 @@ class Module {
         ]
     }
 
-    // When server command is executed
+    /**
+     * // When command is executed
+     * @param command {Interaction}
+     * @return {Promise<void>}
+     */
     async server_interaction(command) {
         if (command.match('say')) {
             await new Message()

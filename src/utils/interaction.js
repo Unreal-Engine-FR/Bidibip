@@ -1,8 +1,7 @@
 const {Message} = require("./message")
 const {User} = require("./user");
 const CONFIG = require('../config')
-const Discord = require('discord.js')
-
+const DI = require('../utils/discord_interface')
 
 class CommandInfo {
     constructor(name, description) {
@@ -103,7 +102,8 @@ class Interaction {
         this._options = {}
         this._author = new User(discord_interaction.user)
         this._channel = discord_interaction.channelId
-        this._permissions = discord_interaction.memberPermissions.bitfield
+        if (discord_interaction.memberPermissions)
+            this._permissions = discord_interaction.memberPermissions.bitfield
 
         if (source_command)
             for (const option of source_command.options)
@@ -126,15 +126,18 @@ class Interaction {
     /**
      * Reply to this command
      * @param message {Message}
+     * @param interaction_callback {function|null}
      * @returns {Promise<number|null>} message id
      */
-    async reply(message) {
+    async reply(message, interaction_callback = null) {
         try {
             const res = await this._interaction.reply(message._output_to_discord())
+                .catch(err => console.fatal(`failed to reply to command : ${err}`))
+            if (interaction_callback)
+                DI.get().module_manager.event_manager().watch_interaction(res.id, interaction_callback)
             return res.id
         } catch (err) {
-            console.error(`failed to reply to command : ${err}`)
-            return null
+            console.error(`failed to reply to command : ${err}`, message)
         }
     }
 
@@ -153,11 +156,13 @@ class Interaction {
     async skip() {
         try {
             await this._interaction.reply(new Message().set_text('Vu !').set_client_only()._output_to_discord())
+                .catch(err => console.error(`Failed to respond : ${err}`))
         } catch (err) {
             console.error(`Failed to respond : ${err}`)
         }
         try {
             await this._interaction.deleteReply()
+                .catch(err => console.error(`Failed to respond : ${err}`))
         } catch (err) {
             console.error(`Failed to delete reply : ${err}`)
         }

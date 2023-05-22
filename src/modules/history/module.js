@@ -10,6 +10,11 @@ class Module {
         this.client = create_infos.client
     }
 
+    /**
+     * @param old_message {Message}
+     * @param new_message {Message}
+     * @return {Promise<void>}
+     */
     async server_message_updated(old_message, new_message) {
         const author = await old_message.author()
         console.info(`Message updated [${await author.full_name()}] :\n${await old_message.text()}\nto\n${await new_message.text()}`)

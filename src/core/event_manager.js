@@ -4,6 +4,7 @@ const {Interaction} = require("../utils/interaction");
 const {User} = require("../utils/user");
 const CONFIG = require("../config");
 const {CommandDispatcher} = require("./command_dispatcher");
+const {ButtonComponent} = require("discord.js");
 
 
 class EventManager {
@@ -34,19 +35,26 @@ class EventManager {
 
         DI.get().on_interaction = interaction => {
             if (interaction.isButton()) {
+                if (!this._interactions[interaction.message.interaction.id]) {
+                    new Interaction(this._command_manager.find(interaction.commandName), interaction).skip()
+                    return
+                }
                 const inter = this._interactions[interaction.message.interaction.id]
                 if (inter) {
-                    for (const module of inter) {
-                        if (module.receive_interaction) {
-                            module.receive_interaction(
-                                interaction.customId,
-                                interaction.message.interaction.id,
-                                new Message(interaction.message)
-                            )
-                        }
+                    let removed = []
+                    for (const callback in inter) {
+                        if (inter[callback](
+                            interaction.customId,
+                            interaction.message.interaction.id,
+                            new Message(interaction.message)) === false)
+                            removed.push(callback)
                     }
+                    for (let i = removed.length; i >= 0; i--)
+                        this._interactions[interaction.message.interaction.id].splice(removed[i], 1)
+                    if (this._interactions[interaction.message.interaction.id].length === 0)
+                        delete this._interactions[interaction.message.interaction.id]
                 }
-                new Interaction(null, interaction).skip()
+                new Interaction(this._command_manager.find(interaction.commandName), interaction).skip()
                     .catch(err => console.fatal(`failed to skip interaction : ${err}`))
                 return
             }
@@ -67,7 +75,6 @@ class EventManager {
 
             const command_interaction = new Interaction(command, interaction)
             if (!command.has_permission(command_interaction.permissions())) {
-                console.log('a')
                 new User(interaction.user).full_name()
                     .then(name => {
                         new Message()
@@ -125,7 +132,7 @@ class EventManager {
             if (module.server_message)
                 (async () => {
                     module.server_message(message)
-                        .catch(err => console.error(`Failed to call 'server_message()' on module ${module.name} : ${err}`))
+                        .catch(err => console.error(`Failed to call 'server_message()' on module ${module.name} :\n${err}`))
                 })()
     }
 
@@ -134,7 +141,7 @@ class EventManager {
             if (module.dm_message)
                 (async () => {
                     module.dm_message(message)
-                        .catch(err => console.error(`Failed to call 'dm_message()' on module ${module.name} : ${err}`))
+                        .catch(err => console.error(`Failed to call 'dm_message()' on module ${module.name} :\n${err}`))
                 })()
     }
 
@@ -143,7 +150,7 @@ class EventManager {
             if (module.server_message_updated)
                 (async () => {
                     module.server_message_updated(old_message, new_message)
-                        .catch(err => console.error(`Failed to call 'server_message_updated()' on module ${module.name} : ${err}`))
+                        .catch(err => console.error(`Failed to call 'server_message_updated()' on module ${module.name} :\n${err}`))
                 })()
     }
 
@@ -152,7 +159,7 @@ class EventManager {
             if (module.server_message_delete)
                 (async () => {
                     module.server_message_delete(message)
-                        .catch(err => console.error(`Failed to call 'server_message_delete()' on module ${module.name} : ${err}`))
+                        .catch(err => console.error(`Failed to call 'server_message_delete()' on module ${module.name} :\n${err}`))
                 })()
     }
 
@@ -160,19 +167,11 @@ class EventManager {
         return this._command_manager ? this._command_manager.get_commands(permissions) : null
     }
 
-    watch_interaction(module, interaction_id) {
+    watch_interaction(interaction_id, callback) {
         if (!this._interactions[interaction_id])
-            this._interactions[interaction_id] = [module]
-        else if (this._interactions[interaction_id].indexOf(module) === -1)
-            this._interactions[interaction_id].push(module)
-    }
-
-    release_interaction(module, interaction_id) {
-        if (this._interactions[interaction_id] && this._interactions[interaction_id].indexOf(module) !== -1) {
-            this._interactions[interaction_id].splice(this._interactions[interaction_id].indexOf(module), 1)
-            if (this._interactions[interaction_id].length === 0)
-                delete this._interactions[interaction_id]
-        }
+            this._interactions[interaction_id] = [callback]
+        else
+            this._interactions[interaction_id].push(callback)
     }
 }
 

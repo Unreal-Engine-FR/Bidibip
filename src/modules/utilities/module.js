@@ -60,14 +60,25 @@ class Module {
         })
     }
 
-    // When module is started
+    /**
+     * // When module is started
+     * @return {Promise<void>}
+     */
     async start() {
     }
 
-    // When module is stopped
+    /**
+     * When module is stopped
+     * @return {Promise<void>}
+     */
     async stop() {
     }
 
+    /**
+     * // When command is executed
+     * @param command {Interaction}
+     * @return {Promise<void>}
+     */
     async server_interaction(command) {
         if (command.match('modules_infos')) {
             const embed = new Embed()
@@ -131,19 +142,28 @@ class Module {
         }
     }
 
-    // On received server messages=
+    /**
+     * On received server messages
+     * @param message {Message}
+     * @return {Promise<void>}
+     */
     async server_message(message) {
     }
 
-    // When interaction button is clicked (interaction should have been bound before)
-    async receive_interaction(value, id, message) {
-    }
-
-    // On update message on server
+    /**
+     * On update message on server
+     * @param old_message {Message}
+     * @param new_message {Message}
+     * @return {Promise<void>}
+     */
     async server_message_updated(old_message, new_message) {
     }
 
-    // On delete message on server
+    /**
+     * On delete message on server
+     * @param message {Message}
+     * @return {Promise<void>}
+     */
     async server_message_delete(message) {
     }
 }

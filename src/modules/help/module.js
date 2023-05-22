@@ -13,7 +13,11 @@ class Module {
         ]
     }
 
-    // When server command is issued
+    /**
+     * // When command is executed
+     * @param command {Interaction}
+     * @return {Promise<void>}
+     */
     async server_interaction(command) {
         if (command.match('help')) {
             const commands = MODULE_MANAGER.event_manager().get_commands(command.permissions())

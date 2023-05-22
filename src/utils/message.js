@@ -28,7 +28,7 @@ class Message {
      * @returns {Message}
      */
     set_text(text) {
-        this._text = text
+        this._text = text && text.length === 0 ? null : text
         return this
     }
 
@@ -77,7 +77,7 @@ class Message {
      * @returns {boolean}
      */
     is_empty() {
-        let text =this._text
+        let text = this._text
         return (!text || text.length === 0) && this._embeds.length === 0
     }
 
@@ -85,8 +85,8 @@ class Message {
      * Set message ephemeral (and visible only by the client. Used with interactions)
      * @returns {Message}
      */
-    set_client_only() {
-        this._client_only = true
+    set_client_only(value = true) {
+        this._client_only = value
         return this
     }
 
@@ -135,26 +135,31 @@ class Message {
 
     async _fill_internal() {
         if (!this.channel)
-            throw new Error('Missing channel')
+            console.fatal('Missing channel')
 
         if (!this._id)
-            throw new Error('Missing source id')
+            console.fatal('Missing source id')
 
         let channel = DI.get()._client.channels.cache.get(this._channel)
         if (!channel) {
             channel = DI.get()._client.channels.fetch(this._channel)
                 .catch(err => {
-                    throw new Error(`Failed to get channel : ${err}`)
+                    console.fatal(`Failed to get channel : ${err}`)
                 })
         }
 
         const di_message = await channel.messages.fetch(this._id)
             .catch(err => {
-                throw new Error(`Failed to fetch message ${this._id}/${this._channel}: ${err}`)
+                console.fatal(`Failed to fetch message ${this._id}/${this._channel}: ${err}`)
             })
 
         this._from_discord_message(di_message)
         return di_message
+    }
+
+    clear_interactions() {
+        this._interactions = []
+        return this
     }
 
     _from_discord_message(_api_handle) {
@@ -185,25 +190,23 @@ class Message {
         let embeds = []
 
         for (const embed of this._embeds) {
+            if (!embed.title || !embed.description)
+                console.fatal(`embed is empty : ${embed}`)
+
             const item = new Discord.EmbedBuilder()
-                .setDescription(embed.description)
                 .setTitle(embed.title)
+                .setDescription(embed.description)
                 .setThumbnail(embed.thumbnail)
 
-            for (const field of embed.fields) {
+            for (const field of embed.fields)
                 item.addFields(field)
-            }
 
             embeds.push(item)
         }
 
         let components = []
-        for (const row of this._interactions) {
-            const discord_row = new InteractionRow()
-            for (const item of row)
-                discord_row.add_button(item)
-            components.push(discord_row._to_discord_row())
-        }
+        for (const row of this._interactions)
+            components.push(row._to_discord_row())
 
         return {
             content: this._text,
@@ -225,7 +228,12 @@ class Message {
         if (this.is_empty())
             console.fatal(`cannot send empty message : `, this)
 
-        const res = await DI.get()._client.channels.cache.get(this._channel).send(this._output_to_discord())
+        let channel = await DI.get()._client.channels.cache.get(this._channel)
+        if (!channel)
+            channel = await DI.get()._client.channels.fetch(this._channel)
+                .catch(err => console.fatal(`failed to get channel ${this._channel}:`, err))
+
+        const res = await channel.send(this._output_to_discord())
 
         return new Message(res)
     }
