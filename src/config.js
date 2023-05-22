@@ -1,3 +1,5 @@
+const path = require('path')
+
 class Configuration {
     constructor() {
 
@@ -33,6 +35,10 @@ class Configuration {
 
         if (this.APP_TOKEN === null)
             throw new Error(`APP_TOKEN is null : Maybe you forget to setup .env`)
+
+        if (path.isAbsolute(this.SAVE_DIR)) this.SAVE_DIR = path.resolve(this.SAVE_DIR)
+        if (path.isAbsolute(this.CACHE_DIR)) this.SAVE_DIR = path.resolve(this.CACHE_DIR)
+
     }
 }
 

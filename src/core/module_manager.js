@@ -1,10 +1,14 @@
 const fs = require('fs')
 const path = require('path')
 const {EventManager} = require("./event_manager");
+const CONFIG = require("../config");
+const {Message} = require("../utils/message");
+const {resolve} = require("path");
 
 class ModuleManager {
     constructor() {
         this._module_list = {}
+        this._config_data = {}
     }
 
     /**
@@ -15,13 +19,17 @@ class ModuleManager {
         // Unload existing modules
         this.unload_modules()
 
+        // Load configuration
+        if (!fs.existsSync(CONFIG.get().SAVE_DIR + '/config/modules.json'))
+            this._config_data = {}
+        else
+            this._config_data = JSON.parse(fs.readFileSync(CONFIG.get().SAVE_DIR + '/config/modules.json', 'utf8'))
+
         // Init modules with new client
         this._client = discord_client
         this._event_manager = new EventManager(this._client)
-        this.load_all_modules()
-    }
 
-    load_all_modules() {
+        // Load all modules
         try {
             const names = fs.readdirSync(path.join(__dirname, '../modules'), {withFileTypes: true})
                 .filter(dirent => dirent.isDirectory())
@@ -51,10 +59,20 @@ class ModuleManager {
                     instance.name = module_name
                     this._module_list[module_name] = instance
 
+                    // Find if module was enabled last time
+                    if (this._config_data[module_name]) {
+                        if (this._config_data[module_name].enabled) {
+                            instance.enabled = false
+                            this.start(module_name)
+                        }
+                    }
                     // Start module if not specified to be stopped by default
-                    if (instance.enabled !== false) {
-                        instance.enabled = false
-                        this.start(module_name)
+                    else {
+                        this._config_data[module_name] = {}
+                        if (instance.enabled !== false) {
+                            instance.enabled = false
+                            this.start(module_name)
+                        }
                     }
                     console.validate(`Successfully loaded module '${module_name}'`)
                 }
@@ -107,6 +125,11 @@ class ModuleManager {
      * @param module_name {string}
      */
     start(module_name) {
+        if (!this._config_data[module_name].enabled) {
+            this._config_data[module_name].enabled = true
+            this._save_config()
+        }
+
         if (!this._module_list[module_name]) {
             console.error(`There is no module called '${module_name}'`)
             return
@@ -118,6 +141,7 @@ class ModuleManager {
             this._event_manager.bind(module)
             if (module.start)
                 module.start()
+
             console.validate(`Successfully enabled module '${module_name}'`)
         } else
             console.warning(`Module '${module_name}' is already enabled`)
@@ -128,6 +152,11 @@ class ModuleManager {
      * @param module_name {string}
      */
     stop(module_name) {
+        if (this._config_data[module_name].enabled || this._config_data[module_name].enabled === null) {
+            this._config_data[module_name].enabled = false
+            this._save_config()
+        }
+
         if (!this._module_list[module_name]) {
             console.error(`There is no module called '${module_name}'`)
             return
@@ -139,6 +168,7 @@ class ModuleManager {
                 module.stop()
             this._event_manager.unbind(module)
             module.enabled = false
+
             console.validate(`Successfully disabled module '${module_name}'`)
         } else
             console.warning(`Module '${module_name}' is already disabled`)
@@ -171,18 +201,38 @@ class ModuleManager {
         }
         return modules
     }
+
+    _save_config() {
+        if (!fs.existsSync(CONFIG.get().SAVE_DIR + '/config/'))
+            fs.mkdirSync(CONFIG.get().SAVE_DIR + '/config/', {recursive: true})
+        fs.writeFile(
+            CONFIG.get().SAVE_DIR + '/config/modules.json',
+            JSON.stringify(this._config_data),
+            'utf8',
+            err => {
+                if (err) {
+                    console.fatal(`failed to save module config : ${err}`)
+                    command.skip()
+                }
+            })
+        console.info(`saved module config to ${CONFIG.get().SAVE_DIR}/config/modules.json`)
+    }
 }
 
 /**
  * Module manager global singleton
  * @type {ModuleManager}
  */
-let MODULE_MANAGER = null
+let
+    MODULE_MANAGER = null
 
-function get() {
+function
+
+get() {
     if (MODULE_MANAGER === null)
         MODULE_MANAGER = new ModuleManager()
     return MODULE_MANAGER
 }
 
-module.exports = {get}
+module
+    .exports = {get}
