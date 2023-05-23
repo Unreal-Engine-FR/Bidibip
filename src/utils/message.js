@@ -198,8 +198,12 @@ class Message {
                 .setDescription(embed.description)
                 .setThumbnail(embed.thumbnail)
 
-            for (const field of embed.fields)
+            for (const field of embed.fields) {
+                if (field.value.length > 1024) {
+                    console.fatal('Embed fields cannot have more than 1024 characters :', field)
+                }
                 item.addFields(field)
+            }
 
             embeds.push(item)
         }
@@ -234,6 +238,7 @@ class Message {
                 .catch(err => console.fatal(`failed to get channel ${this._channel}:`, err))
 
         const res = await channel.send(this._output_to_discord())
+            .catch(err => console.fatal(`failed to send message : ${err}`))
 
         return new Message(res)
     }

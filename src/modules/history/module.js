@@ -23,9 +23,9 @@ class Module {
                 new Embed()
                     .set_title(`@${await author.full_name()} (${author.id()})`)
                     .set_description('Message modifié :')
-                    .add_field('ancien', await old_message.text())
-                    .add_field('nouveau', await new_message.text())
-            ).send().catch(err => console.error(`failed to send log message : ${err}`))
+                    .add_field('ancien', (await old_message.text()).substring(0, 1024))
+                    .add_field('nouveau', (await new_message.text()).substring(0, 1024))
+            ).send().catch(err => console.fatal(`failed to send log message : ${err}`, err))
     }
 
     async server_message_delete(message) {
@@ -36,7 +36,7 @@ class Module {
                 new Embed()
                     .set_title(`@${await author.full_name()} (${author.id()})`)
                     .set_description('Message supprimé :')
-                    .add_field('Contenu', await message.text())
+                    .add_field('Contenu', (await message.text()).substring(0, 1024))
             ).send()
     }
 }
