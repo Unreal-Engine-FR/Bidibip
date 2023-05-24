@@ -7,6 +7,7 @@ const {Embed} = require('../../utils/embed')
 
 const fs = require('fs')
 const {User} = require("../../utils/user");
+const {Channel} = require("../../utils/channel");
 
 class Module {
     constructor(create_infos) {
@@ -38,13 +39,13 @@ class Module {
         if (command.match('quote')) {
             const quote = this.quotes[command.read('utilisateur')]
             if (!quote) {
-                command.reply(new Message().set_text(`Je n'ai pas de citation pour cet utilisateur... Mais je suis sûr qu'il est très cool !`).set_client_only())
+                await command.reply(new Message().set_text(`Je n'ai pas de citation pour cet utilisateur... Mais je suis sûr qu'il est très cool !`).set_client_only())
                 return
             }
 
             const selected_quote = quote[Math.floor(Math.random() * quote.length)]
             if (selected_quote.text.length === 0) {
-                command.reply(new Message().set_text(`La citation '${selected_quote.id}' n\'est pas valide... Un administrateur va passer pour la supprimer !`))
+                await command.reply(new Message().set_text(`La citation '${selected_quote.id}' n\'est pas valide... Un administrateur va passer pour la supprimer !`))
                 console.warning(`there is an empty quote in the database : ${selected_quote.id}`)
                 return
             }
@@ -55,27 +56,29 @@ class Module {
                     .set_title(selected_quote.text)
                     .set_description(`*${await new User().set_id(command.read('utilisateur')).name()}* - Demandé par ${await author.name()}`))
                 .send()
-            command.skip()
+            await command.skip()
         }
 
         if (command.match('add_quote')) {
             try {
-                let channel = command.channel()
+                let channel = await command.channel()
                 let message_id = command.read('message')
 
                 // We sent a full link
                 if (message_id.includes('/'))
                 {
-                    message_id.split('/')
-                    channel = new Channel().set_id(message_id[message_id.length - 2])
+                    const url = message_id.split('/')
+                    channel = new Channel().set_id(url[url.length - 2])
+                    message_id = url[url.length - 1]
                 }
 
 
 
-                const message = new Message().set_channel(command.channel()).set_id(command.read('message'))
+                const message = new Message().set_channel(channel).set_id(message_id)
                 let text = await message.text()
                 if (!text || text.length === 0) {
-                    await command.reply(new Message().set_text('Ce message ne peut pas être ajouté comme citation').set_client_only())
+                    command.reply(new Message().set_text('Ce message ne peut pas être ajouté comme citation').set_client_only())
+                        .catch(err => console.fatal(`Failed to reply : ${err}`))
                     return
                 }
 
@@ -86,6 +89,7 @@ class Module {
                     for (const quote of this.quotes[author.id()]) {
                         if (quote.id === message.id()) {
                             command.reply(new Message().set_text('Message déjà en base de donnée !').set_client_only())
+                                .catch(err => console.fatal(`Failed to reply : ${err}`))
                             return
                         }
                     }
@@ -105,7 +109,8 @@ class Module {
                 })
             } catch (err) {
                 console.warning(`failed to get message : ${err}`)
-                command.reply(new Message().set_text(`Je n'ai pas trouvé le message :(`).set_client_only())
+                await command.reply(new Message().set_text(`Je n'ai pas trouvé le message :(`).set_client_only())
+                    .catch(err => console.fatal(`Failed to reply : ${err}`))
             }
         }
     }

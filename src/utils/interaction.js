@@ -126,7 +126,7 @@ class Interaction {
         this._interaction = discord_interaction
         this._options = {}
         this._author = new User(discord_interaction.user)
-        this._channel = discord_interaction.channelId
+        this._channel = new Channel().set_id(discord_interaction.channelId)
         this._context_permissions = discord_interaction.memberPermissions ? discord_interaction.memberPermissions.bitfield : 0n
 
         if (source_command)
