@@ -4,7 +4,8 @@ const {Interaction} = require("../utils/interaction");
 const {User} = require("../utils/user");
 const CONFIG = require("../config");
 const {CommandDispatcher} = require("./command_dispatcher");
-const {ButtonComponent} = require("discord.js");
+const {Channel} = require("../utils/channel");
+const {Thread} = require("../utils/thread");
 
 
 class EventManager {
@@ -14,6 +15,9 @@ class EventManager {
         this._command_manager = new CommandDispatcher(client)
         this._interactions = {}
 
+        DI.get().on_thread_create = thread => {
+            this._thread_created(new Thread(thread))
+        }
         DI.get().on_message_delete = msg => {
             const message = new Message(msg)
             if (!message.is_dm())
@@ -24,7 +28,6 @@ class EventManager {
             if (!old.is_dm())
                 this._server_message_updated(old, new Message(new_message))
         }
-
         DI.get().on_message = msg => {
             const message = new Message(msg)
             if (message.is_dm())
@@ -32,9 +35,13 @@ class EventManager {
             else
                 this._server_message(message)
         }
-
         DI.get().on_interaction = interaction => {
+            if (interaction.isButton() && !interaction.message.interaction) {
+                console.log(interaction)
+                return false
+            }
             if (interaction.isButton()) {
+
                 if (!this._interactions[interaction.message.interaction.id]) {
                     new Interaction(this._command_manager.find(interaction.commandName), interaction).skip()
                     return
@@ -58,7 +65,6 @@ class EventManager {
                     .catch(err => console.fatal(`failed to skip interaction : ${err}`))
                 return
             }
-
             let options = ''
             for (const option of interaction.options._hoistedOptions) {
                 options += option.name + ': ' + option.value + ', '
@@ -74,11 +80,11 @@ class EventManager {
             }
 
             const command_interaction = new Interaction(command, interaction)
-            if (command_interaction.permissions() && !command.has_permission(command_interaction.permissions())) {
+            if (command_interaction.context_permissions() && !command.has_permission(command_interaction.context_permissions())) {
                 new User(interaction.user).full_name()
                     .then(name => {
                         new Message()
-                            .set_channel(CONFIG.get().LOG_CHANNEL_ID)
+                            .set_channel(new Channel().set_id(CONFIG.get().LOG_CHANNEL_ID))
                             .set_text(`${name} (${'<@' + new User(interaction.user).id() + '>'}) a essayé d'exécuter la commande '${command.name}' sans en avoir la permission ${CONFIG.get().SERVICE_ROLE} !`)
                             .send()
                             .catch(err => console.fatal(`failed to notify usage error : ${err}`))
@@ -160,6 +166,15 @@ class EventManager {
                 (async () => {
                     module.server_message_delete(message)
                         .catch(err => console.error(`Failed to call 'server_message_delete()' on module ${module.name} :\n${err}`))
+                })()
+    }
+
+    _thread_created(thread) {
+        for (const module of this._bound_modules)
+            if (module.thread_created)
+                (async () => {
+                    module.thread_created(thread)
+                        .catch(err => console.error(`Failed to call 'thread_created()' on module ${module.name} :\n${err}`))
                 })()
     }
 

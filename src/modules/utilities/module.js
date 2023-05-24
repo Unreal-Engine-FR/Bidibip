@@ -6,6 +6,7 @@ const LOGGER = require('../../utils/logger').get()
 const {Embed} = require('../../utils/embed')
 const {Message} = require('../../utils/message')
 const DI = require('../../utils/discord_interface')
+const {Channel} = require("../../utils/channel");
 class Module {
     /**
      * @param create_infos contains module infos => {
@@ -50,7 +51,7 @@ class Module {
             if (level === 'E' || level === 'F') {
                 new Message()
                     .set_text('A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
-                    .set_channel(CONFIG.LOG_CHANNEL_ID)
+                    .set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
                     .add_embed(new Embed()
                         .set_title(level === 'E' ? 'Error' : 'Fatal')
                         .set_description(message))
@@ -58,6 +59,7 @@ class Module {
                     .catch(err => console.fatal(`failed to send error message ${err}`))
             }
         })
+        DI.get().check_permissions_validity().catch(err => console.fatal(`Failed to check permissions validity : ${err}`))
     }
 
     /**

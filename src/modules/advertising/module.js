@@ -7,12 +7,13 @@ const {Message} = require('../../utils/message')
 const {Embed} = require('../../utils/embed')
 const {Button} = require('../../utils/button')
 const {InteractionRow} = require("../../utils/interaction_row");
+const {Channel} = require("../../utils/channel");
 
 const PENDING_REQUESTS= {}
 function receive_interaction_result(button_id, interaction_id, message) {
     if (button_id === 'send') {
         PENDING_REQUESTS[interaction_id].message.set_text('').set_client_only(false).send()
-        PENDING_REQUESTS[interaction_id].message.set_text('').set_client_only(false).set_channel(CONFIG.SHARED_SHARED_CHANNEL)
+        PENDING_REQUESTS[interaction_id].message.set_text('').set_client_only(false).set_channel(new Channel().set_id(CONFIG.SHARED_SHARED_CHANNEL))
             .send()
             .then(message => {
                 PENDING_REQUESTS[interaction_id].command.edit_reply(new Message()
@@ -91,7 +92,7 @@ class Module {
             ).then(id => {
                 PENDING_REQUESTS[id] = {
                     command: command,
-                    message: this._build_paid(command).message.set_channel(CONFIG.ADVERTISING_PAID_CHANNEL)
+                    message: this._build_paid(command).message.set_channel(new Channel().set_id(CONFIG.ADVERTISING_PAID_CHANNEL))
                 }
             })
         }
@@ -113,7 +114,7 @@ class Module {
             ).then(id => {
                 PENDING_REQUESTS[id] = {
                     command: command,
-                    message: this._build_unpaid(command).set_channel(CONFIG.ADVERTISING_UNPAID_CHANNEL)
+                    message: this._build_unpaid(command).set_channel(new Channel().set_id(CONFIG.ADVERTISING_UNPAID_CHANNEL))
                 }
             })
         }
@@ -142,7 +143,7 @@ class Module {
             ).then(id => {
                 PENDING_REQUESTS[id] = {
                     command: command,
-                    message: this._build_freelance(command).message.set_channel(CONFIG.ADVERTISING_FREELANCE_CHANNEL)
+                    message: this._build_freelance(command).message.set_channel(new Channel().set_id(CONFIG.ADVERTISING_FREELANCE_CHANNEL))
                 }
             })
         }

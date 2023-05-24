@@ -2,13 +2,14 @@ const {Message} = require("./message")
 const {User} = require("./user");
 const CONFIG = require('../config')
 const DI = require('../utils/discord_interface')
+const {Channel} = require("./channel");
 
 class CommandInfo {
     constructor(name, description) {
         this.name = name
         this.description = description
         this.options = []
-        this._min_permissions = 0n
+        this._required_roles = []
     }
 
     /**
@@ -22,6 +23,18 @@ class CommandInfo {
      */
     add_text_option(name, description, choices = [], required = true, default_value = null) {
         this._add_option_internal('text', name, description, choices, required, default_value)
+        return this
+    }
+
+    /**
+     * @param name {string} the display name of the option
+     * @param description {string}
+     * @param required {boolean}
+     * @param default_value {string|null}
+     * @returns {CommandInfo}
+     */
+    add_channel_option(name, description, required = true, default_value = null) {
+        this._add_option_internal('channel', name, description, [], required, default_value)
         return this
     }
 
@@ -55,7 +68,7 @@ class CommandInfo {
      * @returns {CommandInfo}
      */
     set_admin_only() {
-        this._min_permissions = BigInt(CONFIG.get().ADMIN_PERMISSION_FLAG) | BigInt(CONFIG.get().MEMBER_PERMISSION_FLAG)
+        this._required_roles = [CONFIG.get().MEMBER_ROLE_ID, CONFIG.get().ADMIN_ROLE_ID]
         return this
     }
 
@@ -64,7 +77,7 @@ class CommandInfo {
      * @returns {CommandInfo}
      */
     set_member_only() {
-        this._min_permissions = BigInt(CONFIG.get().MEMBER_PERMISSION_FLAG)
+        this._required_roles = [CONFIG.get().MEMBER_ROLE_ID]
         return this
     }
 
@@ -74,7 +87,19 @@ class CommandInfo {
      * @returns {boolean}
      */
     has_permission(permissions) {
-        return this._min_permissions === 0n || (this._min_permissions & BigInt(permissions)) === this._min_permissions
+        const required_permissions = this.required_permissions()
+        return (BigInt(permissions) & BigInt(required_permissions)) === required_permissions
+    }
+
+    /**
+     * Get required permission flags
+     * @returns {bigint}
+     */
+    required_permissions() {
+        let required_permissions = 0n
+        for (const role_id of this._required_roles)
+            required_permissions |= DI.get().get_role_permissions(role_id)
+        return required_permissions
     }
 
     _add_option_internal(type, name, description, choices, required, default_value) {
@@ -101,9 +126,8 @@ class Interaction {
         this._interaction = discord_interaction
         this._options = {}
         this._author = new User(discord_interaction.user)
-        this._channel = discord_interaction.channelId
-        if (discord_interaction.memberPermissions)
-            this._permissions = discord_interaction.memberPermissions.bitfield
+        this._channel = new Channel().set_id(discord_interaction.channelId)
+        this._context_permissions = discord_interaction.memberPermissions ? discord_interaction.memberPermissions.bitfield : 0n
 
         if (source_command)
             for (const option of source_command.options)
@@ -204,26 +228,18 @@ class Interaction {
 
     /**
      * Get the channel id this interaction have been sent
-     * @returns {number}
+     * @returns {Channel}
      */
     channel() {
         return this._channel
     }
 
     /**
-     * Overwrite permissions
-     * @param permission_flags {bigint}
-     */
-    set_permission(permission_flags) {
-        this._permissions = permission_flags
-    }
-
-    /**
      * Get permission flags
      * @returns {bigint}
      */
-    permissions() {
-        return this._permissions
+    context_permissions() {
+        return this._context_permissions
     }
 
     /**

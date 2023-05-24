@@ -3,6 +3,7 @@ const {User} = require("./user")
 const {Embed} = require("./embed");
 const {InteractionRow} = require("./interaction_row");
 const DI = require("./discord_interface");
+const {Channel} = require("./channel");
 
 class Message {
     constructor(api_handle) {
@@ -44,11 +45,11 @@ class Message {
 
     /**
      * Set channel ID (this is the channel the message will be sent to)
-     * @param id {number}
+     * @param channel {Channel}
      * @returns {Message}
      */
-    set_channel(id) {
-        this._channel = id
+    set_channel(channel) {
+        this._channel = channel
         return this
     }
 
@@ -119,7 +120,7 @@ class Message {
 
     /**
      * Get channel id
-     * @returns {number}
+     * @returns {Channel}
      */
     channel() {
         return this._channel
@@ -140,9 +141,9 @@ class Message {
         if (!this._id)
             console.fatal('Missing source id')
 
-        let channel = DI.get()._client.channels.cache.get(this._channel)
+        let channel = DI.get()._client.channels.cache.get(this._channel.id())
         if (!channel) {
-            channel = DI.get()._client.channels.fetch(this._channel)
+            channel = DI.get()._client.channels.fetch(this._channel.id())
                 .catch(err => {
                     console.fatal(`Failed to get channel : ${err}`)
                 })
@@ -150,7 +151,7 @@ class Message {
 
         const di_message = await channel.messages.fetch(this._id)
             .catch(err => {
-                console.fatal(`Failed to fetch message ${this._id}/${this._channel}: ${err}`)
+                console.fatal(`Failed to fetch message ${this._id}: ${err}`)
             })
 
         this._from_discord_message(di_message)
@@ -166,7 +167,7 @@ class Message {
         this._author = new User(_api_handle.author)
         this._text = _api_handle.content
         this._id = _api_handle.id
-        this._channel = _api_handle.channelId
+        this._channel = new Channel(_api_handle.channelId)
         this._is_dm = !_api_handle.guildId
         this._embeds = []
         this._interactions = []
@@ -232,10 +233,10 @@ class Message {
         if (this.is_empty())
             console.fatal(`cannot send empty message : `, this)
 
-        let channel = await DI.get()._client.channels.cache.get(this._channel)
+        let channel = await DI.get()._client.channels.cache.get(this._channel.id())
         if (!channel)
-            channel = await DI.get()._client.channels.fetch(this._channel)
-                .catch(err => console.fatal(`failed to get channel ${this._channel}:`, err))
+            channel = await DI.get()._client.channels.fetch(this._channel.id())
+                .catch(err => console.fatal(`failed to get channel ${this._channel.id()}:`, err))
 
         const res = await channel.send(this._output_to_discord())
             .catch(err => console.fatal(`failed to send message : ${err}`))

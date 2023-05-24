@@ -10,6 +10,7 @@ GIT AUTO-UPDATER
  */
 const AutoGitUpdate = require('auto-git-update')
 const {Message} = require("./utils/message");
+const {Channel} = require("./utils/channel");
 const updater = new AutoGitUpdate({
     repository: 'https://github.com/Unreal-Engine-FR/Bidibip',
     branch: CONFIG.get().UPDATE_FOLLOW_BRANCH,
@@ -43,12 +44,12 @@ updater.autoUpdate()
             /*
             START DISCORD CLIENT
              */
-            client.on('ready', () => {
-                DI.init(client, updater) // Setup interface
+            client.on('ready', async () => {
+                await DI.init(client, updater) // Setup interface
                 DI.get().module_manager = MODULE_MANAGER.get().init() // load modules
                 new Message() // Send welcome message
                     .set_text('Coucou tout le monde ! :wave:')
-                    .set_channel(CONFIG.get().LOG_CHANNEL_ID)
+                    .set_channel(new Channel().set_id(CONFIG.get().LOG_CHANNEL_ID))
                     .send()
                     .catch(err => console.fatal(`failed to send welcome message : ${err}`))
             })

@@ -77,7 +77,7 @@ class ModuleManager {
                 }
             })
             .catch(error => {
-                console.fatal(`Failed to load module '${module_name}' : ${error}`)
+                console.error(`Failed to load module '${module_name}' : ${error}`)
             })
     }
 
@@ -86,6 +86,9 @@ class ModuleManager {
      * @param module_name {string}
      */
     unload_module(module_name) {
+        if (module_name === 'utilities')
+            console.error('Module utilities cannot be unloaded')
+
         if (!this._module_list[module_name]) {
             return console.error(`Module '${module_name}' does not exists`)
         }
@@ -124,14 +127,15 @@ class ModuleManager {
      * @param module_name {string}
      */
     start(module_name) {
-        if (!this._config_data[module_name].enabled) {
-            this._config_data[module_name].enabled = true
-            this._save_config()
-        }
 
         if (!this._module_list[module_name]) {
             console.error(`There is no module called '${module_name}'`)
             return
+        }
+
+        if (!this._config_data[module_name].enabled) {
+            this._config_data[module_name].enabled = true
+            this._save_config()
         }
 
         const module = this._module_list[module_name]
@@ -151,14 +155,17 @@ class ModuleManager {
      * @param module_name {string}
      */
     stop(module_name) {
-        if (this._config_data[module_name].enabled || this._config_data[module_name].enabled === null) {
-            this._config_data[module_name].enabled = false
-            this._save_config()
-        }
+        if (module_name === 'utilities')
+            console.error('Module utilities cannot be disabled')
 
         if (!this._module_list[module_name]) {
             console.error(`There is no module called '${module_name}'`)
             return
+        }
+
+        if (this._config_data[module_name].enabled || this._config_data[module_name].enabled === null) {
+            this._config_data[module_name].enabled = false
+            this._save_config()
         }
 
         const module = this._module_list[module_name]

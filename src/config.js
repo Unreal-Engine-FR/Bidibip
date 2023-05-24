@@ -9,11 +9,15 @@ class Configuration {
         this.SERVER_ID = null
         this.LOG_CHANNEL_ID = null
 
+        // ID should always be strings
+        this.ADMIN_ROLE_ID = '1108800112081244190'
+        this.MEMBER_ROLE_ID = '1108799832371515443'
+
         /* UTILITIES */
         this.CACHE_DIR = '../Bidibip_Cache/' // Where temps data is stored
         this.SAVE_DIR = './saved/' // Where permanent data is stored
         this.LOG_KEEP_DAYS = 14 // This is the max keep duration for logs (in drays)
-        this.SERVICE_ROLE = '<@285426910404673536>' // This is the mentioned role when something goes wrong
+        this.SERVICE_ROLE = '<@329553341275308033>' // This is the mentioned role when something goes wrong
         this.UPDATE_FOLLOW_BRANCH = 'dev' // Which branch should we follow (main for production)
 
         /* ADMIN-APPLICATIONS */
@@ -24,12 +28,6 @@ class Configuration {
         this.ADVERTISING_PAID_CHANNEL = null
         this.ADVERTISING_FREELANCE_CHANNEL = null
         this.SHARED_SHARED_CHANNEL = null
-
-        /* The admin and member roles are defined using their permission level
-        * If the user does not have theses permissions, it's because they don't have the role */
-        this.EVERYONE_PERMISSION_FLAG = 2048 // Send message
-        this.MEMBER_PERMISSION_FLAG = 16384 // Can send link
-        this.ADMIN_PERMISSION_FLAG = 4 // Can ban member
 
         require('dotenv').config()
 

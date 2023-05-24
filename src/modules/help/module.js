@@ -20,7 +20,8 @@ class Module {
      */
     async server_interaction(command) {
         if (command.match('help')) {
-            const commands = MODULE_MANAGER.event_manager().get_commands(command.permissions())
+            const author = await command.author()
+            const commands = MODULE_MANAGER.event_manager().get_commands(command.context_permissions())
             if (!commands)
                 return
 
@@ -31,11 +32,10 @@ class Module {
                 embed.add_field(command.name, command.description)
 
             const message = new Message()
-                .set_channel(command.channel)
                 .add_embed(embed)
                 .set_client_only()
 
-            command.reply(message)
+            await command.reply(message)
         }
     }
 }
