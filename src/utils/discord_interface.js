@@ -130,9 +130,12 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
                 .setName(command.name)
                 .setDescription(command.description)
 
-            // Member only commands are restricted to server usage
-            discord_command.setDMPermission(command.has_permission(this.get_role_permissions(this.everyone_role_id())))
-            discord_command.setDefaultMemberPermissions(command.required_permissions())
+            // Commands that can be executed by everyone are also available in DM
+            if (!command.has_permission(this.get_role_permissions(this.everyone_role_id())))
+                discord_command.setDMPermission(false)
+
+            if ((command.required_permissions() & this.get_role_permissions(this.everyone_role_id())) !== 0n)
+                discord_command.setDefaultMemberPermissions(command.required_permissions())
 
             for (const option of command.options) {
                 switch (option.type) {

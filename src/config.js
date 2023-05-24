@@ -17,7 +17,7 @@ class Configuration {
         this.CACHE_DIR = '../Bidibip_Cache/' // Where temps data is stored
         this.SAVE_DIR = './saved/' // Where permanent data is stored
         this.LOG_KEEP_DAYS = 14 // This is the max keep duration for logs (in drays)
-        this.SERVICE_ROLE = '<@329553341275308033>' // This is the mentioned role when something goes wrong
+        this.SERVICE_ROLE = '<@&329553341275308033>' // This is the mentioned role when something goes wrong
         this.UPDATE_FOLLOW_BRANCH = 'dev' // Which branch should we follow (main for production)
 
         /* ADMIN-APPLICATIONS */
