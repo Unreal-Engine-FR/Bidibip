@@ -97,6 +97,7 @@ class Message {
     async author() {
         if (!this._author)
             await this._fill_internal()
+                .catch(err => console.fatal(`failed to retrieve internal data : ${err}`))
         return this._author
     }
 
@@ -107,6 +108,7 @@ class Message {
     async text() {
         if (!this._text && this.is_empty())
             await this._fill_internal()
+                .catch(err => console.fatal(`failed to retrieve internal data : ${err}`))
         return this._text
     }
 
@@ -135,7 +137,7 @@ class Message {
     }
 
     async _fill_internal() {
-        if (!this.channel)
+        if (!this._channel)
             console.fatal('Missing channel')
 
         if (!this._id)
@@ -151,7 +153,7 @@ class Message {
 
         const di_message = await channel.messages.fetch(this._id)
             .catch(err => {
-                console.fatal(`Failed to fetch message ${this._id}: ${err}`)
+                console.fatal(`Failed to fetch message ${this._id} : ${err}`)
             })
 
         this._from_discord_message(di_message)
@@ -167,7 +169,7 @@ class Message {
         this._author = new User(_api_handle.author)
         this._text = _api_handle.content
         this._id = _api_handle.id
-        this._channel = new Channel(_api_handle.channelId)
+        this._channel = new Channel().set_id(_api_handle.channelId)
         this._is_dm = !_api_handle.guildId
         this._embeds = []
         this._interactions = []

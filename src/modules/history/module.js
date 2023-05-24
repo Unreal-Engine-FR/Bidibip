@@ -30,14 +30,15 @@ class Module {
     }
 
     async server_message_delete(message) {
+
         const author = await message.author()
-        console.info(`Message deleted [${await author.full_name()}] :\n${await message.text()}`)
+        console.info(`Message deleted [${await author.full_name()}] :\n${message._text}`)
         await new Message().set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
             .add_embed(
                 new Embed()
                     .set_title(`@${await author.full_name()} (${author.id()})`)
                     .set_description('Message supprimé :')
-                    .add_field('Contenu', (await message.text()).substring(0, 1024))
+                    .add_field(message._text ? 'Contenu' : '[Message vide]', message._text ? message._text.substring(0, 1024) : '[Message sans texte]')
             ).send()
     }
 }

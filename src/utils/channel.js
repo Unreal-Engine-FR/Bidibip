@@ -34,6 +34,8 @@ class Channel {
     }
 
     id() {
+        if (!this._id)
+            console.fatal('Channel id is not valid')
         return this._id
     }
 
