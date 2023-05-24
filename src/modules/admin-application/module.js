@@ -7,6 +7,7 @@ const CONFIG = require('../../config')
 const {InteractionRow} = require("../../utils/interaction_row");
 const {Button} = require("../../utils/button");
 const {resolve} = require("path");
+const {Channel} = require("../../utils/channel");
 MODULE_MANAGER = require("../../core/module_manager").get()
 
 const CURRENT_APPLICATIONS = {}
@@ -35,7 +36,7 @@ function candidature_response(button_id, interaction_id, message) {
     if (button_id === 'confirm') {
         message.set_text('Nouvelle candidature !')
             .clear_interactions()
-            .set_channel(CONFIG.get().ADMIN_APPLICATIONS_CHANNEL)
+            .set_channel(new Channel().set_id(CONFIG.get().ADMIN_APPLICATIONS_CHANNEL))
             .send()
             .then(message => {
                 if (!CURRENT_APPLICATIONS[interaction_id])

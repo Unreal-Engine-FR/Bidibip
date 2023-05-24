@@ -2,6 +2,7 @@ const {Message} = require("./message")
 const {User} = require("./user");
 const CONFIG = require('../config')
 const DI = require('../utils/discord_interface')
+const {Channel} = require("./channel");
 
 class CommandInfo {
     constructor(name, description) {
@@ -22,6 +23,18 @@ class CommandInfo {
      */
     add_text_option(name, description, choices = [], required = true, default_value = null) {
         this._add_option_internal('text', name, description, choices, required, default_value)
+        return this
+    }
+
+    /**
+     * @param name {string} the display name of the option
+     * @param description {string}
+     * @param required {boolean}
+     * @param default_value {string|null}
+     * @returns {CommandInfo}
+     */
+    add_channel_option(name, description, required = true, default_value = null) {
+        this._add_option_internal('channel', name, description, [], required, default_value)
         return this
     }
 
@@ -215,7 +228,7 @@ class Interaction {
 
     /**
      * Get the channel id this interaction have been sent
-     * @returns {number}
+     * @returns {Channel}
      */
     channel() {
         return this._channel

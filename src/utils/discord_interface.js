@@ -16,7 +16,11 @@ class DiscordInterface {
         this.on_message_delete = null
         this.on_message_update = null
         this.on_interaction = null
+        this.on_thread_create = null
 
+        client.on(Discord.Events.ThreadCreate, this._on_thread_create)
+        //client.on(Discord.Events.ChannelUpdate, channel => console.log('ChannelUpdate :', channel))
+        //client.on(Discord.Events.ChannelCreate, channel => console.log('ChannelCreate :', channel))
         client.on(Discord.Events.MessageCreate, this._on_message)
         client.on(Discord.Events.MessageDelete, this._on_message_delete)
         client.on(Discord.Events.MessageUpdate, this._on_message_udpate)
@@ -80,6 +84,10 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
         if (!role)
             console.fatal(`failed to find role ${role_id}`)
         return BigInt(role.permissions.bitfield)
+    }
+    _on_thread_create(thread) {
+        if (DISCORD_CLIENT.on_thread_create)
+            DISCORD_CLIENT.on_thread_create(thread)
     }
 
     _on_message(msg) {
@@ -146,6 +154,13 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
                         break
                     case 'user':
                         discord_command.addUserOption(opt =>
+                            opt.setName(option.name)
+                                .setDescription(option.description)
+                                .setRequired(option.required)
+                        )
+                        break
+                    case 'channel':
+                        discord_command.addChannelOption(opt =>
                             opt.setName(option.name)
                                 .setDescription(option.description)
                                 .setRequired(option.required)

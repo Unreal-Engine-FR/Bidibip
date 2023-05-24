@@ -32,11 +32,10 @@ class Module {
                 embed.add_field(command.name, command.description)
 
             const message = new Message()
-                .set_channel(command.channel)
                 .add_embed(embed)
                 .set_client_only()
 
-            command.reply(message)
+            await command.reply(message)
         }
     }
 }

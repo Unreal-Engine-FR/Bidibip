@@ -150,7 +150,11 @@ class Logger {
     }
 
     _internal_print(level, message) {
-        fs.appendFileSync(this.log_file, `[${new Date().toLocaleString()}] [${level}] ${message}\n`)
+        try {
+            fs.appendFileSync(this.log_file, `[${new Date().toLocaleString()}] [${level}] ${message}\n`)
+        } catch (err) {
+            process.stdout.write(`failed to write log to file ${this.log_file} : ${err}\n`)
+        }
 
         let level_var = `[${level}]`
         switch (level) {
@@ -180,7 +184,11 @@ class Logger {
             delegate(level, message)
 
         if (level === 'F') {
-            fs.appendFileSync(this.log_file, filter_call_stack(Error().stack) + '\n')
+            try {
+                fs.appendFileSync(this.log_file, filter_call_stack(Error().stack) + '\n')
+            } catch (err) {
+                process.stdout.write(`failed to write error to file ${this.log_file} : ${err}\n`)
+            }
             throw new Error(message + '\n' + filter_call_stack(Error().stack))
         }
 
