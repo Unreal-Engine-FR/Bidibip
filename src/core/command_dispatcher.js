@@ -52,7 +52,7 @@ class CommandDispatcher {
 
         this.refresh_timer = setTimeout(() => {
             (async () => {
-                await DI.get().set_slash_commands(cm.all_commands())
+                await DI.get().set_slash_commands(cm.all_commands()).catch(err => console.fatal(`Failed to update discord commands : ${err}`))
             })().catch(err => console.error(`Failed to update discord commands : ${err}`))
         }, 100)
     }

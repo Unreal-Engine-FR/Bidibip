@@ -1,4 +1,4 @@
-const CONFIG = require("../config.js").get()
+const CONFIG = require("../config.js")
 const {REST, ActivityType, SlashCommandBuilder, Routes} = require("discord.js")
 const Discord = require("discord.js");
 
@@ -22,7 +22,64 @@ class DiscordInterface {
         client.on(Discord.Events.MessageUpdate, this._on_message_udpate)
         client.on(Discord.Events.InteractionCreate, this._on_interaction)
 
+        this._everyone_role = null
+        this._admin_role = null
+        this._member_role = null
+
         this.module_manager = null
+    }
+
+    async check_permissions_validity() {
+        let guild = await this._client.guilds.cache.get(CONFIG.get().SERVER_ID)
+        if (!guild)
+            guild = await this._client.guilds.fetch(CONFIG.get().SERVER_ID)
+                .catch(err => console.fatal(`Failed to fetch guild : ${err}`))
+
+        DISCORD_CLIENT._admin_role = await guild.roles.cache.get(CONFIG.get().ADMIN_ROLE_ID)
+        if (!DISCORD_CLIENT._admin_role)
+            DISCORD_CLIENT._admin_role = await guild.roles.fetch(CONFIG.get().ADMIN_ROLE_ID)
+                .catch(err => console.fatal(`Failed to fetch admin role : ${err}`))
+
+        DISCORD_CLIENT._member_role = await guild.roles.cache.get(CONFIG.get().MEMBER_ROLE_ID)
+        if (!DISCORD_CLIENT._member_role)
+            DISCORD_CLIENT._member_role = await guild.roles.fetch(CONFIG.get().MEMBER_ROLE_ID)
+                .catch(err => console.fatal(`Failed to fetch member role : ${err}`))
+
+        DISCORD_CLIENT._everyone_role = guild.roles.everyone
+        if (!DISCORD_CLIENT._everyone_role)
+            console.fatal('everyone role is not valid')
+
+        // Ensure everyone permissions are less than members permissions
+        if ((DISCORD_CLIENT._everyone_role.permissions.bitfield & DISCORD_CLIENT._member_role.permissions.bitfield) === DISCORD_CLIENT._member_role.permissions.bitfield)
+            console.fatal(`Everyone role should have less permissions than member roles : \n
+everyone = ${DISCORD_CLIENT._everyone_role.permissions.bitfield.toString(2)}\n${DISCORD_CLIENT._everyone_role.permissions.bitfield.toString(2).split("").reverse().join("")} (reversed)\n
+member = ${DISCORD_CLIENT._member_role.permissions.bitfield.toString(2)}\n${DISCORD_CLIENT._member_role.permissions.bitfield.toString(2).split("").reverse().join("")} (reversed)`)
+
+        // Ensure members permissions are less than admins permissions
+        if ((DISCORD_CLIENT._member_role.permissions.bitfield & DISCORD_CLIENT._member_role.permissions.bitfield) === DISCORD_CLIENT._admin_role.permissions.bitfield)
+            console.fatal(`Member role should have less permissions than admin roles : \n
+member = ${DISCORD_CLIENT._member_role.permissions.bitfield.toString(2)}\n${DISCORD_CLIENT._member_role.permissions.bitfield.toString(2).split("").reverse().join("")} (reversed)
+admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2).split("").reverse().join("")} (reversed)`)
+    }
+
+    everyone_role_id() {
+        return this._everyone_role.id
+    }
+
+    member_role_id() {
+        return this._everyone_role.id
+    }
+
+    admin_role_id() {
+        return this._everyone_role.id
+    }
+
+    get_role_permissions(role_id) {
+        const guild = this._client.guilds.cache.get(CONFIG.get().SERVER_ID)
+        const role = guild.roles.cache.get(role_id)
+        if (!role)
+            console.fatal(`failed to find role ${role_id}`)
+        return BigInt(role.permissions.bitfield)
     }
 
     _on_message(msg) {
@@ -47,7 +104,7 @@ class DiscordInterface {
     }
 
     async get_user_count() {
-        const guild = await this._client.guilds.fetch(CONFIG.SERVER_ID)
+        const guild = await this._client.guilds.fetch(CONFIG.get().SERVER_ID)
         const members = await guild.members.fetch()
         return members.filter(member => member.user.bot === false).size
     }
@@ -58,19 +115,16 @@ class DiscordInterface {
 
     async set_slash_commands(commands) {
         const command_data = []
+        const command_set = new Set()
         for (const command of commands) {
+            command_set.add(command.name)
             const discord_command = new SlashCommandBuilder()
                 .setName(command.name)
                 .setDescription(command.description)
 
-            discord_command.setDMPermission(!command.has_permission(CONFIG.MEMBER_PERMISSION_FLAG) && !command.has_permission(CONFIG.ADMIN_PERMISSION_FLAG))
-
-            console.log(command.name, ' => ', command.has_permission(CONFIG.ADMIN_PERMISSION_FLAG))
-
-            if (command._min_permissions !== 0n)
-                discord_command.setDefaultMemberPermissions(command._min_permissions)
-            else
-                discord_command.setDefaultMemberPermissions(CONFIG.EVERYONE_PERMISSION_FLAG)
+            // Member only commands are restricted to server usage
+            discord_command.setDMPermission(command.has_permission(this.get_role_permissions(this.everyone_role_id())))
+            discord_command.setDefaultMemberPermissions(command.required_permissions())
 
             for (const option of command.options) {
                 switch (option.type) {
@@ -103,33 +157,21 @@ class DiscordInterface {
         }
 
         // Construct and prepare an instance of the REST module
-        const rest = new REST().setToken(CONFIG.APP_TOKEN); // don't remove this semicolon
+        const rest = new REST().setToken(CONFIG.get().APP_TOKEN); // don't remove this semicolon
 
-        /*
-        rest.get(Routes.applicationCommands(CONFIG.APP_ID))
-            .then(data => {
-                const promises = []
-                for (const command of data) {
-                    const deleteUrl = `${Routes.applicationCommands(CONFIG.APP_ID)}/${command.id}`
-                    promises.push(rest.delete(deleteUrl))
-                }
-                return Promise.all(promises)
-            })
-         */
+        // Delete old commands
+        console.info(`Started refreshing ${command_data.length} application (/) commands.`)
 
-        try {
-            console.info(`Started refreshing ${command_data.length} application (/) commands.`)
-
-            // The put method is used to fully refresh all old in the guild with the current set
-            const data2 = await rest.put(
-                Routes.applicationCommands(CONFIG.APP_ID),
-                {body: command_data},
-            )
-            console.info(`Successfully reloaded ${data2.length} application (/) commands.`)
-        } catch (error) {
-            // And of course, make sure you catch and log any errors!
-            console.error(error)
+        for (const command of await rest.get(Routes.applicationCommands(CONFIG.get().APP_ID))) {
+            if (!command_set.has(command.name)) {
+                console.warning(`Removed outdated command ${command.name}`)
+                await rest.delete(`${Routes.applicationCommands(CONFIG.get().APP_ID)}/${command.id}`)
+            }
         }
+
+        const data2 = await rest.put(Routes.applicationCommands(CONFIG.get().APP_ID), {body: command_data})
+
+        console.info(`Successfully reloaded ${data2.length} application (/) commands.`)
     }
 
     async check_updates() {
@@ -141,7 +183,7 @@ class DiscordInterface {
     }
 }
 
-function init(client, updater) {
+async function init(client, updater) {
     DISCORD_CLIENT = new DiscordInterface(client, updater)
 }
 

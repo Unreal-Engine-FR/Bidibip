@@ -20,7 +20,8 @@ class Module {
      */
     async server_interaction(command) {
         if (command.match('help')) {
-            const commands = MODULE_MANAGER.event_manager().get_commands(command.permissions())
+            const author = await command.author()
+            const commands = MODULE_MANAGER.event_manager().get_commands(command.context_permissions())
             if (!commands)
                 return
 

@@ -60,10 +60,22 @@ class Module {
 
         if (command.match('add_quote')) {
             try {
+                let channel = command.channel()
+                let message_id = command.read('message')
+
+                // We sent a full link
+                if (message_id.includes('/'))
+                {
+                    message_id.split('/')
+                    channel = new Channel().set_id(message_id[message_id.length - 2])
+                }
+
+
+
                 const message = new Message().set_channel(command.channel()).set_id(command.read('message'))
                 let text = await message.text()
-                if (text === null || text.length === 0) {
-                    command.reply(new Message().set_text('Ce message ne peut pas être ajouté comme citation').set_client_only())
+                if (!text || text.length === 0) {
+                    await command.reply(new Message().set_text('Ce message ne peut pas être ajouté comme citation').set_client_only())
                     return
                 }
 

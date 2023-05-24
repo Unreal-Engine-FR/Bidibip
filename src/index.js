@@ -43,8 +43,8 @@ updater.autoUpdate()
             /*
             START DISCORD CLIENT
              */
-            client.on('ready', () => {
-                DI.init(client, updater) // Setup interface
+            client.on('ready', async () => {
+                await DI.init(client, updater) // Setup interface
                 DI.get().module_manager = MODULE_MANAGER.get().init() // load modules
                 new Message() // Send welcome message
                     .set_text('Coucou tout le monde ! :wave:')

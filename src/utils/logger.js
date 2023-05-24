@@ -161,7 +161,7 @@ class Logger {
                 level_var = '\x1b[36m[I]\x1b[0m'
                 break
             case 'W':
-                level_var = '\x1b[35m[V]\x1b[0m'
+                level_var = '\x1b[35m[W]\x1b[0m'
                 break
             case 'D':
                 level_var = '\x1b[1m\x1b[90m[D]\x1b[0m'

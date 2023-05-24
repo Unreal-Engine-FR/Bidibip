@@ -58,6 +58,7 @@ class Module {
                     .catch(err => console.fatal(`failed to send error message ${err}`))
             }
         })
+        DI.get().check_permissions_validity().catch(err => console.log(`Failed to check permissions validity : ${err}`))
     }
 
     /**

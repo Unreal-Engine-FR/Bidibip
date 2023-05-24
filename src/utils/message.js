@@ -150,7 +150,7 @@ class Message {
 
         const di_message = await channel.messages.fetch(this._id)
             .catch(err => {
-                console.fatal(`Failed to fetch message ${this._id}/${this._channel}: ${err}`)
+                console.fatal(`Failed to fetch message ${this._id}: ${err}`)
             })
 
         this._from_discord_message(di_message)
