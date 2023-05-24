@@ -73,9 +73,9 @@ class Logger {
         console.fatal = this.fatal
 
 
-        const log_dir = __dirname + '/../' + CONFIG.SAVE_DIR + "/log/"
+        const log_dir = CONFIG.SAVE_DIR + "/log/"
         let date_str = new Date().toLocaleString().replaceAll('/', '-').replaceAll(':', '.').replaceAll(', ', '_')
-        this.log_file = resolve(`${log_dir}/${date_str}.log`)
+        this.log_file = `${log_dir}/${date_str}.log`
 
         process.stdout.write('created log file : ' + this.log_file + '\n')
 
@@ -197,13 +197,13 @@ class Logger {
     }
 
     _crash_dump() {
-        const crash_dir = __dirname + '/../' + CONFIG.SAVE_DIR + "/crash/"
+        const crash_dir = CONFIG.SAVE_DIR + "/crash/"
 
         if (!fs.existsSync(crash_dir))
             fs.mkdirSync(crash_dir, {recursive: true})
 
         let date_str = new Date().toLocaleString().replaceAll('/', '-').replaceAll(':', '.').replaceAll(', ', '_')
-        const crash_file = resolve(`${crash_dir}/${date_str}.crash`)
+        const crash_file = `${crash_dir}/${date_str}.crash`
 
         fs.copyFile(this.log_file, crash_file, (err) => {
             if (err) throw new Error(`failed to copy crash dump : ${err}`)

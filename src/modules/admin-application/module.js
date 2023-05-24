@@ -6,7 +6,6 @@ const fs = require("fs");
 const CONFIG = require('../../config')
 const {InteractionRow} = require("../../utils/interaction_row");
 const {Button} = require("../../utils/button");
-const {resolve} = require("path");
 const {Channel} = require("../../utils/channel");
 MODULE_MANAGER = require("../../core/module_manager").get()
 
@@ -22,7 +21,7 @@ function save_applications() {
         if (err) {
             console.fatal(`failed to save applications : ${err}`)
         } else {
-            console.info(`Saved applications to file ${resolve(CONFIG.get().SAVE_DIR + '/admin-application/applications.json')}`)
+            console.info(`Saved applications to file ${CONFIG.get().SAVE_DIR + '/admin-application/applications.json'}`)
         }
     })
 }

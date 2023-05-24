@@ -104,7 +104,7 @@ class Module {
                         command.skip()
                     } else {
                         command.reply(new Message().set_text('Citation ajoutée à la base de donnée !'))
-                        console.info(`Saved quotes to file ${resolve(CONFIG.SAVE_DIR + '/quotes/quotes.json')}`)
+                        console.info(`Saved quotes to file ${CONFIG.SAVE_DIR + '/quotes/quotes.json'}`)
                     }
                 })
             } catch (err) {

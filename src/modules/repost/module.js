@@ -130,7 +130,7 @@ class Module {
             if (err) {
                 console.fatal(`failed to save reposts : ${err}`)
             } else {
-                console.info(`Saved reposts to file ${resolve(CONFIG.get().SAVE_DIR + '/repost/repost-links.json')}`)
+                console.info(`Saved reposts to file ${CONFIG.get().SAVE_DIR + '/repost/repost-links.json'}`)
             }
         })
     }
