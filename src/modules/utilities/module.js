@@ -54,7 +54,7 @@ class Module {
                     .set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
                     .add_embed(new Embed()
                         .set_title(level === 'E' ? 'Error' : 'Fatal')
-                        .set_description(message))
+                        .set_description('```log\n ' + message + '\n```'))
                     .send()
                     .catch(err => console.fatal(`failed to send error message ${err}`))
             }
