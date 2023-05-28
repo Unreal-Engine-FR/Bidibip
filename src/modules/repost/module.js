@@ -9,6 +9,7 @@ const {Button} = require("../../utils/button")
 const {InteractionRow} = require("../../utils/interaction_row")
 const MODULE_MANAGER = require("../../core/module_manager")
 const {Thread} = require("../../utils/thread");
+const {Attachment} = require("../../utils/attachment");
 
 function make_key(message) {
     return `${message.channel().id()}/${message.id()}`
@@ -23,14 +24,37 @@ function message_from_key(key) {
     return new Message().set_id(split[1]).set_channel(new Channel().set_id(split[0]))
 }
 
-
 async function format_message(message) {
     const author = await message.author()
-    return new Message()
+
+    const res = extract_images(await message.text())
+    const res_message = new Message()
         .add_embed(new Embed()
             .set_title(`De ${await author.full_name()} : ${await message.channel().name()}`)
-            .set_description(await message.text())
+            .set_description(res.text)
             .set_thumbnail(await author.profile_picture()))
+
+    for (const attachment of res.attachments)
+        res_message.add_attachment(attachment)
+
+    return res_message
+}
+
+function extract_images(initial_text) {
+    const split = initial_text.split(/\r\n|\r|\n| /)
+    const attachments = []
+    for (let i = split.length - 1; i >= 0; --i)
+    {
+        if (split[i].includes('http') && /\.(jpg|jpeg|png|webp|avif|gif)$/.test(split[i].toLowerCase())) {
+            attachments.push(new Attachment().set_file(split[i]))
+            split.splice(i, 1)
+        }
+    }
+
+    return {
+        text: split.join(' '),
+        attachments: attachments
+    }
 }
 
 class Module {
@@ -174,15 +198,20 @@ class Module {
                     return
                 }
 
+                const reposted_message = (await format_message(message))
+                    .set_text(`Mise à jour dans https://discord.com/channels/${CONFIG.get().SERVER_ID}/${message.channel().id()}/${message.id()}`)
+                    .add_interaction_row(new InteractionRow()
+                        .add_button(new Button()
+                            .set_label('Viens donc voir !')
+                            .set_type(Button.Link)
+                            .set_url(`https://discord.com/channels/${CONFIG.get().SERVER_ID}/${message.channel().id()}/${message.id()}`)))
+
+                for (const attachment of message.attachments())
+                    reposted_message.add_attachment(attachment)
+
                 for (const channel of this.repost_data.repost_links[(await message.channel().parent_channel()).id()].repost_channels) {
-                    await (await format_message(message))
+                    await reposted_message
                         .set_channel(new Channel().set_id(channel))
-                        .set_text(`Mise à jour dans https://discord.com/channels/${CONFIG.get().SERVER_ID}/${message.channel().id()}/${message.id()}`)
-                        .add_interaction_row(new InteractionRow()
-                            .add_button(new Button()
-                                .set_label('Viens donc voir !')
-                                .set_type(Button.Link)
-                                .set_url(`https://discord.com/channels/${CONFIG.get().SERVER_ID}/${message.channel().id()}/${message.id()}`)))
                         .send()
                 }
 

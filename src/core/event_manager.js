@@ -14,7 +14,6 @@ class EventManager {
         this._bound_modules = []
         this._command_modules = {}
         this._command_dispatcher = new CommandDispatcher(client)
-        this._interactions = {}
         this._bound_buttons = {}
 
         DI.get().on_thread_create = thread => {
@@ -76,10 +75,16 @@ class EventManager {
                 case 3: // Button clicked
                     (async () => {
                         const button_interaction = new ButtonInteraction(interaction)
-                        const key = `${button_interaction.channel().id()}/${button_interaction.message().id()}`
-                        console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] clicked '${button_interaction.button_id()}'`)
+                        let key = `${button_interaction.channel().id()}/${button_interaction.message().id()}`
 
                         let buttons = this._bound_buttons[key]
+                        if (!buttons) {
+                            key = `${button_interaction.channel().id()}/${interaction.message.interaction.id}`
+                            buttons = this._bound_buttons[key]
+                        }
+
+                        console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] clicked '${key}' on message ${button_interaction.message().id()}`)
+
                         if (buttons) {
                             const removed = []
                             for (const button of buttons)
@@ -185,13 +190,6 @@ class EventManager {
 
     get_commands(permissions) {
         return this._command_dispatcher ? this._command_dispatcher.get_commands(permissions) : null
-    }
-
-    watch_interaction(interaction_id, callback) {
-        if (!this._interactions[interaction_id])
-            this._interactions[interaction_id] = [callback]
-        else
-            this._interactions[interaction_id].push(callback)
     }
 
     bind_button(module, button_message, callback) {

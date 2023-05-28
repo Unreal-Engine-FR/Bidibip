@@ -5,11 +5,13 @@ const {InteractionRow} = require("./interaction_row");
 const DI = require("./discord_interface");
 const {Channel} = require("./channel");
 const {Collection} = require("discord.js");
+const {Attachment} = require("./attachment");
 
 class Message {
     constructor(api_handle) {
         this._embeds = []
         this._interactions = []
+        this._attachments = []
         if (api_handle)
             this._from_discord_message(api_handle)
     }
@@ -36,7 +38,7 @@ class Message {
 
     /**
      * Set initial message discord id (used to get extra infos about messages, or to get the discord identifier of the initial message)
-     * @param id {number}
+     * @param id {number|string}
      * @returns {Message}
      */
     set_id(id) {
@@ -72,6 +74,24 @@ class Message {
     add_interaction_row(row) {
         this._interactions.push(row)
         return this
+    }
+
+    /**
+     * Add attachment to this message
+     * @param attachment {Attachment}
+     * @returns {Message}
+     */
+    add_attachment(attachment) {
+        this._attachments.push(attachment)
+        return this
+    }
+
+    /**
+     * Get attachments
+     * @return {Attachment[]}
+     */
+    attachments() {
+        return this._attachments
     }
 
     /**
@@ -190,11 +210,6 @@ class Message {
     }
 
     _from_discord_message(_api_handle) {
-
-        for (const [k, v] of _api_handle.attachments.entries()) {
-
-            console.log(k, ': ', v)
-        }
         this._author = new User(_api_handle.author)
         this._text = _api_handle.content
         this._id = _api_handle.id
@@ -209,6 +224,10 @@ class Message {
         if (_api_handle.components)
             for (const component of _api_handle.components)
                 this._interactions.push(new InteractionRow(component))
+
+        if (_api_handle.attachments)
+            for (const [_, v] of _api_handle.attachments.entries())
+                this._attachments.push(new Attachment(v))
 
         return this
     }
@@ -244,11 +263,16 @@ class Message {
         for (const row of this._interactions)
             components.push(row._to_discord_row())
 
+        const files = []
+        for (const attachment of this._attachments)
+            files.push({attachment: attachment.file(), name: attachment.name()})
+
         return {
             content: this._text,
             embeds: embeds,
             ephemeral: this._client_only,
             components: components,
+            files: files
         }
     }
 

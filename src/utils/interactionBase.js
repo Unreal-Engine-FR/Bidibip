@@ -123,6 +123,7 @@ class InteractionBase {
      */
     constructor(discord_interaction) {
         this._interaction = discord_interaction
+        this._id = discord_interaction.id
         this._options = {}
         this._author = new User(discord_interaction.user)
         this._channel = new Channel().set_id(discord_interaction.channelId)
@@ -141,18 +142,17 @@ class InteractionBase {
     /**
      * Reply to this command
      * @param message {Message}
-     * @param interaction_callback {function|null}
-     * @returns {Promise<number|null>} message id
+     * @returns {Promise<InteractionBase>} message id
      */
-    async reply(message, interaction_callback = null) {
+    async reply(message) {
         try {
             const res = await this._interaction.reply(message._output_to_discord())
                 .catch(err => console.fatal(`failed to reply to command : ${err}`))
-            if (interaction_callback)
-                DI.get().module_manager.event_manager().watch_interaction(res.id, interaction_callback)
-            return res.id
+            const interaction = new InteractionBase(res)
+            interaction._channel = this.channel()
+            return interaction
         } catch (err) {
-            console.error(`failed to reply to command : ${err}`, message)
+            console.error(`failed to reply to command : ${err} : \n`, message)
         }
     }
 
@@ -206,6 +206,10 @@ class InteractionBase {
      */
     channel() {
         return this._channel
+    }
+
+    id() {
+        return this._id
     }
 
     /**
@@ -288,6 +292,7 @@ class ButtonInteraction extends InteractionBase {
         super(_api_handle)
         this._message = new Message(_api_handle.message)
         this._button_id = _api_handle.customId
+        this._base_id = _api_handle.message.interaction ? _api_handle.message.interaction.id : _api_handle.message.id
     }
 
     /**
@@ -304,6 +309,14 @@ class ButtonInteraction extends InteractionBase {
      */
     button_id() {
         return this._button_id
+    }
+
+    /**
+     * Id of the message or the interaction where the button is located
+     * @returns {string}
+     */
+    base_id() {
+        return this._base_id
     }
 }
 
