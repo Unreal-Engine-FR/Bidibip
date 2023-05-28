@@ -4,6 +4,7 @@ const {Embed} = require("./embed");
 const {InteractionRow} = require("./interaction_row");
 const DI = require("./discord_interface");
 const {Channel} = require("./channel");
+const {Collection} = require("discord.js");
 
 class Message {
     constructor(api_handle) {
@@ -136,7 +137,26 @@ class Message {
         return this._is_dm
     }
 
+    /**
+     * Retrieve button by id
+     * @param id {string}
+     * @returns {Button|null}
+     */
+    async get_button_by_id(id) {
+        if (!this._author)
+            await this._fill_internal()
+        for (const row of this._interactions)
+            for (const object of row._items)
+                if (object._id === id)
+                    return object
+        return null
+    }
+
     async _fill_internal() {
+        this._from_discord_message(await this._internal_get_handle())
+    }
+
+    async _internal_get_handle() {
         if (!this._channel)
             console.fatal('Missing channel')
 
@@ -147,17 +167,21 @@ class Message {
         if (!channel) {
             channel = DI.get()._client.channels.fetch(this._channel.id())
                 .catch(err => {
-                    console.fatal(`Failed to get channel : ${err}`)
+                    throw new Error(`Failed to get channel : ${err}`)
                 })
         }
 
-        const di_message = await channel.messages.fetch(this._id)
+        return await channel.messages.fetch(this._id)
             .catch(err => {
-                console.fatal(`Failed to fetch message ${this._id} : ${err}`)
+                throw new Error(`Failed to fetch message ${this._id} : ${err}`)
             })
+    }
 
-        this._from_discord_message(di_message)
-        return di_message
+    async exists() {
+        const message = await this._internal_get_handle().catch(_ => {
+            return false
+        })
+        return Boolean(message)
     }
 
     clear_interactions() {
@@ -166,6 +190,11 @@ class Message {
     }
 
     _from_discord_message(_api_handle) {
+
+        for (const [k, v] of _api_handle.attachments.entries()) {
+
+            console.log(k, ': ', v)
+        }
         this._author = new User(_api_handle.author)
         this._text = _api_handle.content
         this._id = _api_handle.id
@@ -247,10 +276,22 @@ class Message {
     }
 
     /**
+     * Pin this message
+     * @returns {Promise<void>}
+     */
+    async pin() {
+        await this._internal_get_handle()
+            .then(di_message => {
+                di_message.pin()
+                    .catch(err => console.fatal(`Failed to pin message : ${err}`))
+            })
+    }
+
+    /**
      * Delete this message
      */
-    delete() {
-        this._fill_internal().then(di_message => {
+    async delete() {
+        await this._internal_get_handle().then(di_message => {
             di_message.delete()
                 .catch(err => console.fatal(`Failed to delete message : ${err}`))
         })
@@ -260,13 +301,16 @@ class Message {
      * Replace this message with a new one
      * @param new_message {Message}
      */
-    update(new_message) {
-        this._fill_internal()
-            .then(message => {
-                message.edit(new_message._output_to_discord())
-                    .catch(err => console.fatal(`Failed to update message : ${err}`))
+    async update(new_message) {
+        const message = await this._internal_get_handle()
+            .catch(err => {
+                throw new Error(`Failed to retrieve message : ${err}`)
             })
-            .catch(err => console.fatal(`Failed to update message : ${err}`))
+
+        await message.edit(new_message._output_to_discord())
+            .catch(err => {
+                throw new Error(`Failed to update message : ${err}`)
+            })
     }
 }
 

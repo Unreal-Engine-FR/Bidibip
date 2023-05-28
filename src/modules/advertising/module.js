@@ -1,5 +1,5 @@
 // MODULE ADVERTISING
-const {CommandInfo} = require("../../utils/interaction")
+const {CommandInfo} = require("../../utils/interactionBase")
 const CONFIG = require('../../config').get()
 const MODULE_MANAGER = require("../../core/module_manager")
 
@@ -17,7 +17,7 @@ function receive_interaction_result(button_id, interaction_id, message) {
             .send()
             .then(message => {
                 PENDING_REQUESTS[interaction_id].command.edit_reply(new Message()
-                    .set_text(`Ton annonce a bien été publiée : https://discord.com/channels/${CONFIG.SERVER_ID}/${message.channel()}/${message.id()}`))
+                    .set_text(`Ton annonce a bien été publiée : https://discord.com/channels/${CONFIG.SERVER_ID}/${message.channel().id()}/${message.id()}`))
                     .catch(err => console.fatal(`failed to edit reply : ${err}`))
                 delete PENDING_REQUESTS[interaction_id]
             })
@@ -62,7 +62,7 @@ class Module {
 
     /**
      * // When command is executed
-     * @param command {Interaction}
+     * @param command {InteractionBase}
      * @return {Promise<void>}
      */
     async server_interaction(command) {

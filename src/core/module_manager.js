@@ -223,6 +223,10 @@ class ModuleManager {
             })
         console.info(`saved module config to ${CONFIG.get().SAVE_DIR}/config/modules.json`)
     }
+
+    bind_button(module, button, callback) {
+        this._event_manager.bind_button(module, button, callback)
+    }
 }
 
 /**
