@@ -56,7 +56,10 @@ class Module {
                         .set_title(level === 'E' ? 'Error' : 'Fatal')
                         .set_description('```log\n ' + message + '\n```'))
                     .send()
-                    .catch(err => console.fatal(`failed to send error message ${err}`))
+                    .catch(err => {
+                        LOGGER._delegates = []
+                        console.fatal(`failed to send error message ${err}`)
+                    })
             }
         })
         DI.get().check_permissions_validity().catch(err => console.fatal(`Failed to check permissions validity : ${err}`))

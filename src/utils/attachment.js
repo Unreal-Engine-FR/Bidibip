@@ -31,24 +31,6 @@ class Attachment {
 
         return this
     }
-
-    _to_discord_item() {
-        return {
-            attachment: 'https://cdn.discordapp.com/attachments/1112133778396172368/1112166369857896571/image.png',
-            name: 'image.png',
-            id: '1112166369857896571',
-            size: 48941,
-            url: 'https://cdn.discordapp.com/attachments/1112133778396172368/1112166369857896571/image.png',
-            proxyURL: 'https://media.discordapp.net/attachments/1112133778396172368/1112166369857896571/image.png',
-            height: 476,
-            width: 497,
-            contentType: 'image/png',
-            description: null,
-            ephemeral: false,
-            duration: null,
-            waveform: null
-        }
-    }
 }
 
 module.exports = {Attachment}

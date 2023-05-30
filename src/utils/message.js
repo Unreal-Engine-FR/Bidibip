@@ -249,52 +249,36 @@ class Message {
         return this
     }
 
-    _output_to_discord() {
-        if (this.is_empty()) {
-            console.fatal(`cannot send empty message : `, this)
-            return
-        }
-
-        let embeds = []
-
-        for (const embed of this._embeds) {
-            if (!embed.title || !embed.description)
-                console.fatal(`embed is empty : `, embed)
-
-            const item = new Discord.EmbedBuilder()
-                .setTitle(embed.title)
-                .setDescription(embed.description)
-                .setThumbnail(embed.thumbnail)
-                .setAuthor({
-                    name: "Info",
-                    //url: 'discord://-/users/285426910404673536',
-                    iconURL: "https://dan.onl/images/emptysong.jpg",
-                })
-
-            for (const field of embed.fields) {
-                if (field.value.length > 1024) {
-                    console.fatal('Embed fields cannot have more than 1024 characters :', field)
-                }
-                item.addFields(field)
+    async _output_to_discord() {
+        try {
+            if (this.is_empty()) {
+                console.fatal(`cannot send empty message : `, this)
+                return
             }
 
-            embeds.push(item)
-        }
+            let embeds = []
 
-        let components = []
-        for (const row of this._interactions)
-            components.push(row._to_discord_row())
+            for (const embed of this._embeds) {
+                embeds.push(await embed._to_discord_api())
+            }
 
-        const files = []
-        for (const attachment of this._attachments)
-            files.push({attachment: attachment.file(), name: attachment.name()})
+            let components = []
+            for (const row of this._interactions)
+                components.push(row._to_discord_row())
 
-        return {
-            content: this._text,
-            embeds: embeds,
-            ephemeral: this._client_only,
-            components: components,
-            files: files
+            const files = []
+            for (const attachment of this._attachments)
+                files.push({attachment: attachment.file(), name: attachment.name()})
+
+            return {
+                content: this._text,
+                embeds: embeds,
+                ephemeral: this._client_only,
+                components: components,
+                files: files
+            }
+        } catch (err) {
+            console.fatal(`Message is not valid : ${err}\nMessage :`, this, '\nError : ', err)
         }
     }
 
@@ -315,9 +299,8 @@ class Message {
             channel = await DI.get()._client.channels.fetch(this._channel.id())
                 .catch(err => console.fatal(`failed to get channel ${this._channel.id()}:`, err))
 
-        const res = await channel.send(this._output_to_discord())
+        const res = await channel.send(await this._output_to_discord())
             .catch(err => console.fatal(`failed to send message : ${err} :  `, this))
-
         return new Message(res)
     }
 
@@ -353,7 +336,7 @@ class Message {
                 throw new Error(`Failed to retrieve message : ${err}`)
             })
 
-        await message.edit(new_message._output_to_discord())
+        await message.edit(await new_message._output_to_discord())
             .catch(err => {
                 throw new Error(`Failed to update message : ${err}`)
             })

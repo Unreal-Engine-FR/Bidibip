@@ -8,6 +8,7 @@ const {InteractionRow} = require("../../utils/interaction_row");
 const {Button} = require("../../utils/button");
 const {Channel} = require("../../utils/channel");
 const MODULE_MANAGER = require("../../core/module_manager")
+const {User} = require("../../utils/user");
 
 const CURRENT_APPLICATIONS = {}
 let APPLICATIONS = {}
@@ -56,7 +57,7 @@ class Module {
 
     /**
      * // When command is executed
-     * @param command {InteractionBase}
+     * @param command {CommandInteraction}
      * @return {Promise<void>}
      */
     async server_interaction(command) {
@@ -64,17 +65,15 @@ class Module {
             const author = await command.author()
             const application = {
                 id: author.id(),
-                author: await author.full_name(),
                 what: command.read('que-fais-tu-ici'),
                 ambition: command.read('ambitions'),
                 why: command.read('pourquoi-toi'),
                 other: command.read('autre'),
-                thumbnail: await author.profile_picture(),
             }
 
             const last = APPLICATIONS[author.id()]
 
-            const message = this._format_candidature(application)
+            const message = (await this._format_candidature(application))
                 .set_client_only()
                 .set_text(last ? ':warning:ATTENTION:warning: Ta nouvelle candidature effacera la précédente' : 'Voici ta candidature')
                 .add_interaction_row(
@@ -91,7 +90,7 @@ class Module {
                                 .set_type(Button.Success)))
 
             if (last)
-                message.add_embed(this._format_candidature(last)._embeds[0].set_title('Ancienne candidature'))
+                message.add_embed((await this._format_candidature(last))._embeds[0].set_title('Ancienne candidature'))
 
             await command.reply(message)
                 .then(interaction => {
@@ -112,10 +111,9 @@ class Module {
         }
         if (command.match('candidature-de')) {
             const author = await command.author()
-            const application = APPLICATIONS[author.id()]
+            const application = APPLICATIONS[command.read('utilisateur')]
             if (application) {
-                await command.reply(this
-                    ._format_candidature(application)
+                await command.reply((await this._format_candidature(application))
                     .set_client_only())
             } else
                 await command.reply(new Message().set_text('Cet utilisateur n\'a pas posté de candidature').set_client_only())
@@ -156,11 +154,12 @@ class Module {
         }
     }
 
-    _format_candidature(application) {
+    async _format_candidature(application) {
+        const user = new User().set_id(application.id)
         const embed = new Embed()
-            .set_title(`Candidature de @${application.author}`)
+            .set_author(user)
             .set_description(application.what)
-            .set_thumbnail(application.thumbnail)
+            .set_thumbnail(await user.profile_picture())
             .add_field('Ambitions', application.ambition)
             .add_field('Pourquoi ?', application.why)
 

@@ -146,7 +146,7 @@ class InteractionBase {
      */
     async reply(message) {
         try {
-            const res = await this._interaction.reply(message._output_to_discord())
+            const res = await this._interaction.reply(await message._output_to_discord())
                 .catch(err => console.fatal(`failed to reply to command : ${err}`))
             const interaction = new InteractionBase(res)
             interaction._channel = this.channel()
@@ -170,7 +170,7 @@ class InteractionBase {
      */
     async skip() {
         try {
-            await this._interaction.reply(new Message().set_text('Vu !').set_client_only()._output_to_discord())
+            await this._interaction.reply(await new Message().set_text('Vu !').set_client_only()._output_to_discord())
                 .catch(err => console.error(`Failed to respond : ${err}`))
         } catch (err) {
             console.error(`Failed to respond : ${err}`)
@@ -197,7 +197,7 @@ class InteractionBase {
      * @returns {Promise<Discord.Message>}
      */
     async edit_reply(message) {
-        await this._interaction.editReply(message._output_to_discord())
+        await this._interaction.editReply(await message._output_to_discord())
     }
 
     /**

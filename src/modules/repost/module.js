@@ -9,7 +9,6 @@ const {Button} = require("../../utils/button")
 const {InteractionRow} = require("../../utils/interaction_row")
 const MODULE_MANAGER = require("../../core/module_manager")
 const {Thread} = require("../../utils/thread");
-const {Attachment} = require("../../utils/attachment");
 
 function make_key(message) {
     return `${message.channel().id()}/${message.id()}`
@@ -207,7 +206,8 @@ class Module {
                     return
                 }
 
-                const messages = (await format_message(message, 'Mise à jour dans '))
+                const messages = await format_message(message, 'Mise à jour dans ')
+                    .catch(err => console.fatal(`Failed to create update messages : ${err}`))
                 for (const channel of this.repost_data.repost_links[(await message.channel().parent_channel()).id()].repost_channels)
                     for (const repost_message of messages)
                         await repost_message.set_channel(new Channel().set_id(channel)).send()

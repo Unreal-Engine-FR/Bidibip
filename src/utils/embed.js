@@ -1,3 +1,4 @@
+const Discord = require("discord.js");
 
 class Embed {
     constructor(_api_handle) {
@@ -24,7 +25,7 @@ class Embed {
      * @returns {Embed}
      */
     set_author(user) {
-        this.title = user._name
+        this._author = user
         return this
     }
 
@@ -64,10 +65,46 @@ class Embed {
         this.title = _api_handle.title
         this.description = _api_handle.description
         this.thumbnail = _api_handle.thumbnail ? _api_handle.thumbnail.url : null
+        if (_api_handle.author)
+            this._author = {
+                full_name: async () => _api_handle.author.name,
+                profile_picture: async () => _api_handle.author.iconURL
+            }
         if (_api_handle.fields)
             for (const field of _api_handle.fields) {
                 this.add_field(field.name, field.value, field.inline)
             }
+    }
+
+    async _to_discord_api() {
+        try {
+            if ((!this.title && !this._author) || !this.description)
+                console.fatal(`embed is empty : `, this)
+
+            const embed = new Discord.EmbedBuilder()
+                .setDescription(this.description)
+                .setThumbnail(this.thumbnail)
+
+            if (this.title)
+                embed.setTitle(this.title)
+
+            if (this._author) {
+                embed.setAuthor({
+                    name: await this._author.full_name(),
+                    iconURL: await this._author.profile_picture() ? await this._author.profile_picture() : null,
+                })
+            }
+
+            for (const field of this.fields) {
+                if (field.value.length > 1024) {
+                    console.fatal('Embed fields cannot have more than 1024 characters :', field)
+                }
+                embed.addFields(field)
+            }
+            return embed
+        } catch (err) {
+            console.fatal(`Embed is not valid : ${err}\nEmbed :`, this, '\nError : ', err)
+        }
     }
 }
 

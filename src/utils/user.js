@@ -25,7 +25,7 @@ class User {
      * @return {User}
      */
     set_profile_picture(image_url) {
-        this.profile_picture = image_url
+        this._profile_picture = image_url
         return this
     }
 
