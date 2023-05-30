@@ -6,6 +6,7 @@ const DI = require("./discord_interface");
 const {Channel} = require("./channel");
 const {Collection} = require("discord.js");
 const {Attachment} = require("./attachment");
+const CONFIG = require("../config");
 
 class Message {
     constructor(api_handle) {
@@ -166,6 +167,14 @@ class Message {
     }
 
     /**
+     * Get url to this message
+     * @return {string}
+     */
+    url() {
+        return `https://discord.com/channels/${CONFIG.get().SERVER_ID}/${this._channel.id()}/${this._id}`
+    }
+
+    /**
      * Retrieve button by id
      * @param id {string}
      * @returns {Button|null}
@@ -250,12 +259,17 @@ class Message {
 
         for (const embed of this._embeds) {
             if (!embed.title || !embed.description)
-                console.fatal(`embed is empty : ${embed}`)
+                console.fatal(`embed is empty : `, embed)
 
             const item = new Discord.EmbedBuilder()
                 .setTitle(embed.title)
                 .setDescription(embed.description)
                 .setThumbnail(embed.thumbnail)
+                .setAuthor({
+                    name: "Info",
+                    //url: 'discord://-/users/285426910404673536',
+                    iconURL: "https://dan.onl/images/emptysong.jpg",
+                })
 
             for (const field of embed.fields) {
                 if (field.value.length > 1024) {
@@ -302,7 +316,7 @@ class Message {
                 .catch(err => console.fatal(`failed to get channel ${this._channel.id()}:`, err))
 
         const res = await channel.send(this._output_to_discord())
-            .catch(err => console.fatal(`failed to send message : ${err}`))
+            .catch(err => console.fatal(`failed to send message : ${err} :  `, this))
 
         return new Message(res)
     }

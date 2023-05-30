@@ -24,36 +24,46 @@ function message_from_key(key) {
     return new Message().set_id(split[1]).set_channel(new Channel().set_id(split[0]))
 }
 
-async function format_message(message) {
+async function format_message(message, header) {
+    const message_group = []
     const author = await message.author()
+    const channel = message.channel()
+    message_group.push(
+        new Message()
+            .set_text(`${header}${channel.url()} !`)
+            .add_embed(
+                new Embed()
+                    .set_author(author)
+                    .set_description(await message.text())))
 
-    const res = extract_images(await message.text())
-    const res_message = new Message()
-        .add_embed(new Embed()
-            .set_title(`De ${await author.full_name()} : ${await message.channel().name()}`)
-            .set_description(res.text)
-            .set_thumbnail(await author.profile_picture()))
+    for (const hyperlink of find_urls(await message.text()))
+        message_group.push(new Message()
+            .set_text(hyperlink))
 
-    for (const attachment of res.attachments)
-        res_message.add_attachment(attachment)
+    for (const attachment of message.attachments())
+        message_group.push(new Message()
+            .set_text(attachment.file()))
 
-    return res_message
+    // Add url to last message
+    message_group[message_group.length - 1]
+        .add_interaction_row(
+            new InteractionRow()
+                .add_button(new Button()
+                    .set_label('Viens donc voir !')
+                    .set_type(Button.Link)
+                    .set_url(message.url())))
+
+    return message_group
 }
 
-function extract_images(initial_text) {
+function find_urls(initial_text) {
     const split = initial_text.split(/\r\n|\r|\n| /)
     const attachments = []
-    for (let i = split.length - 1; i >= 0; --i) {
-        if (split[i].includes('http') && /\.(jpg|jpeg|png|webp|avif|gif)$/.test(split[i].toLowerCase())) {
-            attachments.push(new Attachment().set_file(split[i]))
-            split.splice(i, 1)
-        }
-    }
+    for (let i = split.length - 1; i >= 0; --i)
+        if (split[i].includes('http'))
+            attachments.push(split[i])
 
-    return {
-        text: split.join(' '),
-        attachments: attachments
-    }
+    return attachments
 }
 
 class Module {
@@ -197,41 +207,10 @@ class Module {
                     return
                 }
 
-                const reposted_message = (await format_message(message))
-                    .set_text(`Mise à jour dans https://discord.com/channels/${CONFIG.get().SERVER_ID}/${message.channel().id()}/${message.id()}`)
-
-                for (const attachment of message.attachments())
-                    reposted_message.add_attachment(attachment)
-
-                const attachments = reposted_message.attachments()
-                reposted_message.clear_attachments()
-
-                if (attachments.length === 0)
-                    reposted_message.add_interaction_row(new InteractionRow()
-                    .add_button(new Button()
-                        .set_label('Viens donc voir !')
-                        .set_type(Button.Link)
-                        .set_url(`https://discord.com/channels/${CONFIG.get().SERVER_ID}/${message.channel().id()}/${message.id()}`)))
-
-                for (const channel of this.repost_data.repost_links[(await message.channel().parent_channel()).id()].repost_channels) {
-                    await reposted_message
-                        .set_channel(new Channel().set_id(channel))
-                        .send()
-                    if (attachments.length !== 0) {
-                        const attachment_post = new Message()
-                            .set_text('Regardes moi ça si c\'est pas beau !')
-                            .set_channel(new Channel().set_id(channel))
-                            .add_interaction_row(new InteractionRow()
-                                .add_button(new Button()
-                                    .set_label('Viens donc voir !')
-                                    .set_type(Button.Link)
-                                    .set_url(`https://discord.com/channels/${CONFIG.get().SERVER_ID}/${message.channel().id()}/${message.id()}`)))
-
-                        for (const attachment of attachments)
-                            attachment_post.add_attachment(attachment)
-                        await attachment_post.send()
-                    }
-                }
+                const messages = (await format_message(message, 'Mise à jour dans '))
+                for (const channel of this.repost_data.repost_links[(await message.channel().parent_channel()).id()].repost_channels)
+                    for (const repost_message of messages)
+                        await repost_message.set_channel(new Channel().set_id(channel)).send()
 
                 command.reply(new Message().set_client_only().set_text('Ton post a été promu !'))
                     .catch(err => console.fatal(`Failed to reply ${err}`))
@@ -276,12 +255,12 @@ class Module {
                                 new Button()
                                     .set_id('yes')
                                     .set_label('Pour ✅ (0)')
-                                    .set_type(Button.Success))
+                                    .set_type(Button.Primary))
                             .add_button(
                                 new Button()
                                     .set_id('no')
                                     .set_label('Contre ❌ (0)')
-                                    .set_type(Button.Danger))
+                                    .set_type(Button.Primary))
 
                     interaction.add_button(
                         new Button()
@@ -289,44 +268,52 @@ class Module {
                             .set_type(Button.Link)
                             .set_url(`${url}`))
 
-                    await (await format_message(message))
-                        .set_text(`Nouveau post dans #${await source_parent.name()} : ${url}`)
-                        .set_channel(new Channel().set_id(channel))
-                        .add_interaction_row(interaction)
-                        .send()
-                        .then(reposted_message => {
-                            const message = new Message()
-                                .set_text(`Message original : https://discord.com/channels/${CONFIG.get().SERVER_ID}/${reposted_message.channel().id()}/${reposted_message.id()}`)
-                                .set_channel(thread)
+                    const messages = (await format_message(message, `Nouveau post dans ${await source_parent.name()} : `))
+                    const last_message = messages.pop()
+
+                    if (this.repost_data.repost_links[source_parent.id()].vote)
+                        last_message.add_interaction_row(new InteractionRow()
+                            .add_button(new Button()
+                                .set_id('yes')
+                                .set_label(`Pour ✅ (0)`)
+                                .set_type(Button.Primary))
+                            .add_button(new Button()
+                                .set_id('no')
+                                .set_label('Contre ❌ (0)')
+                                .set_type(Button.Primary)))
+
+                    for (const channel of this.repost_data.repost_links[source_parent.id()].repost_channels) {
+                        for (const repost_message of messages)
+                            await repost_message
+                                .set_channel(new Channel().set_id(channel))
+                                .send()
+
+                        await last_message
+                            .set_channel(new Channel().set_id(channel))
+                            .send()
+                            .then(reposted_message => {
+                                const message = new Message()
+                                    .set_text(`Lien du repost : https://discord.com/channels/${CONFIG.get().SERVER_ID}/${reposted_message.channel().id()}/${reposted_message.id()}`)
+                                    .set_channel(thread)
 
 
-                            if (this.repost_data.repost_links[source_parent.id()].vote)
-                                message.add_interaction_row(new InteractionRow()
-                                    .add_button(new Button()
-                                        .set_id('yes')
-                                        .set_label(`Pour ✅ (0)`)
-                                        .set_type(Button.Success))
-                                    .add_button(new Button()
-                                        .set_id('no')
-                                        .set_label('Contre ❌ (0)')
-                                        .set_type(Button.Danger)))
+                                message.send()
+                                    .then(forum_message => {
+                                        forum_message.pin()
 
-                            message.send()
-                                .then(forum_message => {
-                                    forum_message.pin()
+                                        this.repost_data.repost_votes[`${make_key(reposted_message)}-${make_key(forum_message)}`] = {
+                                            vote_yes: [],
+                                            vote_no: []
+                                        }
 
-                                    this.repost_data.repost_votes[`${make_key(reposted_message)}-${make_key(forum_message)}`] = {
-                                        vote_yes: [],
-                                        vote_no: []
-                                    }
+                                        this.repost_data.thread_owners[thread.id()] = author.id()
 
-                                    this.repost_data.thread_owners[thread.id()] = author.id()
+                                        this._bind_messages(reposted_message, forum_message)
 
-                                    this._bind_messages(reposted_message, forum_message)
-
-                                    this._save_config()
-                                })
-                        })
+                                        this._save_config()
+                                    })
+                            })
+                    }
                 }
             }
 
@@ -384,7 +371,7 @@ class Module {
                 }
                 this._save_config()
 
-                button_interaction.reply(new Message().set_text('Merci pour ton vote !').set_client_only())
+                await button_interaction.skip()
             }
         }
 
@@ -409,4 +396,5 @@ class Module {
     }
 }
 
-module.exports = {Module}
+module
+    .exports = {Module}

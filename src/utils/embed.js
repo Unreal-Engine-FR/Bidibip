@@ -17,6 +17,17 @@ class Embed {
         return this
     }
 
+
+    /**
+     * Set embed title author
+     * @param user {User}
+     * @returns {Embed}
+     */
+    set_author(user) {
+        this.title = user._name
+        return this
+    }
+
     /**
      * Set embed description text
      * @param description {string}

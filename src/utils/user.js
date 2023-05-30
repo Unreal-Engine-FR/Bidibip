@@ -88,6 +88,14 @@ class User {
     }
 
     /**
+     * Get a string mention to this user
+     * @return {string}
+     */
+    mention() {
+        return '<@' + this._id + '>'
+    }
+
+    /**
      *
      * @param _api_handle {Discord.ClientUser}
      * @returns {User}

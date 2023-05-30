@@ -1,4 +1,5 @@
 const DI = require("./discord_interface");
+const CONFIG = require("../config");
 
 class Channel {
 
@@ -49,6 +50,14 @@ class Channel {
         if (!this._parent_channel)
             await this._fetch_from_discord()
         return this._parent_channel
+    }
+
+    /**
+     * Get url to this channel
+     * @return {string}
+     */
+    url() {
+        return `https://discord.com/channels/${CONFIG.get().SERVER_ID}/${this._id}`
     }
 
     async _fetch_from_discord() {
