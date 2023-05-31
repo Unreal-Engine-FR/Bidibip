@@ -8,8 +8,8 @@ function arg_to_string(arg, depth = '  ', object_map = new Set()) {
     } else if (Array.isArray(arg)) {
         let res = ''
         for (const item of arg)
-            res += `${arg_to_string(item, depth, object_map)} `
-        return res.substring(0, res.length - 1)
+            res += `${arg_to_string(item, depth, object_map)}, `
+        return '[' + res.substring(0, res.length - 2) + ']'
     } else if (arg === Object(arg)) {
         if (object_map.has(arg))
             return `\x1b[36m[Circular]\x1b[0m`;

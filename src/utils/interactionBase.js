@@ -53,6 +53,18 @@ class CommandInfo {
     }
 
     /**
+     * @param name {string} the display name of the option
+     * @param description {string}
+     * @param required {boolean}
+     * @param default_value {string|null}
+     * @returns {CommandInfo}
+     */
+    add_message_option(name, description, required = true, default_value = null) {
+        this._add_option_internal('message', name, description, [], required, default_value)
+        return this
+    }
+
+    /**
      * @param name {string}
      * @param description {string}
      * @param required {boolean}
@@ -251,16 +263,30 @@ class CommandInteraction extends InteractionBase {
         super(_api_handle)
 
         this._source_command = source_command
+        this._name = _api_handle.name
 
+        const message_options = []
         if (source_command)
-            for (const option of source_command.options)
+            for (const option of source_command.options) {
                 this._options[option.name] = option.default_value
+                if (option.type === 'message')
+                    message_options.push(option.name)
+            }
 
         if (_api_handle.options)
             for (const option of _api_handle.options._hoistedOptions)
                 this._options[option.name] = option.value
 
-        this._name = _api_handle.name
+        for (const option of message_options) {
+            const current_string = this._options[option]
+            const message = new Message().set_id(current_string).set_channel(this.channel())
+
+            if (current_string.includes('/')) {
+                const split = current_string.split('/')
+                message.set_id(split[split.length - 1]).set_channel(new Channel().set_id(split[split.length - 2]))
+            }
+            this._options[option] = message
+        }
     }
 
     /**

@@ -2,13 +2,11 @@
 const {CommandInfo} = require("../../utils/interactionBase")
 const {Message} = require("../../utils/message")
 const {Channel} = require("../../utils/channel")
-const fs = require("fs")
-const CONFIG = require("../../config")
 const {Embed} = require("../../utils/embed")
 const {Button} = require("../../utils/button")
 const {InteractionRow} = require("../../utils/interaction_row")
-const MODULE_MANAGER = require("../../core/module_manager")
-const {Thread} = require("../../utils/thread");
+const {Thread} = require("../../utils/thread")
+const {ModuleBase} = require("../../utils/module_base")
 
 function make_key(message) {
     return `${message.channel().id()}/${message.id()}`
@@ -65,159 +63,151 @@ function find_urls(initial_text) {
     return attachments
 }
 
-class Module {
+class Module extends ModuleBase {
     constructor(create_infos) {
-        this.client = create_infos.client
+        super(create_infos);
 
-        this.waiting_channels = new Set()
+        // These are the channels waiting for the first message
+        this.threads_waiting_first_message = new Set()
 
         this.commands = [
-            new CommandInfo('set-forum-link', 'Lie un forum a un channel de repost')
+            new CommandInfo('set-forum-link', 'Lie un forum a un channel de repost', this.set_forum_link)
                 .add_channel_option('forum', 'Forum où seront suivis les nouveaux posts')
                 .add_channel_option('repost-channel', 'Canal où seront repostés les évenements du forum')
                 .add_bool_option('vote', 'Avec ou sans fonctionnalités de vote')
                 .add_bool_option('enabled', 'Active ou desactive le lien', false, true)
                 .set_admin_only(),
-            new CommandInfo('view-forum-links', 'Voir la liste des liens entre forums et salons')
+            new CommandInfo('view-forum-links', 'Voir la liste des liens entre forums et salons', this.view_forum_link)
                 .set_admin_only(),
-            new CommandInfo('promote', 'Promeut le message donné dans le salon de repost')
-                .add_text_option('message', 'lien du message à promouvoir'),
+            new CommandInfo('promote', 'Promeut le message donné dans le salon de repost', this.promote)
+                .add_message_option('message', 'lien du message à promouvoir'),
         ]
 
-        try {
-            const data = fs.readFileSync(CONFIG.get().SAVE_DIR + '/repost/repost-links.json', 'utf8')
-            this.repost_data = JSON.parse(data)
-        } catch (_) {
-        }
-
-        if (!this.repost_data) this.repost_data = {}
-        if (!this.repost_data.repost_links) this.repost_data.repost_links = {}
-        if (!this.repost_data.repost_votes) this.repost_data.repost_votes = {}
-        if (!this.repost_data.thread_owners) this.repost_data.thread_owners = {}
+        this.load_config({
+            reposted_forums: {},
+            repost_votes: {},
+            vote_messages: {}
+        })
 
         this.bound_message = {}
-        for (const [key, _] of Object.entries(this.repost_data.repost_votes)) {
-            const split = key.split('-')
-            this._bind_messages(message_from_key(split[0]), message_from_key(split[1]))
+        // Keep track for vote button
+        for (const [key, value] of Object.entries(this.module_config.vote_messages)) {
+            this.bind_or_update_vote_buttons(message_from_key(key), new Thread().set_id(value))
+                .catch(err => console.error(`Failed to bind vote button`))
         }
     }
 
     /**
-     * // When command is executed
      * @param command {CommandInteraction}
      * @return {Promise<void>}
      */
-    async server_interaction(command) {
-        if (command.match('set-forum-link')) {
-            let source_forum = null
-            try {
-                source_forum = new Channel().set_id(command.read('forum'))
-                if ((await source_forum.type()) !== Channel.TypeForum) {
-                    throw new Error('Channel is not a forum')
-                }
-            } catch (err) {
-                console.warning(`'forum' option does not correspond to a forum : ${err}`)
-                await command.reply(new Message().set_text(`Le salon que vous avez fourni n'est pas un forum`).set_client_only())
-                return
+    async set_forum_link(command) {
+
+        let source_forum = null
+        try {
+            source_forum = new Channel().set_id(command.read('forum'))
+            if ((await source_forum.type()) !== Channel.TypeForum) {
+                throw new Error('Channel is not a forum')
             }
-            const repost_channels = new Channel().set_id(command.read('repost-channel'))
-            const enable = command.read('enabled')
-
-            if ((await repost_channels.type()) !== Channel.TypeChannel) {
-                console.warning(`'repost-channel' option does not correspond to a standard channel`)
-                await command.reply(new Message().set_text(`Le salon de repost que vous avez fourni n'est pas un salon standard`).set_client_only())
-                return
-            }
-
-            if (enable) {
-                console.info('created link between', source_forum, 'and', repost_channels)
-
-                if (this.repost_data.repost_links[source_forum.id()]) {
-                    if (this.repost_data.repost_links[source_forum.id()].repost_channels.indexOf(repost_channels.id()) === -1)
-                        this.repost_data.repost_links[source_forum.id()].repost_channels.push(repost_channels.id())
-                } else this.repost_data.repost_links[source_forum.id()] = {
-                    repost_channels: [repost_channels.id()]
-                }
-
-                this.repost_data.repost_links[source_forum.id()].vote = command.read('vote')
-
-                this._save_config()
-                await command.reply(new Message().set_text(`Lien créé`).set_client_only())
-            } else {
-                if (this.repost_data.repost_links[source_forum.id()]) {
-                    if (this.repost_data.repost_links[source_forum.id()].repost_channels.indexOf(repost_channels.id()) !== -1) {
-                        this.repost_data.repost_links[source_forum.id()].repost_channels.splice(this.repost_data.repost_links[source_forum.id()].repost_channels.indexOf(repost_channels.id()), 1)
-                        await command.reply(new Message().set_text(`Lien supprimé`).set_client_only())
-                    }
-                    if (this.repost_data.repost_links[source_forum.id()].repost_channels.length === 0)
-                        delete this.repost_data.repost_links[source_forum.id()]
-                    this._save_config()
-                } else
-                    await command.reply(new Message().set_text(`Ce lien n'existe pas`).set_client_only())
-            }
+        } catch (err) {
+            console.warning(`'forum' option does not correspond to a forum : ${err}`)
+            await command.reply(new Message().set_text(`Le salon que vous avez fourni n'est pas un forum`).set_client_only())
+            return
         }
-        if (command.match('view-forum-links')) {
-            const embed = new Embed()
-                .set_title('Liens de repost')
-                .set_description('Liste des liens de repost entre forums et salons de repost')
-            for (const [key, value] of Object.entries(this.repost_data.repost_links)) {
-                let forums = ''
-                for (const forum of value.repost_channels)
-                    forums += `Vers https://discord.com/channels/${CONFIG.get().SERVER_ID}/${forum}\n`
-                embed.add_field(`De https://discord.com/channels/${CONFIG.get().SERVER_ID}/${key}`, forums.length === 0 ? 'Pas de lien' : forums)
-            }
+        const bound_channels = new Channel().set_id(command.read('repost-channel'))
+        const enable = command.read('enabled')
 
-            await command.reply(
-                new Message()
-                    .add_embed(embed)
-                    .set_client_only())
+        if ((await bound_channels.type()) !== Channel.TypeChannel) {
+            console.warning(`'repost-channel' option does not correspond to a standard channel`)
+            await command.reply(new Message().set_text(`Le salon de repost que vous avez fourni n'est pas un salon standard`).set_client_only())
+            return
         }
-        if (command.match('promote')) {
 
-            const message = new Message().set_id(command.read('message')).set_channel(command.channel())
+        if (enable) {
+            console.info('created link between', source_forum, 'and', bound_channels)
 
-            if (command.read('message').includes('/')) {
-                const split = command.read('message').split('/')
-                message.set_id(split[split.length - 1]).set_channel(new Channel().set_id(split[split.length - 2]))
+            if (this.module_config.reposted_forums[source_forum.id()]) {
+                if (this.module_config.reposted_forums[source_forum.id()].bound_channels.indexOf(bound_channels.id()) === -1)
+                    this.module_config.reposted_forums[source_forum.id()].bound_channels.push(bound_channels.id())
+            } else this.module_config.reposted_forums[source_forum.id()] = {
+                bound_channels: [bound_channels.id()]
             }
 
-            const forum = await message.channel().parent_channel()
-            if (!forum || await forum.type() !== Channel.TypeForum) {
-                command.reply(new Message().set_client_only().set_text('Le message doit provenir d\'un forum'))
-                return
-            }
+            this.module_config.reposted_forums[source_forum.id()].vote = command.read('vote')
 
-            if (!await message.exists()) {
-                command.reply(new Message().set_client_only().set_text('Ce message n\'existe pas'))
-                return
-            }
-
-            if (this.repost_data.repost_links[(await message.channel().parent_channel()).id()]) {
-
-                if (!this.repost_data.thread_owners[message.channel().id()]) {
-                    const thread_author = await new Thread().set_id(message.channel().id()).owner()
-                        .catch(err => console.fatal(`Failed to get thread owner : ${err}`))
-                    this.repost_data.thread_owners[message.channel().id()] = thread_author.id()
+            this.save_config()
+            await command.reply(new Message().set_text(`Lien créé`).set_client_only())
+        } else {
+            if (this.module_config.reposted_forums[source_forum.id()]) {
+                if (this.module_config.reposted_forums[source_forum.id()].bound_channels.indexOf(bound_channels.id()) !== -1) {
+                    this.module_config.reposted_forums[source_forum.id()].bound_channels.splice(this.module_config.reposted_forums[source_forum.id()].bound_channels.indexOf(bound_channels.id()), 1)
+                    await command.reply(new Message().set_text(`Lien supprimé`).set_client_only())
                 }
-
-                if (this.repost_data.thread_owners[message.channel().id()] !== command.author().id()) {
-                    command.reply(new Message().set_client_only().set_text('Vous devez être l\'auteur du salon d\'où le message sera promu'))
-                        .catch(err => console.fatal(`Failed to reply ${err}`))
-                    return
-                }
-
-                const messages = await format_message(message, 'Mise à jour dans ')
-                    .catch(err => console.fatal(`Failed to create update messages : ${err}`))
-                for (const channel of this.repost_data.repost_links[(await message.channel().parent_channel()).id()].repost_channels)
-                    for (const repost_message of messages)
-                        await repost_message.set_channel(new Channel().set_id(channel)).send()
-
-                command.reply(new Message().set_client_only().set_text('Ton post a été promu !'))
-                    .catch(err => console.fatal(`Failed to reply ${err}`))
+                if (this.module_config.reposted_forums[source_forum.id()].bound_channels.length === 0)
+                    delete this.module_config.reposted_forums[source_forum.id()]
+                this.save_config()
             } else
-                command.reply(new Message().set_client_only().set_text('Ce forum a désactivé le repost'))
-                    .catch(err => console.fatal(`Failed to reply ${err}`))
+                await command.reply(new Message().set_text(`Ce lien n'existe pas`).set_client_only())
         }
+    }
+
+    /**
+     * @param command {CommandInteraction}
+     * @return {Promise<void>}
+     */
+    async view_forum_link(command) {
+        const embed = new Embed()
+            .set_title('Liens de repost')
+            .set_description('Liste des liens de repost entre forums et salons de repost')
+        for (const [key, value] of Object.entries(this.module_config.reposted_forums)) {
+            let forums = ''
+            for (const forum of value.bound_channels) {
+                forums += `Vers ${new Channel().set_id(forum).url()}\n`
+            }
+            embed.add_field(`De ${new Channel().set_id(key).url()} (vote : ${value.vote ? ':white_check_mark:' : ':x:'})`, forums.length === 0 ? 'Pas de lien' : forums)
+        }
+
+        await command.reply(
+            new Message()
+                .add_embed(embed)
+                .set_client_only())
+    }
+
+    /**
+     * @param command {CommandInteraction}
+     * @return {Promise<void>}
+     */
+    async promote(command) {
+        // The message we should promote
+        const message_to_promote = command.read('message')
+
+        // Ensure message exists
+        if (!await message_to_promote.exists())
+            return command.reply(new Message().set_client_only().set_text('Ce message n\'existe pas'))
+
+        // Ensure message was posted inside a forum
+        const thread = new Thread().set_id(message_to_promote.channel().id())
+        const forum = await thread.parent_channel()
+        if (!forum || await forum.type() !== Channel.TypeForum)
+            return command.reply(new Message().set_client_only().set_text('Le message doit provenir d\'un forum'))
+
+        // Ensure command author is allowed to promote this message
+        if ((await thread.owner()).id() !== command.author().id())
+            return command.reply(new Message().set_client_only().set_text('Vous devez être l\'auteur du salon d\'où le message sera promu'))
+
+        // Ensure repost is enabled
+        if (!this.module_config.reposted_forums[forum.id()])
+            return command.reply(new Message().set_client_only().set_text(`Le repost n'est pas activé dans ce forum`))
+
+        const message_to_send = await format_message(message_to_promote, 'Mise à jour dans ')
+            .catch(err => console.fatal(`Failed to create update messages : ${err}`))
+
+        // Repost in every channels
+        for (const channel of this.module_config.reposted_forums[forum.id()].bound_channels)
+            for (const repost_message of message_to_send)
+                await repost_message.set_channel(new Channel().set_id(channel)).send()
+
+        await command.reply(new Message().set_client_only().set_text('Ton post a été promu !'))
     }
 
     /**
@@ -225,10 +215,9 @@ class Module {
      * @returns {Promise<void>}
      */
     async thread_created(thread) {
-        const forum = await thread.parent_channel()
-        if (this.repost_data.repost_links[forum.id()]) {
-            this.waiting_channels.add(thread.id())
-        }
+        // We detected a thread have been created. Now we wait it's first message
+        if (this.module_config.reposted_forums[(await thread.parent_channel()).id()])
+            this.threads_waiting_first_message.add(thread.id())
     }
 
     /**
@@ -239,86 +228,88 @@ class Module {
     async server_message(message) {
         const thread = await message.channel()
 
-        if (this.waiting_channels.has(thread.id())) {
-            const source_parent = await thread.parent_channel()
-            if (this.repost_data.repost_links[source_parent.id()]) {
-                const author = await message.author()
+        // Ensure the thread that contains the message is waiting for it's first message
+        if (!this.threads_waiting_first_message.has(thread.id()))
+            return
 
-                for (const channel of this.repost_data.repost_links[source_parent.id()].repost_channels) {
-                    const url = `https://discord.com/channels/${CONFIG.get().SERVER_ID}/${thread.id()}`
+        // Don't track anymore
+        this.threads_waiting_first_message.delete(thread.id())
 
-                    const interaction = new InteractionRow()
+        const forum = await thread.parent_channel()
 
-                    if (this.repost_data.repost_links[source_parent.id()].vote)
-                        interaction
-                            .add_button(
-                                new Button()
-                                    .set_id('yes')
-                                    .set_label('Pour ✅ (0)')
-                                    .set_type(Button.Primary))
-                            .add_button(
-                                new Button()
-                                    .set_id('no')
-                                    .set_label('Contre ❌ (0)')
-                                    .set_type(Button.Primary))
+        // Repost is not enabled for this forum
+        if (!this.module_config.reposted_forums[forum.id()])
+            return
 
-                    interaction.add_button(
-                        new Button()
-                            .set_label('J\'y cause !')
-                            .set_type(Button.Link)
-                            .set_url(`${url}`))
+        // Create message
+        const messages = (await format_message(message, `Nouveau post dans ${await forum.name()} : `))
+        const last_message = messages.pop()
 
-                    const messages = (await format_message(message, `Nouveau post dans ${await source_parent.name()} : `))
-                    const last_message = messages.pop()
+        for (const channel of this.module_config.reposted_forums[forum.id()].bound_channels) {
+            for (const repost_message of messages)
+                await repost_message
+                    .set_channel(new Channel().set_id(channel))
+                    .send()
 
-                    if (this.repost_data.repost_links[source_parent.id()].vote)
-                        last_message.add_interaction_row(new InteractionRow()
-                            .add_button(new Button()
-                                .set_id('yes')
-                                .set_label(`Pour ✅ (0)`)
-                                .set_type(Button.Primary))
-                            .add_button(new Button()
-                                .set_id('no')
-                                .set_label('Contre ❌ (0)')
-                                .set_type(Button.Primary)))
+            await last_message
+                .set_channel(new Channel().set_id(channel))
+                .send()
+                .then(reposted_message => this.bind_or_update_vote_buttons(reposted_message, thread))
+        }
+    }
 
-                    for (const channel of this.repost_data.repost_links[source_parent.id()].repost_channels) {
-                        for (const repost_message of messages)
-                            await repost_message
-                                .set_channel(new Channel().set_id(channel))
-                                .send()
+    async bind_or_update_vote_buttons(message, vote_thread) {
+        // Not a thread
+        if (!await vote_thread.parent_channel())
+            return
 
-                        await last_message
-                            .set_channel(new Channel().set_id(channel))
-                            .send()
-                            .then(reposted_message => {
-                                const message = new Message()
-                                    .set_text(`Lien du repost : https://discord.com/channels/${CONFIG.get().SERVER_ID}/${reposted_message.channel().id()}/${reposted_message.id()}`)
-                                    .set_channel(thread)
+        // Check if vote is enabled or not
+        if (!this.module_config.reposted_forums[(await vote_thread.parent_channel()).id()].vote)
+            return
 
-
-                                message.send()
-                                    .then(forum_message => {
-                                        forum_message.pin()
-
-                                        this.repost_data.repost_votes[`${make_key(reposted_message)}-${make_key(forum_message)}`] = {
-                                            vote_yes: [],
-                                            vote_no: []
-                                        }
-
-                                        this.repost_data.thread_owners[thread.id()] = author.id()
-
-                                        this._bind_messages(reposted_message, forum_message)
-
-                                        this._save_config()
-                                    })
-                            })
-                    }
-                }
+        // Init if not exists
+        if (!this.module_config.repost_votes[vote_thread])
+            this.module_config.repost_votes[vote_thread] = {
+                vote_yes: [],
+                vote_no: []
             }
 
-            this.waiting_channels.delete(thread.id())
+        let yes_button = await message.get_button_by_id('button-vote-yes')
+        let no_button = await message.get_button_by_id('button-vote-no')
+        if (!yes_button) {
+            yes_button = new Button()
+                .set_id('yes')
+                .set_type(Button.Primary)
+            message.add_interaction_row(new InteractionRow().add_button(yes_button))
         }
+        if (!no_button) {
+            no_button = new Button()
+                .set_id('no')
+                .set_type(Button.Primary)
+            message.add_interaction_row(new InteractionRow().add_button(no_button))
+        }
+        yes_button.set_label(`Pour ✅ ${this.module_config.repost_votes[vote_thread].vote_yes}`)
+        no_button.set_label(`Contre ❌ ${this.module_config.repost_votes[vote_thread].vote_no}`)
+
+        // Update button
+        await message.update(message)
+
+        this.module_config.vote_messages[make_key(message)] = vote_thread.id()
+
+        this.bind_button(message, async (button_interaction) => {
+            // Retrieve thread corresponding with this message
+            const thread = new Thread().set_id(this.module_config.vote_messages[make_key(button_interaction.base_id())])
+            const vote_infos = this.module_config.repost_votes[thread.id()]
+
+            if (button_interaction.button_id() === 'button-vote-yes') {
+                vote_infos.vote_yes.push(null)
+                this.save_config()
+            } else if (button_interaction.button_id() === 'button-vote-no') {
+                vote_infos.vote_no.push(null)
+                this.save_config()
+            }
+        })
+        this.save_config()
     }
 
     _bind_messages(reposted_message, forum_message) {
@@ -330,13 +321,13 @@ class Module {
 
             const big_key = this.bound_message[make_key(message)]
 
-            const vote_group = this.repost_data.repost_votes[big_key]
+            const vote_group = this.module_config.repost_votes[big_key]
             const author = button_interaction.author().id()
             if (vote_group) {
                 // Update data
                 if (button_interaction.button_id() === 'yes') {
                     if (vote_group.vote_yes.indexOf(author) !== -1) {
-                        button_interaction.reply(new Message().set_text('Tu a déjà voté !').set_client_only())
+                        await button_interaction.reply(new Message().set_text('Tu a déjà voté !').set_client_only())
                         return
                     }
                     if (vote_group.vote_no.indexOf(author) !== -1)
@@ -344,7 +335,7 @@ class Module {
                     vote_group.vote_yes.push(button_interaction.author().id())
                 } else if (button_interaction.button_id() === 'no') {
                     if (vote_group.vote_no.indexOf(author) !== -1) {
-                        button_interaction.reply(new Message().set_text('Tu a déjà voté !').set_client_only())
+                        await button_interaction.reply(new Message().set_text('Tu a déjà voté !').set_client_only())
                         return
                     }
                     if (vote_group.vote_yes.indexOf(author) !== -1)
@@ -369,7 +360,7 @@ class Module {
                     ;(await message_1.get_button_by_id('no')).set_label(`Contre ❌ (${vote_group.vote_no.length})`)
                     await message_1.update(message_1)
                 }
-                this._save_config()
+                this.save_config()
 
                 await button_interaction.skip()
             }
@@ -379,20 +370,8 @@ class Module {
         this.bound_message[make_key(reposted_message)] = big_key
         this.bound_message[make_key(forum_message)] = big_key
 
-        MODULE_MANAGER.get().bind_button(this, reposted_message, callback)
-        MODULE_MANAGER.get().bind_button(this, forum_message, callback)
-    }
-
-    _save_config() {
-        if (!fs.existsSync(CONFIG.get().SAVE_DIR + '/repost/'))
-            fs.mkdirSync(CONFIG.get().SAVE_DIR + '/repost/', {recursive: true})
-        fs.writeFile(CONFIG.get().SAVE_DIR + '/repost/repost-links.json', JSON.stringify(this.repost_data, (key, value) => typeof value === 'bigint' ? value.toString() : value), 'utf8', err => {
-            if (err) {
-                console.fatal(`failed to save reposts : ${err}`)
-            } else {
-                console.info(`Saved reposts to file ${CONFIG.get().SAVE_DIR + '/repost/repost-links.json'}`)
-            }
-        })
+        this.bind_button(reposted_message, callback)
+        this.bind_button(forum_message, callback)
     }
 }
 

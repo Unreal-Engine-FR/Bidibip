@@ -1,17 +1,14 @@
 // MODULE QUOTE
 const {CommandInfo} = require("../../utils/interactionBase")
-const {resolve} = require('path')
-const CONFIG = require('../../config').get()
 const {Message} = require('../../utils/message')
 const {Embed} = require('../../utils/embed')
-
-const fs = require('fs')
 const {User} = require("../../utils/user");
 const {Channel} = require("../../utils/channel");
+const {ModuleBase} = require("../../utils/module_base");
 
-class Module {
+class Module extends ModuleBase {
     constructor(create_infos) {
-        this.client = create_infos.client
+        super(create_infos);
 
         this.commands = [
             new CommandInfo('quote', 'Envoyer une citation de la personne choisie', this.quote)
@@ -21,13 +18,6 @@ class Module {
                 .add_text_option('message', 'id du message à citer')
                 .set_member_only()
         ]
-
-        try {
-            const data = fs.readFileSync(CONFIG.SAVE_DIR + '/quotes/quotes.json', 'utf8')
-            this.quotes = JSON.parse(data)
-        } catch (err) {
-            this.quotes = {}
-        }
     }
 
     /**
@@ -73,8 +63,6 @@ class Module {
                 channel = new Channel().set_id(url[url.length - 2])
                 message_id = url[url.length - 1]
             }
-
-
 
             const message = new Message().set_channel(channel).set_id(message_id)
             let text = await message.text()

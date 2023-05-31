@@ -94,6 +94,9 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
     _on_message(msg) {
         if (DISCORD_CLIENT.on_message && !msg.author.bot)
             DISCORD_CLIENT.on_message(msg)
+        else if (msg.author.bot && msg.type === 6) { // MessageType.ChannelPinnedMessage (6)
+            msg.delete() // Remove pin messages from bot
+        }
     }
 
     _on_message_delete(msg) {
@@ -170,6 +173,13 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
                                 .setRequired(option.required)
                         )
                         break
+                    case 'message':
+                        discord_command.addStringOption(opt =>
+                            opt.setName(option.name)
+                                .setDescription(option.description)
+                                .setRequired(option.required)
+                        )
+                        break
                 }
             }
             command_data.push(discord_command.toJSON())
@@ -181,7 +191,9 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
         // Delete old commands
         console.info(`Started refreshing ${command_data.length} application (/) commands.`)
 
-        for (const command of await rest.get(Routes.applicationCommands(CONFIG.get().APP_ID))) {
+        const current_commands = await rest.get(Routes.applicationCommands(CONFIG.get().APP_ID))
+
+        for (const command of current_commands) {
             if (!command_set.has(command.name)) {
                 console.warning(`Removed outdated command ${command.name}`)
                 await rest.delete(`${Routes.applicationCommands(CONFIG.get().APP_ID)}/${command.id}`)
@@ -189,11 +201,7 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
                 command_set.delete(command.name)
         }
 
-        for (let i = command_data.length - 1; i >= 0; --i)
-            if (!command_set.has(command_data[i].name))
-                command_data.splice(i, 1)
-
-        if (command_data.length !== 0) {
+        if (command_data.length !== current_commands.length) {
             const data2 = await rest.put(Routes.applicationCommands(CONFIG.get().APP_ID), {body: command_data})
             console.info(`Successfully added ${data2.length} application (/) commands.`)
         } else

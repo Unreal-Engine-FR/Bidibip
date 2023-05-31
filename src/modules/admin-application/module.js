@@ -50,7 +50,7 @@ class Module extends ModuleBase {
             message.add_embed((await this.format_application(last)).first_embed().set_title('Ancienne candidature'))
 
         if (await this.ask_user_confirmation(command, message) === true) {
-            await this.format_application(application)
+            (await this.format_application(application))
                 .set_channel(new Channel().set_id(this.app_config.ADMIN_APPLICATIONS_CHANNEL))
                 .send()
                 .then(message => {
@@ -76,9 +76,10 @@ class Module extends ModuleBase {
             .set_description('liste des candidatures')
 
         for (const value of Object.values(this.module_config))
-            embed.add_field(value.author, value.id)
+            embed.add_field(await new User().set_id(value.id).full_name(), new User().set_id(value.id).mention())
 
         await command.reply(new Message()
+            .set_client_only()
             .add_embed(embed))
     }
 
