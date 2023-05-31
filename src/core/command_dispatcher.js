@@ -16,6 +16,7 @@ class CommandDispatcher {
         this.modules[module.name] = {module: module, command: module.commands}
 
         for (const command of module.commands) {
+            command.module = module
             if (this.commands[command.name])
                 this.commands[command.name].modules.push(module)
             else
@@ -67,27 +68,6 @@ class CommandDispatcher {
     find(command_name) {
         const command = this.commands[command_name]
         return command ? command.command : null
-    }
-
-    execute_command(command) {
-        const found_command = this.commands[command.source_command().name]
-        if (found_command)
-            for (const module of found_command.modules)
-                if (module.server_interaction)
-                    (async () => {
-                        module.server_interaction(command)
-                            .catch(err => console.error(`Failed to call 'server_interaction()' on module ${module.name} :\n${err}`))
-                    })()
-    }
-
-    button_pressed(interaction) {
-        for (const module of found_command.modules)
-            if (module.server_interaction)
-                (async () => {
-                    module.server_interaction(command)
-                        .catch(err => console.error(`Failed to call 'server_interaction()' on module ${module.name} :\n${err}`))
-                })()
-
     }
 
     get_commands(permissions) {

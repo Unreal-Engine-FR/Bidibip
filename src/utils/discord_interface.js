@@ -85,6 +85,7 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
             console.fatal(`failed to find role ${role_id}`)
         return BigInt(role.permissions.bitfield)
     }
+
     _on_thread_create(thread) {
         if (DISCORD_CLIENT.on_thread_create)
             DISCORD_CLIENT.on_thread_create(thread)
@@ -184,12 +185,19 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
             if (!command_set.has(command.name)) {
                 console.warning(`Removed outdated command ${command.name}`)
                 await rest.delete(`${Routes.applicationCommands(CONFIG.get().APP_ID)}/${command.id}`)
-            }
+            } else
+                command_set.delete(command.name)
         }
 
-        const data2 = await rest.put(Routes.applicationCommands(CONFIG.get().APP_ID), {body: command_data})
+        for (let i = command_data.length - 1; i >= 0; --i)
+            if (!command_set.has(command_data[i].name))
+                command_data.splice(i, 1)
 
-        console.info(`Successfully reloaded ${data2.length} application (/) commands.`)
+        if (command_data.length !== 0) {
+            const data2 = await rest.put(Routes.applicationCommands(CONFIG.get().APP_ID), {body: command_data})
+            console.info(`Successfully added ${data2.length} application (/) commands.`)
+        } else
+            console.warning("Nothing to update")
     }
 
     async check_updates() {

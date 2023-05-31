@@ -323,7 +323,7 @@ class Module {
 
     _bind_messages(reposted_message, forum_message) {
         /**
-         * @param button_interaction {ButtonInteraction}
+         * @param button_interaction {InteractionButton}
          */
         const callback = async button_interaction => {
             const message = button_interaction.message()

@@ -90,7 +90,7 @@ class Embed {
 
             if (this._author) {
                 embed.setAuthor({
-                    name: await this._author.full_name(),
+                    name: this.title ? this.title : await this._author.full_name(),
                     iconURL: await this._author.profile_picture() ? await this._author.profile_picture() : null,
                 })
             }

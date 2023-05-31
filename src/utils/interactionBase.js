@@ -5,11 +5,25 @@ const DI = require('../utils/discord_interface')
 const {Channel} = require("./channel");
 
 class CommandInfo {
-    constructor(name, description) {
+    /**
+     * Command callback.
+     *
+     * @callback CommandCallback
+     * @param {CommandInteraction} command_interaction
+     * @return {Promise<void>}
+     */
+
+    /**
+     * @param name {string}
+     * @param description {string}
+     * @param callback {CommandCallback}
+     */
+    constructor(name, description, callback) {
         this.name = name
         this.description = description
         this.options = []
         this._required_roles = []
+        this._callback = callback
     }
 
     /**
@@ -102,6 +116,18 @@ class CommandInfo {
         return required_permissions
     }
 
+    execute(command_interaction) {
+        if (!this._callback) {
+            console.error(`Cannot execute command '${this.name}' : no callback`)
+            command_interaction.skip()
+            return
+        }
+        (async () => {
+            await this._callback.call(this.module, command_interaction)
+                .catch(err => console.error(`Failed to execute command '${this.name}' on module '${this.module.name}' : ${err}`))
+        })()
+    }
+
     _add_option_internal(type, name, description, choices, required, default_value) {
         const option = {
             type: type,
@@ -128,15 +154,6 @@ class InteractionBase {
         this._author = new User(discord_interaction.user)
         this._channel = new Channel().set_id(discord_interaction.channelId)
         this._context_permissions = discord_interaction.memberPermissions ? discord_interaction.memberPermissions.bitfield : 0n
-    }
-
-    /**
-     * Check if this is the right command name
-     * @param name {string} tested name
-     * @returns {boolean}
-     */
-    match(name) {
-        return name === this._source_command.name
     }
 
     /**
@@ -232,6 +249,7 @@ class InteractionBase {
 class CommandInteraction extends InteractionBase {
     constructor(source_command, _api_handle) {
         super(_api_handle)
+
         this._source_command = source_command
 
         if (source_command)
@@ -251,14 +269,6 @@ class CommandInteraction extends InteractionBase {
      */
     name() {
         return this._name
-    }
-
-    /**
-     * Get initial command infos
-     * @returns {CommandInfo}
-     */
-    source_command() {
-        return this._source_command
     }
 
     /**
@@ -283,11 +293,11 @@ class CommandInteraction extends InteractionBase {
      * @returns {boolean}
      */
     check_permissions() {
-        return this.source_command().has_permission(this.context_permissions())
+        return this._source_command.has_permission(this.context_permissions())
     }
 }
 
-class ButtonInteraction extends InteractionBase {
+class InteractionButton extends InteractionBase {
     constructor(_api_handle) {
         super(_api_handle)
         this._message = new Message(_api_handle.message)
@@ -320,4 +330,4 @@ class ButtonInteraction extends InteractionBase {
     }
 }
 
-module.exports = {InteractionBase, CommandInteraction, ButtonInteraction, CommandInfo}
+module.exports = {InteractionBase, CommandInteraction, InteractionButton, CommandInfo}

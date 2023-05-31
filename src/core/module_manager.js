@@ -42,6 +42,7 @@ class ModuleManager {
 
             for (const module of names) {
                 this.load_module(module)
+                    .catch(err => console.error(`Failed to load module : ${err}`))
             }
         } catch (err) {
             console.fatal("failed to load modules : " + err)
@@ -53,14 +54,15 @@ class ModuleManager {
      * Try to load a module by name (module will be automatically started if enabled is not set to false by default)
      * @param module_name {string}
      */
-    load_module(module_name) {
-        import('../modules/' + module_name + '/module.js')
+    async load_module(module_name) {
+        await import('../modules/' + module_name + '/module.js')
             .then(module => {
                 if (this._module_list[module_name])
                     console.warning(`Module '${module_name}' is already loaded`)
                 else {
                     let instance = new module.Module({
                         client: this._client,
+                        name: module_name
                     })
                     instance.name = module_name
                     this._module_list[module_name] = instance
@@ -146,7 +148,7 @@ class ModuleManager {
         }
 
         const module = this._module_list[module_name]
-        if (module.enabled === false) {
+        if (module.enabled !== true) {
             module.enabled = true
             this._event_manager.bind(module)
             if (module.start)

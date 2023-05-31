@@ -1,12 +1,11 @@
 const DI = require("../utils/discord_interface");
 const {Message} = require("../utils/message");
-const {InteractionBase, CommandInteraction, ButtonInteraction} = require("../utils/interactionBase");
+const {InteractionBase, CommandInteraction, InteractionButton} = require("../utils/interactionBase");
 const {User} = require("../utils/user");
 const CONFIG = require("../config");
 const {CommandDispatcher} = require("./command_dispatcher");
 const {Channel} = require("../utils/channel");
 const {Thread} = require("../utils/thread");
-const {Button} = require("../utils/button");
 
 
 class EventManager {
@@ -39,6 +38,7 @@ class EventManager {
         DI.get().on_interaction = interaction => {
             switch (interaction.type) {
                 case 2: // Chat command
+                    const source_command = this._command_dispatcher.find(interaction.commandName)
                     const command_interaction = new CommandInteraction(this._command_dispatcher.find(interaction.commandName), interaction)
 
                     // Log
@@ -47,7 +47,7 @@ class EventManager {
                     console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] issued {'${interaction.commandName} ${option_string.substring(0, option_string.length - 2)}'}`)
 
                     // Ensure command exists
-                    if (command_interaction.source_command() === null) {
+                    if (source_command === null) {
                         command_interaction.reply(new Message().set_text("Commande inconnue").set_client_only())
                             .catch(err => console.fatal(`failed to reply to interaction : ${err}`))
                         return
@@ -70,11 +70,11 @@ class EventManager {
                         command_interaction.skip()
                             .catch(err => console.fatal(`failed to skip interaction : ${err}`))
                     } else
-                        this._command_dispatcher.execute_command(command_interaction)
+                        source_command.execute(command_interaction)
                     break
                 case 3: // Button clicked
                     (async () => {
-                        const button_interaction = new ButtonInteraction(interaction)
+                        const button_interaction = new InteractionButton(interaction)
                         let key = `${button_interaction.channel().id()}/${button_interaction.message().id()}`
 
                         let buttons = this._bound_buttons[key]

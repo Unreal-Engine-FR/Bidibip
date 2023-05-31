@@ -175,6 +175,18 @@ class Message {
     }
 
     /**
+     * Get embeds
+     * @return {Embed[]}
+     */
+    embeds() {
+        return this._embeds
+    }
+
+    first_embed() {
+        return this.embeds()[0]
+    }
+
+    /**
      * Retrieve button by id
      * @param id {string}
      * @returns {Button|null}
@@ -284,7 +296,7 @@ class Message {
 
     /**
      * Send this message
-     * @returns {Message} sent message
+     * @returns {Promise<Message>} sent message
      */
     async send() {
         if (!this._channel) {
