@@ -92,8 +92,8 @@ class Module extends ModuleBase {
         this.bound_message = {}
         // Keep track for vote button
         for (const [key, value] of Object.entries(this.module_config.vote_messages)) {
-            this.bind_or_update_vote_buttons(message_from_key(key), new Thread().set_id(value))
-                .catch(err => console.error(`Failed to bind vote button`))
+            this.bind_vote_button(message_from_key(key), new Thread().set_id(value))
+                .catch(err => console.error(`Failed to update vote button : ${err}`))
         }
     }
 
@@ -254,62 +254,83 @@ class Module extends ModuleBase {
             await last_message
                 .set_channel(new Channel().set_id(channel))
                 .send()
-                .then(reposted_message => this.bind_or_update_vote_buttons(reposted_message, thread))
+                .then(reposted_message => this.bind_vote_button(reposted_message, thread))
         }
     }
 
-    async bind_or_update_vote_buttons(message, vote_thread) {
-        // Not a thread
-        if (!await vote_thread.parent_channel())
-            return
-
-        // Check if vote is enabled or not
-        if (!this.module_config.reposted_forums[(await vote_thread.parent_channel()).id()].vote)
-            return
-
-        // Init if not exists
-        if (!this.module_config.repost_votes[vote_thread])
-            this.module_config.repost_votes[vote_thread] = {
-                vote_yes: [],
-                vote_no: []
-            }
-
+    async create_or_update_vote_buttons(message, vote_thread) {
         let yes_button = await message.get_button_by_id('button-vote-yes')
         let no_button = await message.get_button_by_id('button-vote-no')
+        if (message._interactions.length === 0) message.add_interaction_row(new InteractionRow())
+        const interaction_row = message._interactions[0]
         if (!yes_button) {
             yes_button = new Button()
-                .set_id('yes')
+                .set_id('button-vote-yes')
                 .set_type(Button.Primary)
-            message.add_interaction_row(new InteractionRow().add_button(yes_button))
+            interaction_row.add_button(yes_button)
         }
         if (!no_button) {
             no_button = new Button()
-                .set_id('no')
+                .set_id('button-vote-no')
                 .set_type(Button.Primary)
-            message.add_interaction_row(new InteractionRow().add_button(no_button))
+            interaction_row.add_button(no_button)
         }
-        yes_button.set_label(`Pour ✅ ${this.module_config.repost_votes[vote_thread].vote_yes}`)
-        no_button.set_label(`Contre ❌ ${this.module_config.repost_votes[vote_thread].vote_no}`)
+        yes_button.set_label(`Pour ✅ ${Object.entries(this.module_config.repost_votes[vote_thread.id()].vote_yes).length}`)
+        no_button.set_label(`Contre ❌ ${Object.entries(this.module_config.repost_votes[vote_thread.id()].vote_no).length}`)
 
         // Update button
         await message.update(message)
 
-        this.module_config.vote_messages[make_key(message)] = vote_thread.id()
+        if (!this.module_config.vote_messages[make_key(message)]) {
+            this.module_config.vote_messages[make_key(message)] = vote_thread.id()
+            this.save_config()
+        }
+    }
+
+    async bind_vote_button(message, thread) {
+        // Not a thread
+        if (!await thread.parent_channel())
+            return
+
+        // Check if vote is enabled or not
+        if (!this.module_config.reposted_forums[(await thread.parent_channel()).id()].vote)
+            return
+
+        // Init if not exists
+        if (!this.module_config.repost_votes[thread.id()]) {
+            this.module_config.repost_votes[thread.id()] = {
+                vote_yes: {},
+                vote_no: {},
+                bound_messages: []
+            }
+            this.save_config()
+        }
+
+        if (this.module_config.repost_votes[thread.id()].bound_messages.indexOf(make_key(message)) === -1)
+            this.module_config.repost_votes[thread.id()].bound_messages.push(make_key(message))
 
         this.bind_button(message, async (button_interaction) => {
-            // Retrieve thread corresponding with this message
-            const thread = new Thread().set_id(this.module_config.vote_messages[make_key(button_interaction.base_id())])
             const vote_infos = this.module_config.repost_votes[thread.id()]
-
             if (button_interaction.button_id() === 'button-vote-yes') {
-                vote_infos.vote_yes.push(null)
+                vote_infos.vote_yes[button_interaction.author().id()] = true
+                if (vote_infos.vote_no[button_interaction.author().id()])
+                    delete vote_infos.vote_no[button_interaction.author().id()]
                 this.save_config()
             } else if (button_interaction.button_id() === 'button-vote-no') {
-                vote_infos.vote_no.push(null)
+                vote_infos.vote_no[button_interaction.author().id()] = true
+                if (vote_infos.vote_yes[button_interaction.author().id()])
+                    delete vote_infos.vote_yes[button_interaction.author().id()]
                 this.save_config()
             }
+
+            for (const message_to_update of vote_infos.bound_messages)
+                await this.create_or_update_vote_buttons(message_from_key(message_to_update), thread)
+                    .catch(err => console.error(`Failed to update vote button : ${err}`))
+            await button_interaction.skip()
         })
-        this.save_config()
+
+        await this.create_or_update_vote_buttons(message, thread)
+            .catch(err => console.fatal(`Failed to create or update vote button : ${err}`))
     }
 
     _bind_messages(reposted_message, forum_message) {
