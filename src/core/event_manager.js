@@ -6,6 +6,7 @@ const CONFIG = require("../config");
 const {CommandDispatcher} = require("./command_dispatcher");
 const {Channel} = require("../utils/channel");
 const {Thread} = require("../utils/thread");
+const {Reaction} = require("../utils/reaction");
 
 
 class EventManager {
@@ -15,6 +16,9 @@ class EventManager {
         this._command_dispatcher = new CommandDispatcher(client)
         this._bound_buttons = {}
 
+        DI.get().on_reaction_add = (reaction, user) => {
+            this._reaction_added(new Reaction(reaction), new User(user))
+        }
         DI.get().on_thread_create = thread => {
             this._thread_created(new Thread(thread))
         }
@@ -78,11 +82,10 @@ class EventManager {
                         let key = `${button_interaction.channel().id()}/${button_interaction.message().id()}`
 
                         let buttons = this._bound_buttons[key]
-                        if (!buttons) {
+                        if (!buttons && interaction.message.interaction) {
                             key = `${button_interaction.channel().id()}/${interaction.message.interaction.id}`
                             buttons = this._bound_buttons[key]
                         }
-
                         console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] clicked '${key}' on message ${button_interaction.message().id()}`)
 
                         if (buttons) {
@@ -185,6 +188,15 @@ class EventManager {
                 (async () => {
                     module.thread_created(thread)
                         .catch(err => console.error(`Failed to call 'thread_created()' on module ${module.name} :\n${err}`))
+                })()
+    }
+
+    _reaction_added(reaction, user) {
+        for (const module of this._bound_modules)
+            if (module.add_reaction)
+                (async () => {
+                    module.add_reaction(reaction, user)
+                        .catch(err => console.error(`Failed to call 'add_reaction()' on module ${module.name} :\n${err}`))
                 })()
     }
 

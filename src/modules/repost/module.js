@@ -7,6 +7,7 @@ const {Button} = require("../../utils/button")
 const {InteractionRow} = require("../../utils/interaction_row")
 const {Thread} = require("../../utils/thread")
 const {ModuleBase} = require("../../utils/module_base")
+const {User} = require("../../utils/user");
 
 function make_key(message) {
     return `${message.channel().id()}/${message.id()}`
@@ -290,7 +291,7 @@ class Module extends ModuleBase {
         }
     }
 
-    async create_or_update_vote_buttons(message, vote_thread) {
+    async create_or_update_vote_buttons(message, vote_thread, ephemeral = false) {
         let yes_button = await message.get_button_by_id('button-vote-yes')
         let no_button = await message.get_button_by_id('button-vote-no')
         if (message._interactions.length === 0) message.add_interaction_row(new InteractionRow())
@@ -316,9 +317,8 @@ class Module extends ModuleBase {
 
             // Update button
             await message.update(message)
-            console.log('updated')
         }
-        if (!this.module_config.vote_messages[make_key(message)]) {
+        if (!ephemeral && !this.module_config.vote_messages[make_key(message)]) {
             this.module_config.vote_messages[make_key(message)] = vote_thread.id()
             this.save_config()
         }
@@ -347,40 +347,91 @@ class Module extends ModuleBase {
             this.module_config.repost_votes[thread.id()].bound_messages.push(make_key(message))
 
         this.bind_button(message, async (button_interaction) => {
-            const vote_infos = this.module_config.repost_votes[thread.id()]
-            if (button_interaction.button_id() === 'button-vote-yes') {
-                vote_infos.vote_yes[button_interaction.author().id()] = true
-                if (vote_infos.vote_no[button_interaction.author().id()])
-                    delete vote_infos.vote_no[button_interaction.author().id()]
-                this.save_config()
-            } else if (button_interaction.button_id() === 'button-vote-no') {
-                vote_infos.vote_no[button_interaction.author().id()] = true
-                if (vote_infos.vote_yes[button_interaction.author().id()])
-                    delete vote_infos.vote_yes[button_interaction.author().id()]
-                this.save_config()
-            }
-
-            for (const message_to_update of vote_infos.bound_messages) {
-                const vote_message = message_from_key(message_to_update)
-                if (!await vote_message.is_valid() || !await thread.is_valid())
-                    delete this.module_config.vote_messages[message_to_update]
-
-                if (!await thread.is_valid() && this.module_config.repost_votes[thread.id()])
-                    delete this.module_config.repost_votes[thread.id()]
-
-                if (await vote_message.is_valid() && await thread.is_valid())
-                    await this.create_or_update_vote_buttons(vote_message, thread)
-                        .catch(err => console.error(`Failed to update vote button : ${err}`))
-                else {
-                    this.save_config()
-                    console.warning('Cleaned up outdated repost message or thread for ', thread)
-                }
-            }
+            await this.click_vote_button(button_interaction, thread)
             await button_interaction.skip()
         })
 
         await this.create_or_update_vote_buttons(message, thread)
             .catch(err => console.fatal(`Failed to create or update vote button : ${err}`))
+    }
+
+    async click_vote_button(button_interaction, thread) {
+        const vote_infos = this.module_config.repost_votes[thread.id()]
+        if (button_interaction.button_id() === 'button-vote-yes') {
+            vote_infos.vote_yes[button_interaction.author().id()] = true
+            if (vote_infos.vote_no[button_interaction.author().id()])
+                delete vote_infos.vote_no[button_interaction.author().id()]
+            this.save_config()
+        } else if (button_interaction.button_id() === 'button-vote-no') {
+            vote_infos.vote_no[button_interaction.author().id()] = true
+            if (vote_infos.vote_yes[button_interaction.author().id()])
+                delete vote_infos.vote_yes[button_interaction.author().id()]
+            this.save_config()
+        }
+        await this.update_all_messages(thread)
+    }
+
+    async update_all_messages(thread) {
+        const vote_infos = this.module_config.repost_votes[thread.id()]
+        for (const message_to_update of vote_infos.bound_messages) {
+            const vote_message = message_from_key(message_to_update)
+            if (!await vote_message.is_valid() || !await thread.is_valid())
+                delete this.module_config.vote_messages[message_to_update]
+
+            if (!await thread.is_valid() && this.module_config.repost_votes[thread.id()])
+                delete this.module_config.repost_votes[thread.id()]
+
+            if (await vote_message.is_valid() && await thread.is_valid())
+                await this.create_or_update_vote_buttons(vote_message, thread)
+                    .catch(err => console.error(`Failed to update vote button : ${err}`))
+            else {
+                this.save_config()
+                console.warning('Cleaned up outdated repost message or thread for ', thread)
+            }
+        }
+    }
+
+    /**
+     * On message reaction
+     * @param reaction {Reaction}
+     * @param user {User}
+     * @return {Promise<void>}
+     */
+    async add_reaction(reaction, user) {
+        const thread = new Thread().set_id(reaction.message().channel().id())
+        const vote_data = this.module_config.repost_votes[thread.id()]
+        const first_message = thread.first_message()
+        if (reaction.message().id() !== first_message.id())
+            return
+        if (!vote_data)
+            return
+
+        const reactions = await first_message.reactions()
+        if (reactions.length !== 0 && reactions[0] === reaction.emoji())
+            await reaction.remove_user(user)
+
+        let vote_yes_str = ''
+        for (const [user, _] of Object.entries(vote_data.vote_yes))
+            vote_yes_str += `${new User().set_id(user).mention()}\n`
+        let vote_no_str = ''
+        for (const [user, _] of Object.entries(vote_data.vote_no))
+            vote_no_str += `${new User().set_id(user).mention()}\n`
+
+        const embed_user_list = new Embed()
+            .set_title('Votes actuels')
+            .set_description('Nombre de votes : ' + (Object.entries(vote_data.vote_yes).length + Object.entries(vote_data.vote_no).length))
+            .add_field('Pour ✅', vote_yes_str === '' ? '-' : vote_yes_str, true)
+            .add_field('Contre ❌', vote_no_str === '' ? '-' : vote_no_str, true)
+
+        await new Message().set_text(`J'attends ton vote ` + user.mention()).set_client_only().set_channel(thread)
+                .add_embed(embed_user_list)
+                .send().then(message => {
+                this.create_or_update_vote_buttons(message, thread, true)
+                this.bind_button(message, async (button_interaction) => {
+                    await this.click_vote_button(button_interaction, thread)
+                    await message.delete()
+                })
+            })
     }
 }
 

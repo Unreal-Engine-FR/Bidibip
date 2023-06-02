@@ -13,8 +13,13 @@ class Message {
         this._embeds = []
         this._interactions = []
         this._attachments = []
-        if (api_handle)
-            this._from_discord_message(api_handle)
+        if (api_handle) {
+            if (api_handle.partial) {
+                this._id = api_handle.id
+                this._channel = new Channel(api_handle.channel)
+            } else
+                this._from_discord_message(api_handle)
+        }
     }
 
     /**
@@ -214,7 +219,7 @@ class Message {
 
         let channel = DI.get()._client.channels.cache.get(this._channel.id())
         if (!channel) {
-            channel = DI.get()._client.channels.fetch(this._channel.id())
+            channel = await DI.get()._client.channels.fetch(this._channel.id())
                 .catch(err => {
                     throw new Error(`Failed to get channel : ${err}`)
                 })
@@ -245,6 +250,14 @@ class Message {
     clear_interactions() {
         this._interactions = []
         return this
+    }
+
+    async reactions() {
+        const reactions = []
+        const reaction_manager = await this._internal_get_handle()
+        for (const [k, _] of reaction_manager.reactions.cache)
+            reactions.push(k)
+        return reactions
     }
 
     _from_discord_message(_api_handle) {
