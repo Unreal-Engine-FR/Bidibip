@@ -18,11 +18,6 @@ class Channel {
         return this
     }
 
-    set_name(name) {
-        this._name = name
-        return this
-    }
-
     set_parent_channel(channel) {
         this._parent_channel = channel
         return this
@@ -67,6 +62,17 @@ class Channel {
                 .catch(err => console.fatal(`failed to get channel ${this.id()}:`, err))
 
         this._fill_from_api_handle(_api_handle)
+        return _api_handle
+    }
+
+    /**
+     * Set channel name
+     * @param new_name {string}
+     */
+    async set_name(new_name) {
+        const handle = await this._fetch_from_discord()
+        await handle.setName(new_name)
+        this._name = new_name
     }
 
     async is_valid() {

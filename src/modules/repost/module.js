@@ -338,7 +338,8 @@ class Module extends ModuleBase {
             this.module_config.repost_votes[thread.id()] = {
                 vote_yes: {},
                 vote_no: {},
-                bound_messages: []
+                bound_messages: [],
+                channel_title: await thread.name()
             }
             this.save_config()
         }
@@ -357,18 +358,25 @@ class Module extends ModuleBase {
 
     async click_vote_button(button_interaction, thread) {
         const vote_infos = this.module_config.repost_votes[thread.id()]
-        if (button_interaction.button_id() === 'button-vote-yes') {
+        if (!vote_infos)
+            return
+
+        let update = false
+        if (button_interaction.button_id() === 'button-vote-yes' && !vote_infos.vote_yes[button_interaction.author().id()]) {
+            update = true
             vote_infos.vote_yes[button_interaction.author().id()] = true
             if (vote_infos.vote_no[button_interaction.author().id()])
                 delete vote_infos.vote_no[button_interaction.author().id()]
             this.save_config()
-        } else if (button_interaction.button_id() === 'button-vote-no') {
+        } else if (button_interaction.button_id() === 'button-vote-no' && !vote_infos.vote_no[button_interaction.author().id()]) {
+            update = true
             vote_infos.vote_no[button_interaction.author().id()] = true
             if (vote_infos.vote_yes[button_interaction.author().id()])
                 delete vote_infos.vote_yes[button_interaction.author().id()]
             this.save_config()
         }
-        await this.update_all_messages(thread)
+        if (update)
+            await this.update_all_messages(thread)
     }
 
     async update_all_messages(thread) {
@@ -389,6 +397,14 @@ class Module extends ModuleBase {
                 console.warning('Cleaned up outdated repost message or thread for ', thread)
             }
         }
+        if (!vote_infos.channel_title) {
+            vote_infos.channel_title = await thread.name()
+            this.save_config()
+        }
+        const num_yes = Object.entries(vote_infos.vote_yes).length
+        const num_no = Object.entries(vote_infos.vote_no).length
+        const prefix = num_yes === num_no ? '' : (num_yes > num_no ? '✅' : '❌')
+        thread.set_name(`[${prefix} ${num_yes}-${num_no}] ${vote_infos.channel_title.substring(0, 80)}`)
     }
 
     /**
@@ -424,8 +440,8 @@ class Module extends ModuleBase {
             .add_field('Contre ❌', vote_no_str === '' ? '-' : vote_no_str, true)
 
         await new Message().set_text(`J'attends ton vote ` + user.mention()).set_client_only().set_channel(thread)
-                .add_embed(embed_user_list)
-                .send().then(message => {
+            .add_embed(embed_user_list)
+            .send().then(message => {
                 this.create_or_update_vote_buttons(message, thread, true)
                 this.bind_button(message, async (button_interaction) => {
                     await this.click_vote_button(button_interaction, thread)

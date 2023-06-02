@@ -99,7 +99,7 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
     _on_message(msg) {
         if (DISCORD_CLIENT.on_message && (!msg.author || !msg.author.bot))
             DISCORD_CLIENT.on_message(msg)
-        else if (msg.author.bot && msg.type === 6) { // MessageType.ChannelPinnedMessage (6)
+        else if (msg.author.bot && (msg.type === 6)) { // MessageType.ChannelPinnedMessage (6)
             msg.delete() // Remove pin messages from bot
         }
     }
