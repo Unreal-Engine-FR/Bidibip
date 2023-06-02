@@ -18,6 +18,15 @@ class Embed {
         return this
     }
 
+    /**
+     * Set author url
+     * @param url {string}
+     * @returns {Embed}
+     */*
+    set_author_url(url) {
+        this._author_url = url
+        return this
+    }
 
     /**
      * Set embed title author
@@ -50,6 +59,16 @@ class Embed {
     }
 
     /**
+     * Set embed image
+     * @param image {string} url
+     * @returns {Embed}
+     */
+    set_image(image) {
+        this._image = image
+        return this
+    }
+
+    /**
      * Add field to embed (a field contains a name and a description)
      * @param name {string} field name
      * @param value {string} field text
@@ -65,32 +84,41 @@ class Embed {
         this.title = _api_handle.title
         this.description = _api_handle.description
         this.thumbnail = _api_handle.thumbnail ? _api_handle.thumbnail.url : null
-        if (_api_handle.author)
+        this._image = _api_handle.image
+        if (_api_handle.author) {
             this._author = {
-                full_name: async () => _api_handle.author.name,
+                name: async () => _api_handle.author.name,
                 profile_picture: async () => _api_handle.author.iconURL
             }
+            this._author_url = _api_handle.author.url
+        }
         if (_api_handle.fields)
             for (const field of _api_handle.fields) {
                 this.add_field(field.name, field.value, field.inline)
             }
     }
 
+    is_valid() {
+        return (this.title || this._author) && this.description
+    }
+
     async _to_discord_api() {
         try {
-            if ((!this.title && !this._author) || !this.description)
-                console.fatal(`embed is empty : `, this)
+            if (!this.is_valid())
+                console.fatal(`embed is not valid : `, this)
 
             const embed = new Discord.EmbedBuilder()
                 .setDescription(this.description)
                 .setThumbnail(this.thumbnail)
+                .setImage(this._image)
 
             if (this.title)
                 embed.setTitle(this.title)
 
             if (this._author) {
                 embed.setAuthor({
-                    name: await this._author.full_name(),
+                    name: this.title ? this.title : await this._author.name(),
+                    url: this._author_url,
                     iconURL: await this._author.profile_picture() ? await this._author.profile_picture() : null,
                 })
             }

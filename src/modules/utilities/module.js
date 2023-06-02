@@ -7,34 +7,35 @@ const {Embed} = require('../../utils/embed')
 const {Message} = require('../../utils/message')
 const DI = require('../../utils/discord_interface')
 const {Channel} = require("../../utils/channel");
-class Module {
+const {ModuleBase} = require("../../utils/module_base");
+
+class Module extends ModuleBase {
     /**
      * @param create_infos contains module infos => {
      *      client: discord_client
      * }
      */
     constructor(create_infos) {
+        super(create_infos);
         this.enabled = true // default value is true
-
-        this.client = create_infos.client
 
         // Command declaration
         this.commands = [
-            new CommandInfo('modules_infos', 'Informations sur les modules')
+            new CommandInfo('modules_infos', 'Informations sur les modules', this.modules_infos)
                 .set_admin_only(),
-            new CommandInfo('set_module_enabled', 'Active ou desactive un module')
+            new CommandInfo('set_module_enabled', 'Active ou desactive un module', this.set_module_enabled)
                 .add_text_option('nom', 'nom du module')
                 .add_bool_option('enabled', 'Nouvel etat du module')
                 .set_admin_only(),
-            new CommandInfo('load_module', 'Charge un module')
+            new CommandInfo('load_module', 'Charge un module', this.load_module)
                 .add_text_option('nom', 'nom du module')
                 .set_admin_only(),
-            new CommandInfo('unload_module', 'Decharge un module')
+            new CommandInfo('unload_module', 'Decharge un module', this.unload_module)
                 .add_text_option('nom', 'nom du module')
                 .set_admin_only(),
-            new CommandInfo('update', 'Vérifie les mises à jour et les effectue le cas échéant')
+            new CommandInfo('update', 'Vérifie les mises à jour et les effectue le cas échéant', this.update)
                 .set_admin_only(),
-            new CommandInfo('restart', 'Fait redémarrer le bot')
+            new CommandInfo('restart', 'Fait redémarrer le bot', this.restart)
                 .set_admin_only()
         ]
 
@@ -54,7 +55,7 @@ class Module {
                     .set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
                     .add_embed(new Embed()
                         .set_title(level === 'E' ? 'Error' : 'Fatal')
-                        .set_description('```log\n ' + message + '\n```'))
+                        .set_description('```log\n ' + message.substring(0, 4080) + '\n```'))
                     .send()
                     .catch(err => {
                         LOGGER._delegates = []
@@ -63,6 +64,21 @@ class Module {
             }
         })
         DI.get().check_permissions_validity().catch(err => console.fatal(`Failed to check permissions validity : ${err}`))
+    }
+
+    async modules_infos(command_interaction) {
+        const embed = new Embed()
+            .set_title('modules')
+            .set_description('liste des modules disponibles')
+
+        for (const module of MODULE_MANAGER.all_modules_info())
+            embed.add_field(module.name, `chargé : ${module.loaded ? ':white_check_mark:' : ':x:'}\tactivé : ${module.enabled ? ':white_check_mark:' : ':x:'}`)
+
+        command_interaction.reply(
+            new Message()
+                .add_embed(embed)
+                .set_client_only()
+        )
     }
 
     /**
@@ -80,71 +96,73 @@ class Module {
     }
 
     /**
-     * // When command is executed
-     * @param command {InteractionBase}
+     * @param command_interaction {CommandInteraction}
      * @return {Promise<void>}
      */
-    async server_interaction(command) {
-        if (command.match('modules_infos')) {
-            const embed = new Embed()
-                .set_title('modules')
-                .set_description('liste des modules disponibles')
+    async set_module_enabled(command_interaction) {
+        if (command_interaction.read('enabled') === true)
+            MODULE_MANAGER.start(command_interaction.read('nom'))
+        else
+            MODULE_MANAGER.stop(command_interaction.read('nom'))
+        await this.modules_infos(command_interaction)
+    }
 
-            for (const module of MODULE_MANAGER.all_modules_info()) {
-                embed.add_field(module.name, `chargé : ${module.loaded ? ':white_check_mark:' : ':x:'}\tactivé : ${module.enabled ? ':white_check_mark:' : ':x:'}`)
-            }
+    /**
+     * @param command_interaction {CommandInteraction}
+     * @return {Promise<void>}
+     */
+    async load_module(command_interaction) {
+        await MODULE_MANAGER.load_module(command_interaction.read('nom'))
+        await this.modules_infos(command_interaction)
+    }
 
-            command.reply(
-                new Message()
-                    .add_embed(embed)
-                    .set_client_only()
-            )
-        }
-        if (command.match('set_module_enabled')) {
-            if (command.read('enabled') === true)
-                MODULE_MANAGER.start(command.read('nom'))
-            else
-                MODULE_MANAGER.stop(command.read('nom'))
-            command.skip()
-        }
-        if (command.match('load_module')) {
-            MODULE_MANAGER.load_module(command.read('nom'))
-            command.skip()
-        }
-        if (command.match('unload_module')) {
-            MODULE_MANAGER.unload_module(command.read('nom'))
-            command.skip()
-        }
-        if (command.match('update')) {
-            DI.get().check_updates()
-                .then(res => {
-                    if (res.upToDate) {
-                        command.reply(new Message()
-                            .set_text(`Je suis à jour ! (version ${res.currentVersion})`)
-                            .set_client_only())
-                    } else {
-                        command.reply(new Message()
-                            .set_text(`Mise à jour disponible, Redémarage en cours ! (${res.currentVersion} => ${res.remoteVersion})`)
-                            .set_client_only())
-                            .then(_ => {
-                                console.warning("restarting for update...")
-                                process.exit(0)
-                            })
-                    }
-                })
-                .catch(err => {
-                    command.reply(new Message().set_text(`Impossible de vérifier les mises à jour : ${err}`).set_client_only())
-                })
-        }
-        if (command.match('restart')) {
-            command.reply(new Message()
-                .set_text(`Redémarrage en cours...`)
-                .set_client_only())
-                .then(_ => {
-                    console.warning("restarting...")
-                    process.exit(0)
-                })
-        }
+    /**
+     * @param command_interaction {CommandInteraction}
+     * @return {Promise<void>}
+     */
+    async unload_module(command_interaction) {
+        MODULE_MANAGER.unload_module(command_interaction.read('nom'))
+        await this.modules_infos(command_interaction)
+    }
+
+    /**
+     * @param command_interaction {CommandInteraction}
+     * @return {Promise<void>}
+     */
+    async update(command_interaction) {
+        DI.get().check_updates()
+            .then(res => {
+                if (res.upToDate) {
+                    command_interaction.reply(new Message()
+                        .set_text(`Je suis à jour ! (version ${res.currentVersion})`)
+                        .set_client_only())
+                } else {
+                    command_interaction.reply(new Message()
+                        .set_text(`Mise à jour disponible, Redémarage en cours ! (${res.currentVersion} => ${res.remoteVersion})`)
+                        .set_client_only())
+                        .then(_ => {
+                            console.warning("restarting for update...")
+                            process.exit(0)
+                        })
+                }
+            })
+            .catch(err => {
+                command_interaction.reply(new Message().set_text(`Impossible de vérifier les mises à jour : ${err}`).set_client_only())
+            })
+    }
+
+    /**
+     * @param command_interaction {CommandInteraction}
+     * @return {Promise<void>}
+     */
+    async restart(command_interaction) {
+        command_interaction.reply(new Message()
+            .set_text(`Redémarrage en cours...`)
+            .set_client_only())
+            .then(_ => {
+                console.warning("restarting...")
+                process.exit(0)
+            })
     }
 
     /**

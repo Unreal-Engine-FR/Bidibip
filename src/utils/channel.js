@@ -69,6 +69,18 @@ class Channel {
         this._fill_from_api_handle(_api_handle)
     }
 
+    async is_valid() {
+        let _api_handle = await DI.get()._client.channels.cache.get(this.id())
+        if (!_api_handle)
+            _api_handle = await DI.get()._client.channels.fetch(this.id())
+                .catch(() => {
+                    return false
+                })
+        if (_api_handle)
+            this._fill_from_api_handle(_api_handle)
+        return !!_api_handle
+    }
+
     _fill_from_api_handle(_api_handle) {
         this._id = _api_handle.id
         this._parent_channel = new Channel().set_id(_api_handle.parentId)

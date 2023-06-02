@@ -1,5 +1,6 @@
 const {Channel} = require("./channel");
 const {User} = require("./user");
+const {Message} = require("./message");
 
 class Thread extends Channel {
     constructor(_api_handle) {
@@ -18,6 +19,10 @@ class Thread extends Channel {
     _fill_from_api_handle(_api_handle) {
         super._fill_from_api_handle(_api_handle)
         this._owner = new User().set_id(_api_handle.ownerId)
+    }
+
+    first_message() {
+        return new Message().set_id(this._id).set_channel(this)
     }
 }
 

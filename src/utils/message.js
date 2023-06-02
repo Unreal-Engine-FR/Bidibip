@@ -13,8 +13,13 @@ class Message {
         this._embeds = []
         this._interactions = []
         this._attachments = []
-        if (api_handle)
-            this._from_discord_message(api_handle)
+        if (api_handle) {
+            if (api_handle.partial) {
+                this._id = api_handle.id
+                this._channel = new Channel(api_handle.channel)
+            } else
+                this._from_discord_message(api_handle)
+        }
     }
 
     /**
@@ -175,6 +180,18 @@ class Message {
     }
 
     /**
+     * Get embeds
+     * @return {Embed[]}
+     */
+    embeds() {
+        return this._embeds
+    }
+
+    first_embed() {
+        return this.embeds()[0]
+    }
+
+    /**
      * Retrieve button by id
      * @param id {string}
      * @returns {Button|null}
@@ -202,7 +219,7 @@ class Message {
 
         let channel = DI.get()._client.channels.cache.get(this._channel.id())
         if (!channel) {
-            channel = DI.get()._client.channels.fetch(this._channel.id())
+            channel = await DI.get()._client.channels.fetch(this._channel.id())
                 .catch(err => {
                     throw new Error(`Failed to get channel : ${err}`)
                 })
@@ -212,6 +229,15 @@ class Message {
             .catch(err => {
                 throw new Error(`Failed to fetch message ${this._id} : ${err}`)
             })
+    }
+
+    async is_valid() {
+        try {
+            await this._fill_internal(await this._internal_get_handle())
+            return true
+        } catch (_) {
+            return false
+        }
     }
 
     async exists() {
@@ -226,6 +252,14 @@ class Message {
         return this
     }
 
+    async reactions() {
+        const reactions = []
+        const reaction_manager = await this._internal_get_handle()
+        for (const [k, _] of reaction_manager.reactions.cache)
+            reactions.push(k)
+        return reactions
+    }
+
     _from_discord_message(_api_handle) {
         this._author = new User(_api_handle.author)
         this._text = _api_handle.content
@@ -235,8 +269,11 @@ class Message {
         this._embeds = []
         this._interactions = []
         if (_api_handle.embeds)
-            for (const embed of _api_handle.embeds)
-                this._embeds.push(new Embed(embed))
+            for (const embed of _api_handle.embeds) {
+                const embed_object = new Embed(embed)
+                if (embed_object.is_valid())
+                    this._embeds.push(embed_object)
+            }
 
         if (_api_handle.components)
             for (const component of _api_handle.components)
@@ -284,7 +321,7 @@ class Message {
 
     /**
      * Send this message
-     * @returns {Message} sent message
+     * @returns {Promise<Message>} sent message
      */
     async send() {
         if (!this._channel) {
