@@ -386,22 +386,27 @@ class Module extends ModuleBase {
         if (!vote_infos)
             return
 
-        let update = false
-        if (button_interaction.button_id() === 'button-vote-yes' && !vote_infos.vote_yes[button_interaction.author().id()]) {
-            update = true
-            vote_infos.vote_yes[button_interaction.author().id()] = true
-            if (vote_infos.vote_no[button_interaction.author().id()])
-                delete vote_infos.vote_no[button_interaction.author().id()]
-            this.save_config()
-        } else if (button_interaction.button_id() === 'button-vote-no' && !vote_infos.vote_no[button_interaction.author().id()]) {
-            update = true
-            vote_infos.vote_no[button_interaction.author().id()] = true
+        if (button_interaction.button_id() === 'button-vote-yes') {
             if (vote_infos.vote_yes[button_interaction.author().id()])
                 delete vote_infos.vote_yes[button_interaction.author().id()]
+            else {
+                vote_infos.vote_yes[button_interaction.author().id()] = true
+                if (vote_infos.vote_no[button_interaction.author().id()])
+                    delete vote_infos.vote_no[button_interaction.author().id()]
+            }
+            this.save_config()
+        } else if (button_interaction.button_id() === 'button-vote-no') {
+            if (vote_infos.vote_no[button_interaction.author().id()])
+                delete vote_infos.vote_no[button_interaction.author().id()]
+            else {
+                vote_infos.vote_no[button_interaction.author().id()] = true
+                if (vote_infos.vote_yes[button_interaction.author().id()])
+                    delete vote_infos.vote_yes[button_interaction.author().id()]
+            }
             this.save_config()
         }
-        if (update)
-            await this.update_all_messages(thread)
+
+        await this.update_all_messages(thread)
     }
 
     async update_all_messages(thread) {
@@ -428,7 +433,7 @@ class Module extends ModuleBase {
         }
         const num_yes = Object.entries(vote_infos.vote_yes).length
         const num_no = Object.entries(vote_infos.vote_no).length
-        const prefix = num_yes === num_no ? '' : (num_yes > num_no ? '✅' : '❌')
+        const prefix = num_yes === num_no ? '📩' : (num_yes > num_no ? '✅' : '❌')
         if (await thread.is_valid())
             thread.set_name(`[${prefix} ${num_yes}-${num_no}] ${vote_infos.channel_title.substring(0, 80)}`)
     }
