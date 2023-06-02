@@ -30,6 +30,7 @@ class Module extends ModuleBase {
                     fs.mkdirSync(this.app_config.SAVE_DIR + `/message_history/${channel_id}/`, {recursive: true})
 
                 const message = new Message()
+                    .set_channel(command_interaction.channel())
                     .add_embed(new Embed().set_title('Progression...').set_description('starting...'))
                 const config = {
                     stop_process: false,
@@ -38,6 +39,7 @@ class Module extends ModuleBase {
                 }
 
                 const bind_reply = (message_reply) => {
+                    config.message_to_update = message_reply
                     this.bind_button(message_reply, async (interaction) => {
                         if (interaction.button_id() === 'stop' && interaction.author().id() === command_interaction.author().id())
                             config.stop_process = true
@@ -53,7 +55,7 @@ class Module extends ModuleBase {
                     message.add_interaction_row(new InteractionRow()
                         .add_button(new Button()
                             .set_id('stop').set_label('Stop').set_type(Button.Danger)))
-                    bind_reply(await command_interaction.reply(message))
+                    bind_reply(await message.send())
                     this.fetch_channel(command_interaction.read('channel'), 0, config)
                         .catch(err => console.fatal(`Failed to fetch channel : ${err}`))
                 } else {
@@ -65,11 +67,12 @@ class Module extends ModuleBase {
                     message.add_interaction_row(new InteractionRow()
                         .add_button(new Button()
                             .set_id('stop').set_label('Stop').set_type(Button.Danger)))
-                    bind_reply(await command_interaction.reply(message))
+                    bind_reply(await message.send())
                     this.fetch_channel(command_interaction.read('channel'), Number(last_file) + 1, config, last_message.i)
                         .catch(err => console.fatal(`Failed to fetch channel : ${err}`))
                 }
 
+                await command_interaction.skip()
             })
                 .add_channel_option("channel", "download target")
                 .set_admin_only()
@@ -127,17 +130,17 @@ class Module extends ModuleBase {
             }
 
             config.base_message.embeds()[0].set_description(`Fetched ${step_messages} messages to ${out_file}.json out of ${message_count} total messages ! (last message : ${new Message().set_id(last_message).set_channel(new Channel().set_id(channel_id)).url()})`)
-            config.interaction.edit_reply(config.base_message)
-                .catch(err => console.warning(`Failed to edit reply : ${err}`))
+            config.message_to_update.update(config.base_message)
+                .catch(err => console.fatal(`Failed to edit message : ${err}`))
             out_file += 1
         }
 
-        await config.interaction.edit_reply(config.base_message.add_embed(
+        await config.message_to_update.update(config.base_message.add_embed(
             new Embed().set_title('Message download operation finished !')
                 .set_description(`${message_count} messages downloaded`)
                 .add_field("Status", finished ? "finished" : config.stop_process ? "stopped by user" : "undefined"))
             .clear_interactions())
-            .catch(err => console.fatal(`Failed to edit reply : ${err}`))
+            .catch(err => console.fatal(`Failed to edit message : ${err}`))
         delete this.fetching_channels[channel_id]
     }
 }
