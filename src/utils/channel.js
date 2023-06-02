@@ -26,6 +26,7 @@ class Channel {
     async type() {
         if (!this._type)
             await this._fetch_from_discord()
+                .catch(console.error)
         return this._type
     }
 
@@ -38,12 +39,14 @@ class Channel {
     async name() {
         if (!this._name)
             await this._fetch_from_discord()
+                .catch(console.error)
         return this._name
     }
 
     async parent_channel() {
         if (!this._parent_channel)
             await this._fetch_from_discord()
+                .catch(console.error)
         return this._parent_channel
     }
 
@@ -71,6 +74,7 @@ class Channel {
      */
     async set_name(new_name) {
         const handle = await this._fetch_from_discord()
+            .catch(console.fatal)
         await handle.setName(new_name)
         this._name = new_name
     }

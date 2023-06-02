@@ -234,13 +234,31 @@ class Module extends ModuleBase {
 
         const message_to_send = await format_message(message_to_promote, 'Mise à jour dans ')
             .catch(err => console.fatal(`Failed to create update messages : ${err}`))
+        const last_message = message_to_send.pop()
 
         // Repost in every channels
-        for (const channel of this.module_config.reposted_forums[forum.id()].bound_channels)
+        for (const channel of this.module_config.reposted_forums[forum.id()].bound_channels) {
             for (const repost_message of message_to_send)
                 await repost_message.set_channel(new Channel().set_id(channel)).send()
 
-        await command.reply(new Message().set_client_only().set_text('Ton post a été promu !'))
+            last_message.set_channel(new Channel().set_id(channel)).send().then(async sent_last => {
+                if (this.module_config.reposted_forums[forum.id()].vote)
+                    await this.bind_vote_button(sent_last, thread)
+            })
+        }
+
+        await
+            command
+                .reply(
+                    new
+
+                    Message()
+
+                        .set_client_only()
+
+                        .set_text(
+                            'Ton post a été promu !'
+                        ))
     }
 
     /**
@@ -278,11 +296,12 @@ class Module extends ModuleBase {
         const messages = (await format_message(message, `Nouveau post dans **#${await forum.name()}** : `))
         const last_message = messages.pop()
 
-        await new Message()
-            .set_text(`Vote en réagissant au post !`)
-            .set_channel(message.channel())
-            .send()
-            .then(reposted_message => this.bind_vote_button(reposted_message, thread))
+        if (this.module_config.reposted_forums[forum.id()].vote)
+            await new Message()
+                .set_text(`Vote en réagissant au post !`)
+                .set_channel(message.channel())
+                .send()
+                .then(reposted_message => this.bind_vote_button(reposted_message, thread))
 
         for (const channel of this.module_config.reposted_forums[forum.id()].bound_channels) {
             for (const repost_message of messages)
@@ -410,7 +429,8 @@ class Module extends ModuleBase {
         const num_yes = Object.entries(vote_infos.vote_yes).length
         const num_no = Object.entries(vote_infos.vote_no).length
         const prefix = num_yes === num_no ? '' : (num_yes > num_no ? '✅' : '❌')
-        thread.set_name(`[${prefix} ${num_yes}-${num_no}] ${vote_infos.channel_title.substring(0, 80)}`)
+        if (await thread.is_valid())
+            thread.set_name(`[${prefix} ${num_yes}-${num_no}] ${vote_infos.channel_title.substring(0, 80)}`)
     }
 
     /**
