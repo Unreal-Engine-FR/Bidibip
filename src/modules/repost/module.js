@@ -278,6 +278,12 @@ class Module extends ModuleBase {
         const messages = (await format_message(message, `Nouveau post dans **#${await forum.name()}** : `))
         const last_message = messages.pop()
 
+        await new Message()
+            .set_text(`Vote en réagissant au post !`)
+            .set_channel(message.channel())
+            .send()
+            .then(reposted_message => this.bind_vote_button(reposted_message, thread))
+
         for (const channel of this.module_config.reposted_forums[forum.id()].bound_channels) {
             for (const repost_message of messages)
                 await repost_message
