@@ -59,7 +59,7 @@ class Channel {
     }
 
     async _fetch_from_discord() {
-        let _api_handle = await DI.get()._client.channels.cache.get(this.id())
+        let _api_handle = DI.get()._client.channels.cache.get(this.id())
         if (!_api_handle)
             _api_handle = await DI.get()._client.channels.fetch(this.id())
                 .catch(err => console.fatal(`failed to get channel ${this.id()}:`, err))

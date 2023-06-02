@@ -61,7 +61,6 @@ class ModuleManager {
                     console.warning(`Module '${module_name}' is already loaded`)
                 else {
                     let instance = new module.Module({
-                        client: this._client,
                         name: module_name
                     })
                     instance.name = module_name
