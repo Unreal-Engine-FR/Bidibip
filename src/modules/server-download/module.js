@@ -128,7 +128,7 @@ class Module extends ModuleBase {
 
             config.base_message.embeds()[0].set_description(`Fetched ${step_messages} messages to ${out_file}.json out of ${message_count} total messages ! (last message : ${new Message().set_id(last_message).set_channel(new Channel().set_id(channel_id)).url()})`)
             config.interaction.edit_reply(config.base_message)
-                .catch(err => console.fatal(`Failed to edit reply : ${err}`))
+                .catch(err => console.warning(`Failed to edit reply : ${err}`))
             out_file += 1
         }
 
