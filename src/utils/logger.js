@@ -8,13 +8,13 @@ function arg_to_string(arg, depth = '  ', object_map = new Set()) {
     } else if (Array.isArray(arg)) {
         let res = ''
         for (const item of arg)
-            res += `${arg_to_string(item, depth, object_map)} `
-        return res.substring(0, res.length - 1)
+            res += `${arg_to_string(item, depth, object_map)}, `
+        return '[' + res.substring(0, res.length - 2) + ']'
     } else if (arg === Object(arg)) {
         if (object_map.has(arg))
             return `\x1b[36m[Circular]\x1b[0m`;
         object_map.add(arg)
-        let string = (arg.constructor ? arg.constructor.name : '') + ' {'
+        let string = (arg.constructor ? `\x1b[36m${arg.constructor.name}\x1b[0m` : '') + ' {'
         let started = false
         for (const [key, value] of Object.entries(arg)) {
             string += started ? ',\n' : '\n'
@@ -25,7 +25,7 @@ function arg_to_string(arg, depth = '  ', object_map = new Set()) {
     } else if (typeof arg === 'number' || typeof arg === 'boolean') {
         return `\x1b[33m${arg.toString()}\x1b[0m`
     } else if (typeof arg === 'string' && depth !== '  ') {
-        return `\x1b[32m'${arg.toString()}'\x1b[0m`
+        return `\x1b[32m'${arg.replaceAll('\n', '\n' + depth)}'\x1b[0m`
     } else if (arg === null && depth !== '  ') {
         return `\x1b[1m${arg}\x1b[0m`
     }

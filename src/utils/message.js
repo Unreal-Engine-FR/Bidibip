@@ -6,14 +6,20 @@ const DI = require("./discord_interface");
 const {Channel} = require("./channel");
 const {Collection} = require("discord.js");
 const {Attachment} = require("./attachment");
+const CONFIG = require("../config");
 
 class Message {
     constructor(api_handle) {
         this._embeds = []
         this._interactions = []
         this._attachments = []
-        if (api_handle)
-            this._from_discord_message(api_handle)
+        if (api_handle) {
+            if (api_handle.partial) {
+                this._id = api_handle.id
+                this._channel = new Channel(api_handle.channel)
+            } else
+                this._from_discord_message(api_handle)
+        }
     }
 
     /**
@@ -166,6 +172,26 @@ class Message {
     }
 
     /**
+     * Get url to this message
+     * @return {string}
+     */
+    url() {
+        return `https://discord.com/channels/${CONFIG.get().SERVER_ID}/${this._channel.id()}/${this._id}`
+    }
+
+    /**
+     * Get embeds
+     * @return {Embed[]}
+     */
+    embeds() {
+        return this._embeds
+    }
+
+    first_embed() {
+        return this.embeds()[0]
+    }
+
+    /**
      * Retrieve button by id
      * @param id {string}
      * @returns {Button|null}
@@ -193,7 +219,7 @@ class Message {
 
         let channel = DI.get()._client.channels.cache.get(this._channel.id())
         if (!channel) {
-            channel = DI.get()._client.channels.fetch(this._channel.id())
+            channel = await DI.get()._client.channels.fetch(this._channel.id())
                 .catch(err => {
                     throw new Error(`Failed to get channel : ${err}`)
                 })
@@ -203,6 +229,15 @@ class Message {
             .catch(err => {
                 throw new Error(`Failed to fetch message ${this._id} : ${err}`)
             })
+    }
+
+    async is_valid() {
+        try {
+            await this._fill_internal(await this._internal_get_handle())
+            return true
+        } catch (_) {
+            return false
+        }
     }
 
     async exists() {
@@ -217,6 +252,14 @@ class Message {
         return this
     }
 
+    async reactions() {
+        const reactions = []
+        const reaction_manager = await this._internal_get_handle()
+        for (const [k, _] of reaction_manager.reactions.cache)
+            reactions.push(k)
+        return reactions
+    }
+
     _from_discord_message(_api_handle) {
         this._author = new User(_api_handle.author)
         this._text = _api_handle.content
@@ -226,8 +269,11 @@ class Message {
         this._embeds = []
         this._interactions = []
         if (_api_handle.embeds)
-            for (const embed of _api_handle.embeds)
-                this._embeds.push(new Embed(embed))
+            for (const embed of _api_handle.embeds) {
+                const embed_object = new Embed(embed)
+                if (embed_object.is_valid())
+                    this._embeds.push(embed_object)
+            }
 
         if (_api_handle.components)
             for (const component of _api_handle.components)
@@ -240,53 +286,42 @@ class Message {
         return this
     }
 
-    _output_to_discord() {
-        if (this.is_empty()) {
-            console.fatal(`cannot send empty message : `, this)
-            return
-        }
-
-        let embeds = []
-
-        for (const embed of this._embeds) {
-            if (!embed.title || !embed.description)
-                console.fatal(`embed is empty : ${embed}`)
-
-            const item = new Discord.EmbedBuilder()
-                .setTitle(embed.title)
-                .setDescription(embed.description)
-                .setThumbnail(embed.thumbnail)
-
-            for (const field of embed.fields) {
-                if (field.value.length > 1024) {
-                    console.fatal('Embed fields cannot have more than 1024 characters :', field)
-                }
-                item.addFields(field)
+    async _output_to_discord() {
+        try {
+            if (this.is_empty()) {
+                console.fatal(`cannot send empty message : `, this)
+                return
             }
 
-            embeds.push(item)
-        }
+            let embeds = []
 
-        let components = []
-        for (const row of this._interactions)
-            components.push(row._to_discord_row())
+            for (const embed of this._embeds) {
+                embeds.push(await embed._to_discord_api())
+            }
 
-        const files = []
-        for (const attachment of this._attachments)
-            files.push({attachment: attachment.file(), name: attachment.name()})
+            let components = []
+            for (const row of this._interactions)
+                components.push(row._to_discord_row())
 
-        return {
-            content: this._text,
-            embeds: embeds,
-            ephemeral: this._client_only,
-            components: components,
-            files: files
+            const files = []
+            for (const attachment of this._attachments)
+                files.push({attachment: attachment.file(), name: attachment.name()})
+
+            return {
+                content: this._text,
+                embeds: embeds,
+                ephemeral: this._client_only,
+                components: components,
+                files: files
+            }
+        } catch (err) {
+            console.fatal(`Message is not valid : ${err}\nMessage :`, this, '\nError : ', err)
         }
     }
 
     /**
      * Send this message
-     * @returns {Message} sent message
+     * @returns {Promise<Message>} sent message
      */
     async send() {
         if (!this._channel) {
@@ -301,9 +336,8 @@ class Message {
             channel = await DI.get()._client.channels.fetch(this._channel.id())
                 .catch(err => console.fatal(`failed to get channel ${this._channel.id()}:`, err))
 
-        const res = await channel.send(this._output_to_discord())
-            .catch(err => console.fatal(`failed to send message : ${err}`))
-
+        const res = await channel.send(await this._output_to_discord())
+            .catch(err => console.fatal(`failed to send message : ${err} :  `, this))
         return new Message(res)
     }
 
@@ -339,7 +373,7 @@ class Message {
                 throw new Error(`Failed to retrieve message : ${err}`)
             })
 
-        await message.edit(new_message._output_to_discord())
+        await message.edit(await new_message._output_to_discord())
             .catch(err => {
                 throw new Error(`Failed to update message : ${err}`)
             })

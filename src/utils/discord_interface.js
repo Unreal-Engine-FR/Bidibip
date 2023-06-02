@@ -17,14 +17,14 @@ class DiscordInterface {
         this.on_message_update = null
         this.on_interaction = null
         this.on_thread_create = null
+        this.on_reaction_add = null
 
         client.on(Discord.Events.ThreadCreate, this._on_thread_create)
-        //client.on(Discord.Events.ChannelUpdate, channel => console.log('ChannelUpdate :', channel))
-        //client.on(Discord.Events.ChannelCreate, channel => console.log('ChannelCreate :', channel))
         client.on(Discord.Events.MessageCreate, this._on_message)
         client.on(Discord.Events.MessageDelete, this._on_message_delete)
         client.on(Discord.Events.MessageUpdate, this._on_message_udpate)
         client.on(Discord.Events.InteractionCreate, this._on_interaction)
+        client.on(Discord.Events.MessageReactionAdd, this._on_reaction_add)
 
         this._everyone_role = null
         this._admin_role = null
@@ -85,23 +85,32 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
             console.fatal(`failed to find role ${role_id}`)
         return BigInt(role.permissions.bitfield)
     }
+
+    _on_reaction_add(reaction, user) {
+        if (DISCORD_CLIENT.on_reaction_add && !user.bot)
+            DISCORD_CLIENT.on_reaction_add(reaction, user)
+    }
+
     _on_thread_create(thread) {
         if (DISCORD_CLIENT.on_thread_create)
             DISCORD_CLIENT.on_thread_create(thread)
     }
 
     _on_message(msg) {
-        if (DISCORD_CLIENT.on_message && !msg.author.bot)
+        if (DISCORD_CLIENT.on_message && (!msg.author || !msg.author.bot))
             DISCORD_CLIENT.on_message(msg)
+        else if (msg.author.bot && msg.type === 6) { // MessageType.ChannelPinnedMessage (6)
+            msg.delete() // Remove pin messages from bot
+        }
     }
 
     _on_message_delete(msg) {
-        if (DISCORD_CLIENT.on_message_delete && !msg.author.bot)
+        if (DISCORD_CLIENT.on_message_delete && (!msg.author || !msg.author.bot))
             DISCORD_CLIENT.on_message_delete(msg)
     }
 
     _on_message_udpate(old_msg, new_msg) {
-        if (DISCORD_CLIENT.on_message_update && !old_msg.author.bot) {
+        if (DISCORD_CLIENT.on_message_update && (!old_msg.author || !old_msg.author.bot)) {
             DISCORD_CLIENT.on_message_update(old_msg, new_msg)
         }
     }
@@ -169,6 +178,13 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
                                 .setRequired(option.required)
                         )
                         break
+                    case 'message':
+                        discord_command.addStringOption(opt =>
+                            opt.setName(option.name)
+                                .setDescription(option.description)
+                                .setRequired(option.required)
+                        )
+                        break
                 }
             }
             command_data.push(discord_command.toJSON())
@@ -180,16 +196,21 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
         // Delete old commands
         console.info(`Started refreshing ${command_data.length} application (/) commands.`)
 
-        for (const command of await rest.get(Routes.applicationCommands(CONFIG.get().APP_ID))) {
+        const current_commands = await rest.get(Routes.applicationCommands(CONFIG.get().APP_ID))
+
+        for (const command of current_commands) {
             if (!command_set.has(command.name)) {
                 console.warning(`Removed outdated command ${command.name}`)
                 await rest.delete(`${Routes.applicationCommands(CONFIG.get().APP_ID)}/${command.id}`)
-            }
+            } else
+                command_set.delete(command.name)
         }
 
-        const data2 = await rest.put(Routes.applicationCommands(CONFIG.get().APP_ID), {body: command_data})
-
-        console.info(`Successfully reloaded ${data2.length} application (/) commands.`)
+        if (command_data.length !== current_commands.length) {
+            const data2 = await rest.put(Routes.applicationCommands(CONFIG.get().APP_ID), {body: command_data})
+            console.info(`Successfully added ${data2.length} application (/) commands.`)
+        } else
+            console.warning("Nothing to update")
     }
 
     async check_updates() {

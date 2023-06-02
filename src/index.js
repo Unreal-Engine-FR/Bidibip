@@ -36,7 +36,7 @@ updater.autoUpdate()
              */
             const client = new Client(
                 {
-                    partials: [Partials.Channel],
+                    partials: [Partials.Message, Partials.Channel, Partials.Reaction],
                     intents: [
                         GatewayIntentBits.Guilds,
                         GatewayIntentBits.GuildMessages,
@@ -44,7 +44,7 @@ updater.autoUpdate()
                         GatewayIntentBits.MessageContent,
                         GatewayIntentBits.GuildMessageReactions,
                         GatewayIntentBits.DirectMessages
-                    ] // This is the action the bot will be able to do
+                    ], // This is the action the bot will be able to do
                 }
             )
 

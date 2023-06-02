@@ -25,7 +25,7 @@ class User {
      * @return {User}
      */
     set_profile_picture(image_url) {
-        this.profile_picture = image_url
+        this._profile_picture = image_url
         return this
     }
 
@@ -85,6 +85,14 @@ class User {
      */
     async full_name() {
         return `${await this.name()}#${await this.discriminator()}`
+    }
+
+    /**
+     * Get a string mention to this user
+     * @return {string}
+     */
+    mention() {
+        return '<@' + this._id + '>'
     }
 
     /**

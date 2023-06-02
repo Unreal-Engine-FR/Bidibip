@@ -21,7 +21,7 @@ class Module {
         console.info(`Message updated [${await author.full_name()}] :\n${await old_message.text()}\nto\n${await new_message.text()}`)
 
         const old_text = await old_message.text()
-        const new_text = await old_message.text()
+        const new_text = await new_message.text()
 
         await new Message().set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
             .add_embed(
