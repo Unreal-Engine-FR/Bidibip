@@ -226,6 +226,15 @@ class Message {
             })
     }
 
+    async is_valid() {
+        try {
+            await this._fill_internal(await this._internal_get_handle())
+            return true
+        } catch (_) {
+            return false
+        }
+    }
+
     async exists() {
         const message = await this._internal_get_handle().catch(_ => {
             return false
@@ -247,8 +256,11 @@ class Message {
         this._embeds = []
         this._interactions = []
         if (_api_handle.embeds)
-            for (const embed of _api_handle.embeds)
-                this._embeds.push(new Embed(embed))
+            for (const embed of _api_handle.embeds) {
+                const embed_object = new Embed(embed)
+                if (embed_object.is_valid())
+                    this._embeds.push(embed_object)
+            }
 
         if (_api_handle.components)
             for (const component of _api_handle.components)

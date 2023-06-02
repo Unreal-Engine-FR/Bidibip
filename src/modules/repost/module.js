@@ -25,21 +25,38 @@ async function format_message(message, header) {
     const message_group = []
     const author = await message.author()
     const channel = message.channel()
+
+    const first_message_embed =
+        new Embed()
+            .set_author(author)
+            .set_description(await message.text())
+
     message_group.push(
         new Message()
-            .set_text(`${header}${channel.url()} !`)
-            .add_embed(
-                new Embed()
-                    .set_author(author)
-                    .set_description(await message.text())))
+            .set_text(`${header} ${channel.url()} !`)
+            .add_embed(first_message_embed))
 
-    for (const hyperlink of find_urls(await message.text()))
+    const linked_files = find_urls(await message.text()).concat()
+    for (const attachment of message.attachments())
+        linked_files.push(attachment.file())
+
+    for (const i in linked_files) // only for first image
+        if (/\.(jpg|jpeg|png|webp|avif|gif)$/.test(linked_files[i])) {
+            first_message_embed.set_image(linked_files[i])
+            linked_files.splice(i, 1)
+            break
+        }
+
+    for (const i in linked_files) // only for first file not image or video
+        if (!/\.(mp4|mov|avi|mkv|flv|jpg|jpeg|png|webp|avif|gif)$/.test(linked_files[i])) {
+            first_message_embed.set_author_url(linked_files[0])
+            break
+        }
+
+    // Add remaining hyperlinks as message (one message per link)
+    for (const hyperlink of linked_files)
         message_group.push(new Message()
             .set_text(hyperlink))
-
-    for (const attachment of message.attachments())
-        message_group.push(new Message()
-            .set_text(attachment.file()))
 
     // Add url to last message
     message_group[message_group.length - 1]
@@ -89,11 +106,26 @@ class Module extends ModuleBase {
             vote_messages: {}
         })
 
-        this.bound_message = {}
         // Keep track for vote button
         for (const [key, value] of Object.entries(this.module_config.vote_messages)) {
-            this.bind_vote_button(message_from_key(key), new Thread().set_id(value))
-                .catch(err => console.error(`Failed to update vote button : ${err}`))
+            (async () => {
+                const thread = new Thread().set_id(value)
+                const message = message_from_key(key)
+                if (!await message.is_valid() || !await thread.is_valid())
+                    delete this.module_config.vote_messages[key]
+
+                if (!await thread.is_valid() && this.module_config.repost_votes[value])
+                    delete this.module_config.repost_votes[value]
+
+                if (await thread.is_valid() && await message.is_valid())
+                    this.bind_vote_button(message, thread)
+                        .catch(err => console.error(`Failed to update vote button : ${err}`))
+                else {
+                    this.save_config()
+                    console.warning('Cleaned up outdated repost message or thread for ', thread)
+                }
+            })()
+                .catch(err => console.error(`Failed to bind repost messages : ${err}`))
         }
     }
 
@@ -242,7 +274,7 @@ class Module extends ModuleBase {
             return
 
         // Create message
-        const messages = (await format_message(message, `Nouveau post dans ${await forum.name()} : `))
+        const messages = (await format_message(message, `Nouveau post dans **#${await forum.name()}** : `))
         const last_message = messages.pop()
 
         for (const channel of this.module_config.reposted_forums[forum.id()].bound_channels) {
@@ -275,12 +307,17 @@ class Module extends ModuleBase {
                 .set_type(Button.Primary)
             interaction_row.add_button(no_button)
         }
-        yes_button.set_label(`Pour ✅ ${Object.entries(this.module_config.repost_votes[vote_thread.id()].vote_yes).length}`)
-        no_button.set_label(`Contre ❌ ${Object.entries(this.module_config.repost_votes[vote_thread.id()].vote_no).length}`)
 
-        // Update button
-        await message.update(message)
+        const yes_text = `Pour ✅ ${Object.entries(this.module_config.repost_votes[vote_thread.id()].vote_yes).length}`
+        const no_text = `Contre ❌ ${Object.entries(this.module_config.repost_votes[vote_thread.id()].vote_no).length}`
+        if (yes_text !== yes_button._label || no_text !== no_button._label) {
+            yes_button.set_label(yes_text)
+            no_button.set_label(no_text)
 
+            // Update button
+            await message.update(message)
+            console.log('updated')
+        }
         if (!this.module_config.vote_messages[make_key(message)]) {
             this.module_config.vote_messages[make_key(message)] = vote_thread.id()
             this.save_config()
@@ -323,76 +360,27 @@ class Module extends ModuleBase {
                 this.save_config()
             }
 
-            for (const message_to_update of vote_infos.bound_messages)
-                await this.create_or_update_vote_buttons(message_from_key(message_to_update), thread)
-                    .catch(err => console.error(`Failed to update vote button : ${err}`))
+            for (const message_to_update of vote_infos.bound_messages) {
+                const vote_message = message_from_key(message_to_update)
+                if (!await vote_message.is_valid() || !await thread.is_valid())
+                    delete this.module_config.vote_messages[message_to_update]
+
+                if (!await thread.is_valid() && this.module_config.repost_votes[thread.id()])
+                    delete this.module_config.repost_votes[thread.id()]
+
+                if (await vote_message.is_valid() && await thread.is_valid())
+                    await this.create_or_update_vote_buttons(vote_message, thread)
+                        .catch(err => console.error(`Failed to update vote button : ${err}`))
+                else {
+                    this.save_config()
+                    console.warning('Cleaned up outdated repost message or thread for ', thread)
+                }
+            }
             await button_interaction.skip()
         })
 
         await this.create_or_update_vote_buttons(message, thread)
             .catch(err => console.fatal(`Failed to create or update vote button : ${err}`))
-    }
-
-    _bind_messages(reposted_message, forum_message) {
-        /**
-         * @param button_interaction {InteractionButton}
-         */
-        const callback = async button_interaction => {
-            const message = button_interaction.message()
-
-            const big_key = this.bound_message[make_key(message)]
-
-            const vote_group = this.module_config.repost_votes[big_key]
-            const author = button_interaction.author().id()
-            if (vote_group) {
-                // Update data
-                if (button_interaction.button_id() === 'yes') {
-                    if (vote_group.vote_yes.indexOf(author) !== -1) {
-                        await button_interaction.reply(new Message().set_text('Tu a déjà voté !').set_client_only())
-                        return
-                    }
-                    if (vote_group.vote_no.indexOf(author) !== -1)
-                        vote_group.vote_no.splice(vote_group.vote_no.indexOf(author), 1)
-                    vote_group.vote_yes.push(button_interaction.author().id())
-                } else if (button_interaction.button_id() === 'no') {
-                    if (vote_group.vote_no.indexOf(author) !== -1) {
-                        await button_interaction.reply(new Message().set_text('Tu a déjà voté !').set_client_only())
-                        return
-                    }
-                    if (vote_group.vote_yes.indexOf(author) !== -1)
-                        vote_group.vote_yes.splice(vote_group.vote_no.indexOf(author), 1)
-                    vote_group.vote_no.push(button_interaction.author().id())
-                } else {
-                    console.fatal('unknown interaction')
-                }
-
-                // Update vote count
-
-                const message_0 = message_from_key(big_key.split('-')[0])
-                if (await message_0.exists()) {
-                    ;(await message_0.get_button_by_id('yes')).set_label(`Pour ✅ (${vote_group.vote_yes.length})`)
-                    ;(await message_0.get_button_by_id('no')).set_label(`Contre ❌ (${vote_group.vote_no.length})`)
-                    await message_0.update(message_0)
-                }
-
-                const message_1 = message_from_key(big_key.split('-')[1])
-                if (await message_1.exists()) {
-                    ;(await message_1.get_button_by_id('yes')).set_label(`Pour ✅ (${vote_group.vote_yes.length})`)
-                    ;(await message_1.get_button_by_id('no')).set_label(`Contre ❌ (${vote_group.vote_no.length})`)
-                    await message_1.update(message_1)
-                }
-                this.save_config()
-
-                await button_interaction.skip()
-            }
-        }
-
-        const big_key = `${make_key(reposted_message)}-${make_key(forum_message)}`
-        this.bound_message[make_key(reposted_message)] = big_key
-        this.bound_message[make_key(forum_message)] = big_key
-
-        this.bind_button(reposted_message, callback)
-        this.bind_button(forum_message, callback)
     }
 }
 

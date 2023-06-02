@@ -55,7 +55,7 @@ class Module extends ModuleBase {
                     .set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
                     .add_embed(new Embed()
                         .set_title(level === 'E' ? 'Error' : 'Fatal')
-                        .set_description('```log\n ' + message + '\n```'))
+                        .set_description('```log\n ' + message.substring(0, 4080) + '\n```'))
                     .send()
                     .catch(err => {
                         LOGGER._delegates = []
