@@ -458,11 +458,11 @@ class Module extends ModuleBase {
             await reaction.remove_user(user)
 
         let vote_yes_str = ''
-        for (const [user, _] of Object.entries(vote_data.vote_yes))
-            vote_yes_str += `${new User().set_id(user).mention()}\n`
+        for (const [yes_id, _] of Object.entries(vote_data.vote_yes))
+            vote_yes_str += `${new User().set_id(yes_id).mention()}\n`
         let vote_no_str = ''
-        for (const [user, _] of Object.entries(vote_data.vote_no))
-            vote_no_str += `${new User().set_id(user).mention()}\n`
+        for (const [no_id, _] of Object.entries(vote_data.vote_no))
+            vote_no_str += `${new User().set_id(no_id).mention()}\n`
 
         const embed_user_list = new Embed()
             .set_title('Votes actuels')
@@ -470,7 +470,9 @@ class Module extends ModuleBase {
             .add_field('Pour ✅', vote_yes_str === '' ? '-' : vote_yes_str, true)
             .add_field('Contre ❌', vote_no_str === '' ? '-' : vote_no_str, true)
 
-        await new Message().set_text(`J'attends ton vote ` + user.mention()).set_client_only().set_channel(thread)
+        const text = vote_data.vote_yes[user.id()] ? `${user.mention()} tu as déjà voté pour ✅ !` : (vote_data.vote_no[user.id()]  ? `${user.mention()} tu as déjà voté contre ❌ !` : `J'attends ton vote ${user.mention()}`)
+
+        await new Message().set_text(text).set_client_only().set_channel(thread)
             .add_embed(embed_user_list)
             .send().then(message => {
                 this.create_or_update_vote_buttons(message, thread, true)
