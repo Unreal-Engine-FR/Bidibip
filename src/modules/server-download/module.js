@@ -125,7 +125,7 @@ class Module extends ModuleBase {
             }
 
             if (step_messages !== 0) {
-                console.log(`Saved ${step_messages} messages to ${out_file}.json`)
+                console.info(`Saved ${step_messages} messages to ${out_file}.json`)
                 fs.writeFileSync(`${this.app_config.SAVE_DIR}/message_history/${channel_id}/${out_file}.json`, JSON.stringify(json))
             }
 
