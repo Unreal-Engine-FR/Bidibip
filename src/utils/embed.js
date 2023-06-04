@@ -99,7 +99,7 @@ class Embed {
     }
 
     is_valid() {
-        return (this.title || this._author) && this.description
+        return (this.title || this._author)
     }
 
     async _to_discord_api() {
@@ -108,7 +108,7 @@ class Embed {
                 console.fatal(`embed is not valid : `, this)
 
             const embed = new Discord.EmbedBuilder()
-                .setDescription(this.description)
+                .setDescription(!this.description || this.description.length === 0 ? null : this.description)
                 .setThumbnail(this.thumbnail)
                 .setImage(this._image)
 
