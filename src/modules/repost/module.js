@@ -26,7 +26,6 @@ async function format_message(message, header) {
     const message_group = []
     const author = await message.author()
     const channel = message.channel()
-
     const first_message_embed =
         new Embed()
             .set_author(author)
@@ -470,7 +469,7 @@ class Module extends ModuleBase {
             .add_field('Pour ✅', vote_yes_str === '' ? '-' : vote_yes_str, true)
             .add_field('Contre ❌', vote_no_str === '' ? '-' : vote_no_str, true)
 
-        const text = vote_data.vote_yes[user.id()] ? `${user.mention()} tu as déjà voté pour ✅ !` : (vote_data.vote_no[user.id()]  ? `${user.mention()} tu as déjà voté contre ❌ !` : `J'attends ton vote ${user.mention()}`)
+        const text = vote_data.vote_yes[user.id()] ? `${user.mention()} tu as déjà voté pour ✅ !` : (vote_data.vote_no[user.id()] ? `${user.mention()} tu as déjà voté contre ❌ !` : `J'attends ton vote ${user.mention()}`)
 
         await new Message().set_text(text).set_client_only().set_channel(thread)
             .add_embed(embed_user_list)

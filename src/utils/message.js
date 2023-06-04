@@ -275,10 +275,12 @@ class Message {
                     this._embeds.push(embed_object)
             }
 
+        this._interactions = []
         if (_api_handle.components)
             for (const component of _api_handle.components)
                 this._interactions.push(new InteractionRow(component))
 
+        this._attachments = []
         if (_api_handle.attachments)
             for (const [_, v] of _api_handle.attachments.entries())
                 this._attachments.push(new Attachment(v))
