@@ -97,7 +97,6 @@ class Module extends ModuleBase {
     async bind_user(key) {
         const author = new User().set_id(key.author)
         const message = new Message().set_channel(new Channel().set_id(key.message.split("/")[0])).set_id(key.message.split("/")[1])
-        const admin_message = new Message().set_channel(new Channel().set_id(key.admin_message.split("/")[0])).set_id(key.admin_message.split("/")[1])
         if (await message.is_valid()) {
             this.bind_button(message, async (button_interaction) => {
                 const button_author = await button_interaction.author()
@@ -110,6 +109,9 @@ class Module extends ModuleBase {
                     await button_interaction.reply(new Message().set_text("Ce n'est pas à toi de répondre").set_client_only())
             })
         }
+        if (!key.admin_message)
+            return
+        const admin_message = new Message().set_channel(new Channel().set_id(key.admin_message.split("/")[0])).set_id(key.admin_message.split("/")[1])
         if (await admin_message.is_valid()) {
             this.bind_button(admin_message, async (admin_button) => {
                 if (admin_button.button_id() === 'kick') {
@@ -125,9 +127,9 @@ class Module extends ModuleBase {
                         await message.delete()
                     await admin_message.delete()
                     await admin_button.reply(new Message().set_text("C'est noté !").set_client_only())
-                    delete this.module_config[author.id()]
-                    this.save_config()
                 }
+                delete this.module_config[author.id()]
+                this.save_config()
             })
         }
     }
