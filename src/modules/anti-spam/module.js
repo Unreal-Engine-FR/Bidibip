@@ -40,7 +40,7 @@ class Module extends ModuleBase {
                     this.save_config()
                     await new Message()
                         .set_channel(new Channel().set_id(this.app_config.ADMIN_CHANNEL))
-                        .set_text(` Spam potentiel <@&${this.app_config.ADMIN_ROLE_ID}> !!!`)
+                        .set_text(` Spam potentiel de ${author.mention()}, <@&${this.app_config.ADMIN_ROLE_ID}> !!!`)
                         .add_embed(new Embed().set_title("Contenu")
                             .set_description(await current_message.content[0].text()))
                         .add_interaction_row(new InteractionRow()
