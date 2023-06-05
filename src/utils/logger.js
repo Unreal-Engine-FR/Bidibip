@@ -1,5 +1,4 @@
 const fs = require('fs')
-const {resolve} = require("path")
 const CONFIG = require('../config').get()
 
 function arg_to_string(arg, depth = '  ', object_map = new Set()) {

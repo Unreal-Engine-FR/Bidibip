@@ -1,5 +1,6 @@
 const DI = require('./discord_interface')
 const Discord = require('discord.js')
+const CONFIG = require("../config");
 
 class User {
     constructor(_api_handle = null) {
@@ -113,6 +114,15 @@ class User {
         return this
     }
 
+    /**
+     * Send message in DM
+     * @param message {Message}
+     */
+    async send(message) {
+        const user = this._fill_internal()
+        user.send(message._output_to_discord())
+    }
+
     async _fill_internal() {
         if (!this._id)
             console.fatal('Cannot retrieve user infs : user.id is null')
@@ -125,6 +135,47 @@ class User {
         }
 
         this._from_discord_user(user)
+        return user
+    }
+
+    async add_role(role_id) {
+        const user = await this._fetch_guild_user()
+        user.roles.add(await this._get_role_internal(role_id))
+    }
+
+    async remove_role(role_id) {
+        const user = await this._fetch_guild_user()
+        user.roles.remove(await this._get_role_internal(role_id))
+    }
+
+    async _get_role_internal(role_id) {
+        const guild = DI.get()._client.guilds.cache.get(CONFIG.get().SERVER_ID)
+        let role = guild.roles.cache.get(role_id)
+        if (!role)
+            role = await guild.roles.fetch(role_id)
+                .catch(err => console.error(`Failed to find role ${err}`))
+        return role
+    }
+
+    /**
+     * Kick user
+     * @param reason {string}
+     * @return {Promise<void>}
+     */
+    async kick(reason) {
+        const member = await this._fetch_guild_user()
+        console.warning(`${await this.name()} a été expulsé (${reason})`)
+        await member.kick(reason)
+            .catch(err => console.error(`Failed to kick user : ${err}`))
+    }
+
+    async _fetch_guild_user() {
+        const guild = DI.get()._client.guilds.cache.get(CONFIG.get().SERVER_ID)
+        let member = guild.members.cache.get(this._id)
+        if (!member)
+            member = await guild.members.fetch(this._id)
+                .catch(err => console.error(`Failed to find role ${err}`))
+        return member
     }
 }
 

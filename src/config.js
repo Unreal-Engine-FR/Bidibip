@@ -10,8 +10,10 @@ class Configuration {
         this.LOG_CHANNEL_ID = null
 
         // ID should always be strings
+        this.ADMIN_CHANNEL = '1108084616063103006'
         this.ADMIN_ROLE_ID = '1108800112081244190'
         this.MEMBER_ROLE_ID = '1108799832371515443'
+        this.MUTE_ROLE_ID = '1115307412581257216'
 
         /* UTILITIES */
         this.CACHE_DIR = '../Bidibip_Cache/' // Where temps data is stored

@@ -49,12 +49,12 @@ class Module extends ModuleBase {
         setInterval(update_activity, 3600000)
 
         LOGGER.bind((level, message) => {
-            if (level === 'E' || level === 'F') {
+            if (level === 'E' || level === 'F' || level === 'W') {
                 new Message()
-                    .set_text('A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
+                    .set_text(level === 'W' ? null : 'A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
                     .set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
                     .add_embed(new Embed()
-                        .set_title(level === 'E' ? 'Error' : 'Fatal')
+                        .set_title(level === 'E' ? 'Error' : level === 'W' ? 'Information' : 'Fatal')
                         .set_description('```log\n ' + message.substring(0, 4080) + '\n```'))
                     .send()
                     .catch(err => {

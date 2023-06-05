@@ -359,10 +359,10 @@ class Message {
      * Delete this message
      */
     async delete() {
-        await this._internal_get_handle().then(di_message => {
-            di_message.delete()
-                .catch(err => console.fatal(`Failed to delete message : ${err}`))
-        })
+        const di_message = await this._internal_get_handle()
+            .catch(err => console.fatal(`Failed to delete message : ${err}`))
+        await di_message.delete()
+            .catch(err => console.fatal(`Failed to delete message : ${err}`))
     }
 
     /**

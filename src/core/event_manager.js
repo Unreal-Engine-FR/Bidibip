@@ -209,6 +209,10 @@ class EventManager {
         if (!this._bound_buttons[key])
             this._bound_buttons[key] = []
 
+        for (const v of this._bound_buttons[key])
+            if (v.callback === callback && module === v.module)
+                return
+
         this._bound_buttons[key].push({
             module: module,
             callback: callback

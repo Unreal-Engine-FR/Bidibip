@@ -12,7 +12,7 @@ class InteractionRow {
                     this.add_button(new Button(component))
                 }
                 else {
-                    console.log('New interaction row item :', _api_handle)
+                    console.warning('New interaction row item :', _api_handle)
                     console.fatal('NOT IMPLEMENTED YET')
                 }
             }
