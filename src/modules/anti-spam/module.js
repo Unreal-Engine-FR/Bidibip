@@ -7,7 +7,6 @@ const {InteractionRow} = require("../../utils/interaction_row");
 const {Button} = require("../../utils/button");
 const {User} = require("../../utils/user");
 
-
 class Module extends ModuleBase {
     constructor(create_infos) {
         super(create_infos)
@@ -40,7 +39,7 @@ class Module extends ModuleBase {
                     this.save_config()
                     await new Message()
                         .set_channel(new Channel().set_id(this.app_config.ADMIN_CHANNEL))
-                        .set_text(` Spam potentiel de ${author.mention()}, <@&${this.app_config.ADMIN_ROLE_ID}> !!!`)
+                        .set_text(` Spam potentiel de ${author.mention()} (${message.url()}) <@&${this.app_config.ADMIN_ROLE_ID}> !!!`)
                         .add_embed(new Embed().set_title("Contenu")
                             .set_description(await current_message.content[0].text()))
                         .add_interaction_row(new InteractionRow()
