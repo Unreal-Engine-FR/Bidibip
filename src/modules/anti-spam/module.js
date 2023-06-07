@@ -25,7 +25,7 @@ class Module extends ModuleBase {
         await this.flush_old_messages()
         const author = await message.author()
         const current_message = this.messages[author.id()]
-        if (current_message) {
+        if (current_message && await current_message.content[0].is_valid()) {
             if (await current_message.content[0].text() === await message.text()) {
                 for (const old of current_message.content) // skip if message have been posted in the same channel
                     if (old.channel().id() === message.channel().id())

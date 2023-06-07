@@ -3,6 +3,7 @@ const {User} = require("./user");
 const CONFIG = require('../config')
 const DI = require('../utils/discord_interface')
 const {Channel} = require("./channel");
+const {Attachment} = require("./attachment");
 
 class CommandInfo {
     /**
@@ -86,6 +87,19 @@ class CommandInfo {
      */
     add_user_option(name, description, required = true, default_value = null) {
         this._add_option_internal('user', name, description, [], required, default_value)
+        return this
+    }
+
+    /**
+     * Add option requiring to send files
+     * @param name {string}
+     * @param description {string}
+     * @param required {boolean}
+     * @param default_value {boolean | null}
+     * @returns {CommandInfo}
+     */
+    add_file_option(name, description, required = true, default_value = null) {
+        this._add_option_internal('file', name, description, [], required, default_value)
         return this
     }
 
@@ -266,6 +280,7 @@ class CommandInteraction extends InteractionBase {
         this._name = _api_handle.name
 
         const message_options = []
+        const file_options = []
         if (source_command)
             for (const option of source_command.options) {
                 this._options[option.name] = option.default_value
@@ -275,7 +290,7 @@ class CommandInteraction extends InteractionBase {
 
         if (_api_handle.options)
             for (const option of _api_handle.options._hoistedOptions)
-                this._options[option.name] = option.value
+                this._options[option.name] = option.attachment ? new Attachment(option.attachment) : option.value
 
         for (const option of message_options) {
             const current_string = this._options[option]
