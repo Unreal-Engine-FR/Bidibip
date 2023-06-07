@@ -45,7 +45,7 @@ function get_files(channel = null) {
 
     fs.writeFileSync(`${CONFIG.get().SAVE_DIR}/generated_save.txt`, string, "utf-8")
 
-    console.log('Saved', discussion.length, 'messages')
+    console.validate('Saved', discussion.length, 'messages')
 }
 get_files('543932597173223425')
 

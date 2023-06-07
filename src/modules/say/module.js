@@ -45,7 +45,6 @@ class Module {
                             .set_text('Echec de la conversion du message')
                             .add_embed(new Embed().set_title("Raison").set_description(`${error}`)))
                 })
-            console.log()
         } else
             await new Message()
                 .set_channel(command.channel())
