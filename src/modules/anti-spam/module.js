@@ -22,7 +22,7 @@ class Module extends ModuleBase {
      * @return {Promise<void>}
      */
     async server_message(message) {
-        this.flush_old_messages()
+        await this.flush_old_messages()
         const author = await message.author()
         const current_message = this.messages[author.id()]
         if (current_message) {
@@ -35,7 +35,7 @@ class Module extends ModuleBase {
                 if (elapsed < 60000 && current_message.content.length > 3) // 1mn cooldown
                 {
                     await author.add_role(this.app_config.MUTE_ROLE_ID)
-                    this.module_config[author.id()] = {author:author.id()}
+                    this.module_config[author.id()] = {author: author.id()}
                     this.save_config()
                     await new Message()
                         .set_channel(new Channel().set_id(this.app_config.ADMIN_CHANNEL))
@@ -78,7 +78,8 @@ class Module extends ModuleBase {
                     await this.bind_user(this.module_config[author.id()])
 
                     for (const message of current_message.content)
-                        message.delete()
+                        if (await message.is_valid())
+                            message.delete()
 
                     delete this.messages[author.id()]
                 }
@@ -119,8 +120,7 @@ class Module extends ModuleBase {
                         await message.delete()
                     await admin_message.delete()
                     await admin_button.reply(new Message().set_text("Et paf ca dégage !").set_client_only())
-                }
-                else {
+                } else {
                     await author.remove_role(this.app_config.MUTE_ROLE_ID)
                     if (await message.is_valid())
                         await message.delete()
@@ -133,7 +133,7 @@ class Module extends ModuleBase {
         }
     }
 
-    flush_old_messages() {
+    async flush_old_messages() {
         for (const [user_id, last_message] of this.messages) {
             const elapsed = new Date() - last_message.time // ms
             if (elapsed > 60000) // 1mn cooldown
