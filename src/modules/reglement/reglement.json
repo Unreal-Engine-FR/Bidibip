@@ -1,0 +1,76 @@
+{
+  "messages": [
+    {
+      "textes": [
+        "https://cdn.discordapp.com/attachments/977794945064771584/977795455230558228/new_baneer.png"
+      ]
+    },
+    {
+      "textes": [
+        "Bienvenue sur Unreal Engine FR!",
+        "",
+        "# :warning: Règles  :warning:",
+        "Avant toutes choses, vous devez respecter les guidelines Discord: <https://discordapp.com/guidelines>",
+        "",
+        "### :one: - NSFW",
+        "Le contenu explicite incluant du contenu choquant, sexuel ou gore (communément appelé NSFW) est interdis sur le serveur, de plus toutes représentations ressemblants s'approchant de ce genre de contenu est aussi interdite.",
+        "",
+        "### :two: - Respect des autres",
+        "Le respect des autres est primordial dans tous cas, il est interdis de discriminer, harceler, insulter, troller.",
+        "De même, surveillez votre humour, même dans un contexte entre amis il est interdis de faire des blagues borderline sur ce serveur et l'étendu de ses salons.",
+        "",
+        "### :three: - Publicité, spam, mentions",
+        "La publicité est interdite. En revanche, nous autorisons la publicité pour des projets concernant le secteur du jeu vidéo.",
+        "Le spam et les mentions abusives sont interdites.",
+        "",
+        "### :four: - Aide",
+        "Préférez l'aide sur le serveur plutôt que de contacter des membres ou Helpers en message privé, plus il y a de point de vues mieux c'est. Vous pouvez aussi user des canaux vocaux dédiés à l'entraide à tout moment.",
+        "Après avoir posé une question, attendez au moins une quinzaine de minutes avant de retenter si vous n'avez pas de réponse.",
+        "",
+        "### :five: - Vocal",
+        "Bien sûr, toutes les règles ci-dessus s'appliquent en vocal. L'entraide est si possible faite dans le salon Entraide.",
+        "Nous disposons aussi d'un salon textuel vocal Aucun accès, uniquement disponible aux staff et aux personnes en vocal.",
+        "",
+        "### :six: - Débats",
+        "Les débats sont autorisés, ceux textuels uniquement sur des threads dédiés. Lorsque le débat part en couilles: insultes, coupure du parole, sujet qui tourne en rond ou changement, propos extrêmes (incitations à la haine, discriminations) la modération se donne le droit d'arrêter et supprimer le débat en sanctionnant les participants si nécessaire."
+      ],
+      "interactions": [
+        {
+          "bouton": {
+            "identifiant": "approval",
+            "texte": "J'accepte le reglement !",
+            "type": "Success"
+          }
+        }
+      ]
+    },
+    {
+      "textes": [
+        "# Guide du serveur",
+        "### :tools: Helpers :tools:",
+        "Les helpers sont des personnes ayant un rôle particulier les distinguant par leur motivation et compétences à aider les personnes. C'est un rôle qui peut-être donné à n'importe quelle personne.",
+        "",
+        "### :paperclip: Projets :paperclip:",
+        "Nous proposons aussi une section \"PROJETS DE LA COMMUNAUTE\" qui vous permet d'héberger votre propre salon pour vos projets, vous pouvez visiter le forum #forum-vos-projets pour consulter les projets de la communauté, et pour tout ce qui est teaser, petit projet qui ne mérite pas un post, il y a #vos-projets-teasers",
+        "",
+        "Des projets réalisés par la communauté sont aussi disponibles dans #jeux-test. Pour proposer un jeu, contactez @NicolasBrg.",
+        "",
+        "### :man_factory_worker: Annonces de recrutements :man_factory_worker:",
+        "Le serveur dispose d'un système de recrutement, toutes les informations sont disponibles ici: #manuel-recrutement "
+      ]
+    },
+    {
+      "embeds": [
+        {
+          "titre": ":warning: Rappel :warning:",
+          "description": "Vous devez accepter le réglement pour accéder au serveur !"
+        }
+      ]
+    },
+    {
+      "textes": [
+        "<#1108084737974730752>"
+      ]
+    }
+  ]
+}
