@@ -54,7 +54,7 @@ class EventManager {
                     // Log
                     let option_string = ''
                     for (const [name, value] of Object.entries(command_interaction.options())) option_string += name + ': ' + value + ', '
-                    console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] issued {'${interaction.commandName} ${option_string.substring(0, option_string.length - 2)}'}`)
+                    console.validate(`User [${interaction.user.username}#${interaction.user.discriminator}] issued {'${interaction.commandName} ${option_string.substring(0, option_string.length - 2)}'}`)
 
                     // Ensure command exists
                     if (source_command === null) {
@@ -92,7 +92,7 @@ class EventManager {
                             key = `${button_interaction.channel().id()}/${interaction.message.interaction.id}`
                             buttons = this._bound_buttons[key]
                         }
-                        console.info(`User [${interaction.user.username}#${interaction.user.discriminator}] clicked '${key}' on message ${button_interaction.message().id()}`)
+                        console.validate(`User [${interaction.user.username}#${interaction.user.discriminator}] clicked on button #${button_interaction.button_id()} in ${button_interaction.channel().url()}`)
 
                         if (buttons) {
                             const removed = []

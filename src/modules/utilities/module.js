@@ -49,14 +49,21 @@ class Module extends ModuleBase {
         setInterval(update_activity, 3600000)
 
         LOGGER.bind((level, message) => {
-            if (level === 'E' || level === 'F' || level === 'W' || level === 'I') {
-                new Message()
-                    .set_text(level === 'W' || level === 'I' ? null : 'A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
-                    .set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
-                    .add_embed(new Embed()
-                        .set_title(level === 'E' ? 'Error' : level === 'W' ? 'Information' : level === 'I' ? 'Information' : 'Fatal')
+            if (level === 'E' || level === 'F' || level === 'W' || level === 'V') {
+                const log =
+                    new Message()
+                        .set_text(level === 'W' || level === 'V' ? null : 'A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
+                        .set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
+
+                if (level === 'E' || level === 'F') {
+                    log.add_embed(new Embed()
+                        .set_title(level === 'E' ? 'Error' : 'Fatal')
+                        .set_color(level === 'E' ? "#FF0000" : "#FF00FF")
                         .set_description('```log\n ' + message.substring(0, 4080) + '\n```'))
-                    .send()
+                }
+                else
+                    log.set_text((level === 'W' ? '__**Warning**__\n' : '__**Info**__\n') + message.substring(0, 4080))
+                log.send()
                     .catch(err => {
                         LOGGER._delegates = []
                         console.fatal(`failed to send error message ${err}`)
@@ -69,6 +76,7 @@ class Module extends ModuleBase {
     async modules_infos(command_interaction) {
         const embed = new Embed()
             .set_title('modules')
+            .set_color('#0000FF')
             .set_description('liste des modules disponibles')
 
         for (const module of MODULE_MANAGER.all_modules_info())

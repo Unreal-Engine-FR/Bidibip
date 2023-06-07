@@ -73,6 +73,7 @@ class Module extends ModuleBase {
     async candidatures(command) {
         const embed = new Embed()
             .set_title('Candidatures')
+            .set_color('#34abeb')
             .set_description('liste des candidatures')
 
         for (const value of Object.values(this.module_config))
@@ -100,6 +101,7 @@ class Module extends ModuleBase {
         const user = new User().set_id(application.id)
         const embed = new Embed()
             .set_author(user)
+            .set_color('#34abeb')
             .set_description(application.what)
             .set_thumbnail(await user.profile_picture())
             .add_field('Ambitions', application.ambition)

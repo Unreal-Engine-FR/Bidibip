@@ -25,7 +25,6 @@ class Module {
     async say(command) {
 
         if (command.read('json')) {
-
             json_to_message(await command.read('json').get_content())
                 .then(async messages => {
                     if (messages.length > 8) {
@@ -36,6 +35,8 @@ class Module {
                         message.set_channel(command.channel())
                         await message.send()
                             .catch(err => console.fatal(`Failed to send message : ${err}`))
+
+                        await command.skip()
                     }
                 })
                 .catch(async error => {
@@ -45,12 +46,13 @@ class Module {
                             .set_text('Echec de la conversion du message')
                             .add_embed(new Embed().set_title("Raison").set_description(`${error}`)))
                 })
-        } else
+        } else if (command.read('message')) {
             await new Message()
                 .set_channel(command.channel())
                 .set_text(command.read('message'))
                 .send()
-        await command.skip()
+            await command.skip()
+        } else await command.skip()
     }
 }
 
