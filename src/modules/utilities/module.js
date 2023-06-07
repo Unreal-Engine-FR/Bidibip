@@ -196,7 +196,6 @@ class Module extends ModuleBase {
      * @return {Promise<void>}
      */
     async user_joined(user) {
-        console.log(user)
         new Message()
             .set_text(this.app_config.WELCOME_MESSAGE.replace(/{user}/g, user.mention())
                 .replace(/{reglement}/g, `<#${this.app_config.REGLEMENT_CHANNEL_ID}>`))
@@ -210,12 +209,10 @@ class Module extends ModuleBase {
      * @return {Promise<void>}
      */
     async user_leaved(user) {
-
         new Message()
             .set_text(this.app_config.LEAVE_MESSAGE.replace(/{user}/g, user.mention()))
             .set_channel(new Channel().set_id(this.app_config.WELCOME_CHANNEL)).send()
             .catch(err => console.fatal(`Failed to send leave message : ${err}`))
-        console.log(user)
     }
 }
 

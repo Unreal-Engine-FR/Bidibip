@@ -30,7 +30,6 @@ async function json_to_message(json) {
                 for (const t of m.textes) {
                     text += `${String(t)}\n`
                 }
-                console.log(typeof (text))
                 new_message.set_text(text)
             }
             if (m['embeds']) {
