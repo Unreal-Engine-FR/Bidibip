@@ -69,6 +69,15 @@ class Embed {
     }
 
     /**
+     * @param color {string}
+     * @returns {Embed}
+     */
+    set_color(color) {
+        this._color = color
+        return this
+    }
+
+    /**
      * Add field to embed (a field contains a name and a description)
      * @param name {string} field name
      * @param value {string} field text
@@ -85,6 +94,7 @@ class Embed {
         this.description = _api_handle.description
         this.thumbnail = _api_handle.thumbnail ? _api_handle.thumbnail.url : null
         this._image = _api_handle.image
+        this._color = _api_handle.color
         if (_api_handle.author) {
             this._author = {
                 name: async () => _api_handle.author.name,
@@ -111,6 +121,7 @@ class Embed {
                 .setDescription(!this.description || this.description.length === 0 ? null : this.description)
                 .setThumbnail(this.thumbnail)
                 .setImage(this._image)
+                .setColor(this._color)
 
             if (this.title)
                 embed.setTitle(this.title)

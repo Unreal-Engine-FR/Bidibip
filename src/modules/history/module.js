@@ -28,6 +28,7 @@ class Module {
                 new Embed()
                     .set_title(`@${await author.full_name()} (${author.id()})`)
                     .set_description('Message modifié :')
+                    .set_color('#FFFF00')
                     .add_field('ancien', old_text.length <= 0 ? '[Message vide]' : old_text.substring(0, 1024))
                     .add_field('nouveau', new_text.length <= 0 ? '[Message vide]' : new_text.substring(0, 1024))
             ).send().catch(err => console.fatal(`failed to send log message : ${err}`, err))
@@ -42,6 +43,7 @@ class Module {
                 new Embed()
                     .set_title(`@${await author.full_name()} (${author.id()})`)
                     .set_description('Message supprimé :')
+                    .set_color('#FF0000')
                     .add_field(message._text ? 'Contenu' : '[Message vide]', message._text ? message._text.substring(0, 1024) : '[Message sans texte]')
             ).send()
     }

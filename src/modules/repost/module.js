@@ -29,6 +29,7 @@ async function format_message(message, header) {
     const first_message_embed =
         new Embed()
             .set_author(author)
+            .set_color('#96ff96')
             .set_description(await message.text())
 
     message_group.push(
@@ -190,6 +191,7 @@ class Module extends ModuleBase {
     async view_forum_link(command) {
         const embed = new Embed()
             .set_title('Liens de repost')
+            .set_color('#96ff96')
             .set_description('Liste des liens de repost entre forums et salons de repost')
         for (const [key, value] of Object.entries(this.module_config.reposted_forums)) {
             let forums = ''
@@ -465,6 +467,7 @@ class Module extends ModuleBase {
 
         const embed_user_list = new Embed()
             .set_title('Votes actuels')
+            .set_color('#96ff96')
             .set_description('Nombre de votes : ' + (Object.entries(vote_data.vote_yes).length + Object.entries(vote_data.vote_no).length))
             .add_field('Pour ✅', vote_yes_str === '' ? '-' : vote_yes_str, true)
             .add_field('Contre ❌', vote_no_str === '' ? '-' : vote_no_str, true)

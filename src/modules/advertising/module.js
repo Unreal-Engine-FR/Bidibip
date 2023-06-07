@@ -149,6 +149,7 @@ class Module extends ModuleBase {
 
         const embed = new Embed()
             .set_author(command.author())
+            .set_color('#65eb34')
             .set_title((command.read('role') || 'option manquante') + " Chez " + (command.read('societe') || 'option manquante'))
             .set_description(command.read('remote') || 'option manquante')
             .add_field('Durée du contrat', duree, true)
@@ -173,6 +174,7 @@ class Module extends ModuleBase {
             message: new Message()
                 .set_channel(command.channel())
                 .add_embed(new Embed()
+                    .set_color('#65eb34')
                     .set_author(command.author())
                     .set_title(command.read('titre') || 'Option manquante')
                     .set_description(command.read('description') || 'Option manquante')
@@ -193,6 +195,7 @@ class Module extends ModuleBase {
             message: new Message()
                 .set_channel(command.channel())
                 .add_embed(new Embed()
+                    .set_color('#65eb34')
                     .set_title(command.read('nom') || 'Option manquante')
                     .set_author(command.author())
                     .set_description(url)

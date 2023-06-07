@@ -17,6 +17,7 @@ class Module {
 
                     const embed = new Embed()
                         .set_title('Aide de Bidibip')
+                        .set_color('#98eb34')
                         .set_description('liste des commandes disponibles :')
                     for (const command of commands)
                         embed.add_field(command.name, command.description)
