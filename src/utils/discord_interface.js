@@ -18,6 +18,8 @@ class DiscordInterface {
         this.on_interaction = null
         this.on_thread_create = null
         this.on_reaction_add = null
+        this.on_user_join = null
+        this.on_user_leave = null
 
         client.on(Discord.Events.ThreadCreate, this._on_thread_create)
         client.on(Discord.Events.MessageCreate, this._on_message)
@@ -25,6 +27,8 @@ class DiscordInterface {
         client.on(Discord.Events.MessageUpdate, this._on_message_udpate)
         client.on(Discord.Events.InteractionCreate, this._on_interaction)
         client.on(Discord.Events.MessageReactionAdd, this._on_reaction_add)
+        client.on(Discord.Events.GuildMemberAdd, this._on_user_join)
+        client.on(Discord.Events.GuildMemberRemove, this._on_user_leave)
 
         this._everyone_role = null
         this._admin_role = null
@@ -84,6 +88,16 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
         if (!role)
             console.fatal(`failed to find role ${role_id}`)
         return BigInt(role.permissions.bitfield)
+    }
+
+    _on_user_join(user) {
+        if (DISCORD_CLIENT.on_user_join)
+            DISCORD_CLIENT.on_user_join(user)
+    }
+
+    _on_user_leave(user) {
+        if (DISCORD_CLIENT.on_user_leave)
+            DISCORD_CLIENT.on_user_leave(user)
     }
 
     _on_reaction_add(reaction, user) {
@@ -180,6 +194,13 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
                         break
                     case 'message':
                         discord_command.addStringOption(opt =>
+                            opt.setName(option.name)
+                                .setDescription(option.description)
+                                .setRequired(option.required)
+                        )
+                        break
+                    case 'file':
+                        discord_command.addAttachmentOption(opt =>
                             opt.setName(option.name)
                                 .setDescription(option.description)
                                 .setRequired(option.required)

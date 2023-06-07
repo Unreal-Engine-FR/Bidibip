@@ -1,3 +1,5 @@
+const http = require("https");
+
 class Attachment {
     constructor(_api_handle) {
         if (_api_handle) {
@@ -30,6 +32,20 @@ class Attachment {
         this._file = file_uri
 
         return this
+    }
+
+    /**
+     * @return {Promise<string>}
+     */
+    async get_content() {
+        return new Promise((resolve, reject) => {
+            let data = ''
+            http.get(this.file(), (response) => {
+                response.on('data', chunk => data += chunk)
+                response.on('end', () => resolve(data))
+
+            }).on("error", err => reject(err))
+        })
     }
 }
 

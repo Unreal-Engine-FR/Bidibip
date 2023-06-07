@@ -99,6 +99,21 @@ class Channel {
     }
 
     /**
+     * @return {Promise<number[]|string[]>}
+     */
+    async get_messages() {
+        const api_handle = await this._fetch_from_discord()
+        const messages = await api_handle.messages.fetch()
+            .catch(err => console.fatal(`Failed to fetch messages in channel ${this.id()} : ${err}`))
+
+        const result_messages = []
+        messages.forEach(msg => {
+            result_messages.push(msg.id)
+        })
+        return result_messages
+    }
+
+    /**
      * Send message to this channel
      * @param message {Message}
      * @returns {Message} sent message

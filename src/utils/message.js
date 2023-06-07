@@ -7,6 +7,7 @@ const {Channel} = require("./channel");
 const {Collection} = require("discord.js");
 const {Attachment} = require("./attachment");
 const CONFIG = require("../config");
+const http = require('http');
 
 class Message {
     constructor(api_handle) {

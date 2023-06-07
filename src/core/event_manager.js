@@ -22,6 +22,12 @@ class EventManager {
         DI.get().on_thread_create = thread => {
             this._thread_created(new Thread(thread))
         }
+        DI.get().on_user_join = user => {
+            this._on_user_join(new User(user))
+        }
+        DI.get().on_user_leave = user => {
+            this._on_user_leave(new User(user))
+        }
         DI.get().on_message_delete = msg => {
             const message = new Message(msg)
             if (!message.is_dm())
@@ -200,6 +206,23 @@ class EventManager {
                 })()
     }
 
+    _on_user_join(user) {
+        for (const module of this._bound_modules)
+            if (module.user_joined)
+                (async () => {
+                    module.user_joined(user)
+                        .catch(err => console.error(`Failed to call 'user_joined()' on module ${module.name} :\n${err}`))
+                })()
+    }
+
+    _on_user_leave(user) {
+        for (const module of this._bound_modules)
+            if (module.user_leaved)
+                (async () => {
+                    module.user_leaved(user)
+                        .catch(err => console.error(`Failed to call 'user_leaved()' on module ${module.name} :\n${err}`))
+                })()
+    }
     get_commands(permissions) {
         return this._command_dispatcher ? this._command_dispatcher.get_commands(permissions) : null
     }

@@ -49,12 +49,12 @@ class Module extends ModuleBase {
         setInterval(update_activity, 3600000)
 
         LOGGER.bind((level, message) => {
-            if (level === 'E' || level === 'F' || level === 'W') {
+            if (level === 'E' || level === 'F' || level === 'W' || level === 'I') {
                 new Message()
-                    .set_text(level === 'W' ? null : 'A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
+                    .set_text(level === 'W' || level === 'I' ? null : 'A BOBO ' + CONFIG.SERVICE_ROLE + ' !!! :(')
                     .set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
                     .add_embed(new Embed()
-                        .set_title(level === 'E' ? 'Error' : level === 'W' ? 'Information' : 'Fatal')
+                        .set_title(level === 'E' ? 'Error' : level === 'W' ? 'Information' : level === 'I' ? 'Information' : 'Fatal')
                         .set_description('```log\n ' + message.substring(0, 4080) + '\n```'))
                     .send()
                     .catch(err => {
@@ -188,6 +188,31 @@ class Module extends ModuleBase {
      * @return {Promise<void>}
      */
     async server_message_delete(message) {
+    }
+
+    /**
+     * When user joined the server
+     * @param user {User}
+     * @return {Promise<void>}
+     */
+    async user_joined(user) {
+        new Message()
+            .set_text(this.app_config.WELCOME_MESSAGE.replace(/{user}/g, user.mention())
+                .replace(/{reglement}/g, `<#${this.app_config.REGLEMENT_CHANNEL_ID}>`))
+            .set_channel(new Channel().set_id(this.app_config.WELCOME_CHANNEL)).send()
+            .catch(err => console.fatal(`Failed to send welcome message : ${err}`))
+    }
+
+    /**
+     * When user leaved the server
+     * @param user {User}
+     * @return {Promise<void>}
+     */
+    async user_leaved(user) {
+        new Message()
+            .set_text(this.app_config.LEAVE_MESSAGE.replace(/{user}/g, user.mention()))
+            .set_channel(new Channel().set_id(this.app_config.WELCOME_CHANNEL)).send()
+            .catch(err => console.fatal(`Failed to send leave message : ${err}`))
     }
 }
 

@@ -119,8 +119,8 @@ class User {
      * @param message {Message}
      */
     async send(message) {
-        const user = this._fill_internal()
-        user.send(message._output_to_discord())
+        const user = await this._fill_internal()
+        user.send(await message._output_to_discord())
     }
 
     async _fill_internal() {
