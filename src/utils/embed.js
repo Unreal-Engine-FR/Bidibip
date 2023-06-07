@@ -121,7 +121,9 @@ class Embed {
                 .setDescription(!this.description || this.description.length === 0 ? null : this.description)
                 .setThumbnail(this.thumbnail)
                 .setImage(this._image)
-                .setColor(this._color)
+
+            if (this._color)
+                embed.setColor(this._color)
 
             if (this.title)
                 embed.setTitle(this.title)
