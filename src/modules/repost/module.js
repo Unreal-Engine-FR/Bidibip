@@ -294,6 +294,7 @@ class Module extends ModuleBase {
             return
 
         // Create message
+        await message.pin()
         message.set_text(`# ${await thread.name()}\n${await message.text()}`)
         const messages = (await format_message(message, `Nouveau post dans **#${await forum.name()}** : `))
         const last_message = messages.pop()
@@ -302,6 +303,11 @@ class Module extends ModuleBase {
             await new Message()
                 .set_text(`Vote en réagissant au post !`)
                 .set_channel(message.channel())
+                .add_interaction_row(new InteractionRow()
+                    .add_button(new Button()
+                        .set_type(Button.Secondary)
+                        .set_label('✉️ Voir les votes')
+                        .set_id('see-votes')))
                 .send()
                 .then(reposted_message => this.bind_vote_button(reposted_message, thread))
 
@@ -316,11 +322,14 @@ class Module extends ModuleBase {
                 .send()
                 .then(reposted_message => this.bind_vote_button(reposted_message, thread))
         }
+
+        await this.update_all_messages(thread)
     }
 
     async create_or_update_vote_buttons(message, vote_thread, ephemeral = false) {
         let yes_button = await message.get_button_by_id('button-vote-yes')
         let no_button = await message.get_button_by_id('button-vote-no')
+        let see_votes_button = await message.get_button_by_id('see-votes')
         if (message._interactions.length === 0) message.add_interaction_row(new InteractionRow())
         const interaction_row = message._interactions[0]
         if (!yes_button) {
@@ -334,6 +343,13 @@ class Module extends ModuleBase {
                 .set_id('button-vote-no')
                 .set_type(Button.Primary)
             interaction_row.add_button(no_button)
+        }
+        if (!see_votes_button) {
+            see_votes_button = new Button()
+                .set_type(Button.Secondary)
+                .set_label('✉️ Voir les votes')
+                .set_id('see-votes')
+            interaction_row.add_button(see_votes_button)
         }
 
         const yes_text = `Pour ✅ ${Object.entries(this.module_config.repost_votes[vote_thread.id()].vote_yes).length}`
@@ -376,7 +392,6 @@ class Module extends ModuleBase {
 
         this.bind_button(message, async (button_interaction) => {
             await this.click_vote_button(button_interaction, thread)
-            await button_interaction.skip()
         })
 
         await this.create_or_update_vote_buttons(message, thread)
@@ -397,6 +412,7 @@ class Module extends ModuleBase {
                     delete vote_infos.vote_no[button_interaction.author().id()]
             }
             this.save_config()
+            await button_interaction.skip()
         } else if (button_interaction.button_id() === 'button-vote-no') {
             if (vote_infos.vote_no[button_interaction.author().id()])
                 delete vote_infos.vote_no[button_interaction.author().id()]
@@ -406,6 +422,23 @@ class Module extends ModuleBase {
                     delete vote_infos.vote_yes[button_interaction.author().id()]
             }
             this.save_config()
+            await button_interaction.skip()
+        } else if (button_interaction.button_id() === 'see-votes') {
+            let vote_yes_str = ''
+            for (const [yes_id, _] of Object.entries(vote_infos.vote_yes))
+                vote_yes_str += `${new User().set_id(yes_id).mention()}\n`
+            let vote_no_str = ''
+            for (const [no_id, _] of Object.entries(vote_infos.vote_no))
+                vote_no_str += `${new User().set_id(no_id).mention()}\n`
+
+            button_interaction.reply(new Message()
+                .set_client_only()
+                .add_embed(new Embed()
+                    .set_title('Votes actuels')
+                    .set_color('#96ff96')
+                    .set_description('Nombre de votes : ' + (Object.entries(vote_infos.vote_yes).length + Object.entries(vote_infos.vote_no).length))
+                    .add_field('Pour ✅', vote_yes_str === '' ? '-' : vote_yes_str, true)
+                    .add_field('Contre ❌', vote_no_str === '' ? '-' : vote_no_str, true)))
         }
 
         await this.update_all_messages(thread)
@@ -459,32 +492,15 @@ class Module extends ModuleBase {
         if (reactions.length !== 0 && reactions[0] === reaction.emoji())
             await reaction.remove_user(user)
 
-        let vote_yes_str = ''
-        for (const [yes_id, _] of Object.entries(vote_data.vote_yes))
-            vote_yes_str += `${new User().set_id(yes_id).mention()}\n`
-        let vote_no_str = ''
-        for (const [no_id, _] of Object.entries(vote_data.vote_no))
-            vote_no_str += `${new User().set_id(no_id).mention()}\n`
-
-        const embed_user_list = new Embed()
-            .set_title('Votes actuels')
-            .set_color('#96ff96')
-            .set_description('Nombre de votes : ' + (Object.entries(vote_data.vote_yes).length + Object.entries(vote_data.vote_no).length))
-            .add_field('Pour ✅', vote_yes_str === '' ? '-' : vote_yes_str, true)
-            .add_field('Contre ❌', vote_no_str === '' ? '-' : vote_no_str, true)
-
         const text = vote_data.vote_yes[user.id()] ? `${user.mention()} tu as déjà voté pour ✅ !` : (vote_data.vote_no[user.id()] ? `${user.mention()} tu as déjà voté contre ❌ !` : `J'attends ton vote ${user.mention()}`)
 
         await new Message().set_text(text).set_client_only().set_channel(thread)
-            .add_embed(embed_user_list)
             .send().then(message => {
                 this.create_or_update_vote_buttons(message, thread, true)
                 this.bind_button(message, async (button_interaction) => {
                     await this.click_vote_button(button_interaction, thread)
                     if (button_interaction.author().id() === user.id())
                         await message.delete()
-                    else
-                        await button_interaction.skip()
                 })
             })
     }
