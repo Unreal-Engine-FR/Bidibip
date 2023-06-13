@@ -294,6 +294,7 @@ class Module extends ModuleBase {
             return
 
         // Create message
+        message.set_text(`# ${await thread.name()}\n${await message.text()}`)
         const messages = (await format_message(message, `Nouveau post dans **#${await forum.name()}** : `))
         const last_message = messages.pop()
 
