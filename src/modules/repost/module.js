@@ -97,7 +97,7 @@ class Module extends ModuleBase {
                 .set_admin_only(),
             new CommandInfo('view-forum-links', 'Voir la liste des liens entre forums et salons', this.view_forum_link)
                 .set_admin_only(),
-            new CommandInfo('promote', 'Promeut le message donné dans le salon de repost', this.promote)
+            new CommandInfo('reposte', 'Promeut le message donné dans le salon de repost', this.promote)
                 .add_message_option('message', 'lien du message à promouvoir'),
         ]
 
@@ -480,7 +480,10 @@ class Module extends ModuleBase {
                 this.create_or_update_vote_buttons(message, thread, true)
                 this.bind_button(message, async (button_interaction) => {
                     await this.click_vote_button(button_interaction, thread)
-                    await message.delete()
+                    if (button_interaction.author().id() === user.id())
+                        await message.delete()
+                    else
+                        await button_interaction.skip()
                 })
             })
     }

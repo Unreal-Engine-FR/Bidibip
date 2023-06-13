@@ -49,7 +49,7 @@ class ModuleBase {
                 JSON.stringify(object,
                     (key, value) => typeof value === 'bigint' ? value.toString() : value),
                 'utf8')
-            console.validate(`Saved config of module '${this.name}'`)
+            console.info(`Saved config of module '${this.name}'`)
         } catch (err) {
             console.fatal(`Failed to load config for module '${this.name}' : ${err}`)
         }
