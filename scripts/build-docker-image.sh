@@ -22,4 +22,4 @@ bidibip_image_id=`sudo docker images | grep bidibip | awk '{ print $1 }'`
 }
 
 echo -n 'create new image... '
-sudo docker build /home/ubuntu/docker/Bidibip/ -t bidibip
+sudo docker build /home/$USER/docker/Bidibip/ -t bidibip

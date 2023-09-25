@@ -9,7 +9,7 @@
 ### Create and run
 
 - Install docker on your server
-- Clone this repository (It should be cloned in a directory named `/home/ubuntu/docker/`)
+- Clone this repository (It should be cloned in a directory named `/home/$USER/docker/`)
 - Configure .env file (rename `./Bidibip/.env.template` to `./Bidibip/.env` and fill it with your [credentials](https://www.writebots.com/discord-bot-token))
 - Create docker image : `> source ./Bidibip/scripts/build-docker-image.sh`
 - Create a docker volume named `bidibip-saved` [https://docs.docker.com/storage/volumes/](https://docs.docker.com/storage/volumes/)
