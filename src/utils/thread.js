@@ -20,15 +20,39 @@ class Thread extends Channel {
      * @return {Promise<boolean>}
      */
     async archived() {
-        if (!typeof this._archived === 'boolean')
+        if (typeof this._archived !== 'boolean')
             await this._fetch_from_discord();
         return this._archived;
+    }
+
+    /**
+     * @return {Promise<boolean>}
+     */
+    async archive() {
+        const api_handle = await this._fetch_from_discord();
+        if (!api_handle.archived)
+            await api_handle.setArchived(true);
+    }
+
+    /**
+     *
+     * @param user {User}
+     * @param visible {boolean}
+     * @return {Promise<void>}
+     */
+    async make_visible_to_user(user, visible = true) {
+        const api_handle = await this._fetch_from_discord();
+        if (visible) {
+            await api_handle.members.add(user.id())
+        }
+        else
+            await api_handle.members.remove(user.id())
     }
 
     _fill_from_api_handle(_api_handle) {
         super._fill_from_api_handle(_api_handle)
         this._owner = new User().set_id(_api_handle.ownerId)
-        this._archived = _api_handle.archived
+        this._archived = _api_handle.archived;
     }
 
     first_message() {

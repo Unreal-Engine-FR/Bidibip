@@ -1,5 +1,7 @@
 const DI = require("./discord_interface");
 const CONFIG = require("../config");
+const {Embed} = require("./embed");
+const { ChannelType } = require('discord.js');
 
 class Channel {
 
@@ -121,6 +123,22 @@ class Channel {
     async send(message) {
         message.set_channel(this)
         return message.send();
+    }
+
+    /**
+     * Create a thread in this channel
+     * @param title {string}
+     * @param private_thread {boolean}
+     * @return {Promise<string>} channel id
+     */
+    async create_thread(title, private_thread= false) {
+        const api_handle = await this._fetch_from_discord()
+        const thread = await api_handle.threads.create({
+            name: title,
+            type:private_thread ? ChannelType.PrivateThread : ChannelType.Thread,
+            reason: 'create modo ticket',
+        }).catch(err => console.fatal('Failed to create thread : ', err));
+        return String(thread.id);
     }
 }
 

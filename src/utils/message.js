@@ -4,10 +4,8 @@ const {Embed} = require("./embed");
 const {InteractionRow} = require("./interaction_row");
 const DI = require("./discord_interface");
 const {Channel} = require("./channel");
-const {Collection} = require("discord.js");
 const {Attachment} = require("./attachment");
 const CONFIG = require("../config");
-const http = require('http');
 
 class Message {
     constructor(api_handle) {
@@ -334,7 +332,6 @@ class Message {
     async send() {
         if (!this._channel) {
             console.fatal('please provide a channel')
-            return
         }
         if (this.is_empty())
             console.fatal(`cannot send empty message : `, this)
@@ -344,7 +341,7 @@ class Message {
             channel = await DI.get()._client.channels.fetch(this._channel.id())
                 .catch(err => console.fatal(`failed to get channel ${this._channel.id()}:`, err))
 
-        const res = await channel.send(await this._output_to_discord())
+        const res = await channel.send(await this._output_to_discord().catch(err => console.fatal('Failed to build message :', err)))
             .catch(err => console.fatal(`failed to send message : ${err} :  `, this))
         return new Message(res)
     }

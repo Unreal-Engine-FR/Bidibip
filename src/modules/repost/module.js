@@ -99,6 +99,7 @@ class Module extends ModuleBase {
             new CommandInfo('view-forum-links', 'Voir la liste des liens entre forums et salons', this.view_forum_link)
                 .set_admin_only(),
             new CommandInfo('reposte', 'Promeut le message donné dans le salon de repost', this.promote)
+                .set_member_only()
                 .add_message_option('message', 'lien du message à promouvoir'),
         ]
 

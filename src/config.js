@@ -16,7 +16,6 @@ class Configuration {
         this.MEMBER_ROLE_ID = '1108799832371515443'
         this.MUTE_ROLE_ID = '1115307412581257216'
         this.WELCOME_CHANNEL = '1110238160602013696'
-        this.MEMBER_ROLE_ID = '1108799832371515443'
         this.WELCOME_MESSAGE = `Bienvenue sur Unreal Engine FR {user} :wave: ! N'oublies pas de lire le {reglement} pour accéder au serveur.`
         this.LEAVE_MESSAGE = `{user} nous a quitté... C'est triste :pensive:`
 
@@ -35,6 +34,9 @@ class Configuration {
         this.ADVERTISING_PAID_CHANNEL = null
         this.ADVERTISING_FREELANCE_CHANNEL = null
         this.SHARED_SHARED_CHANNEL = null
+
+        /* MODO MODULE */
+        this.TICKET_CHANNEL_ID = '1089260511998263377';
 
         require('dotenv').config()
 
