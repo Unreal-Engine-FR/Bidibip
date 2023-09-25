@@ -16,9 +16,19 @@ class Thread extends Channel {
         return this._owner
     }
 
+    /**
+     * @return {Promise<boolean>}
+     */
+    async archived() {
+        if (!typeof this._archived === 'boolean')
+            await this._fetch_from_discord();
+        return this._archived;
+    }
+
     _fill_from_api_handle(_api_handle) {
         super._fill_from_api_handle(_api_handle)
         this._owner = new User().set_id(_api_handle.ownerId)
+        this._archived = _api_handle.archived
     }
 
     first_message() {

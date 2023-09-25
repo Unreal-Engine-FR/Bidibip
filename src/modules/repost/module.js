@@ -278,7 +278,7 @@ class Module extends ModuleBase {
      * @return {Promise<void>}
      */
     async server_message(message) {
-        const thread = await message.channel()
+        const thread = new Thread().set_id((await message.channel()).id())
 
         // Ensure the thread that contains the message is waiting for it's first message
         if (!this.threads_waiting_first_message.has(thread.id()))
@@ -327,6 +327,13 @@ class Module extends ModuleBase {
     }
 
     async create_or_update_vote_buttons(message, vote_thread, ephemeral = false) {
+
+        if (await vote_thread.archived()) {
+            if ((await message.channel()).id() !== vote_thread.id())
+                await message.delete();
+            return;
+        }
+
         let yes_button = await message.get_button_by_id('button-vote-yes')
         let no_button = await message.get_button_by_id('button-vote-no')
         let see_votes_button = await message.get_button_by_id('see-votes')
@@ -360,6 +367,7 @@ class Module extends ModuleBase {
 
             // Update button
             await message.update(message)
+                .catch(err => console.fatal(`Failed to update message :`, err))
         }
         if (!ephemeral && !this.module_config.vote_messages[make_key(message)]) {
             this.module_config.vote_messages[make_key(message)] = vote_thread.id()
@@ -399,6 +407,7 @@ class Module extends ModuleBase {
     }
 
     async click_vote_button(button_interaction, thread) {
+
         const vote_infos = this.module_config.repost_votes[thread.id()]
         if (!vote_infos)
             return
