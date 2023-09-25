@@ -19,6 +19,16 @@ class Embed {
     }
 
     /**
+     * Set embed author name override
+     * @param name {string}
+     * @returns {Embed}
+     */
+    set_embed_author_name(name) {
+        this.embed_author_name = name
+        return this
+    }
+
+    /**
      * Set author url
      * @param url {string}
      * @returns {Embed}
@@ -130,7 +140,7 @@ class Embed {
 
             if (this._author) {
                 embed.setAuthor({
-                    name: this.title ? this.title : await this._author.name(),
+                    name: this.embed_author_name ? this.embed_author_name : this.title ? this.title : await this._author.name(),
                     url: this._author_url,
                     iconURL: await this._author.profile_picture() ? await this._author.profile_picture() : null,
                 })

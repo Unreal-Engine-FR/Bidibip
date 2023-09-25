@@ -27,6 +27,7 @@ class Module extends ModuleBase {
                 .set_member_only(),
             new CommandInfo('freelance', 'Ajouter une annonce de freelance', this.freelance)
                 .add_text_option('nom', 'Quel est ton nom, ou le nom de ton studio ?')
+                .add_text_option('role', 'Quel sera le rôle de la personne recrutée dans le studio ?')
                 .add_text_option('portfolio', 'Entrez l\'url de votre site portfolio (URL requis)')
                 .add_text_option('services', 'Quel est la liste des services que tu proposes ?')
                 .add_text_option('contact', 'Comment les clients potentiels peuvent-ils vous contacter ?')
@@ -196,7 +197,8 @@ class Module extends ModuleBase {
                 .set_channel(command.channel())
                 .add_embed(new Embed()
                     .set_color('#65eb34')
-                    .set_title(command.read('nom') || 'Option manquante')
+                    .set_embed_author_name(command.read('nom') || 'Option manquante')
+                    .set_title(`${command.read('role')} chez ${command.read('nom') || 'Option manquante'}`)
                     .set_author(command.author())
                     .set_description(url)
                     .add_field('Services', command.read('services') || 'Option manquante')

@@ -253,6 +253,11 @@ class Message {
         return this
     }
 
+    async react(emoji) {
+        const handle = await this._internal_get_handle()
+        await handle.react(emoji);
+    }
+
     async reactions() {
         const reactions = []
         const reaction_manager = await this._internal_get_handle()

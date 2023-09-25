@@ -30,6 +30,15 @@ class Reaction {
     }
 
     /**
+     * Add user from reactions
+     * @param user {User}
+     * @return {Promise<void>}
+     */
+    async add_user(user) {
+        await this._api_handle.users.add(user.id())
+    }
+
+    /**
      * Get emoji
      * @return {string}
      */

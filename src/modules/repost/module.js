@@ -1,5 +1,6 @@
 // MODULE REPOST
 const {CommandInfo} = require("../../utils/interactionBase")
+const DI = require("../../utils/discord_interface")
 const {Message} = require("../../utils/message")
 const {Channel} = require("../../utils/channel")
 const {Embed} = require("../../utils/embed")
@@ -299,7 +300,8 @@ class Module extends ModuleBase {
         const messages = (await format_message(message, `Nouveau post dans **#${await forum.name()}** : `))
         const last_message = messages.pop()
 
-        if (this.module_config.reposted_forums[forum.id()].vote)
+        if (this.module_config.reposted_forums[forum.id()].vote) {
+            await message.react('📩')
             await new Message()
                 .set_text(`Vote en réagissant au post !`)
                 .set_channel(message.channel())
@@ -310,6 +312,7 @@ class Module extends ModuleBase {
                         .set_id('see-votes')))
                 .send()
                 .then(reposted_message => this.bind_vote_button(reposted_message, thread))
+        }
 
         for (const channel of this.module_config.reposted_forums[forum.id()].bound_channels) {
             for (const repost_message of messages)
@@ -498,20 +501,21 @@ class Module extends ModuleBase {
             return
 
         const reactions = await first_message.reactions()
-        if (reactions.length !== 0 && reactions[0] === reaction.emoji())
+        if (reactions.length !== 0 && reactions[0] === reaction.emoji()) {
             await reaction.remove_user(user)
 
-        const text = vote_data.vote_yes[user.id()] ? `${user.mention()} tu as déjà voté pour ✅ !` : (vote_data.vote_no[user.id()] ? `${user.mention()} tu as déjà voté contre ❌ !` : `J'attends ton vote ${user.mention()}`)
+            const text = vote_data.vote_yes[user.id()] ? `${user.mention()} tu as déjà voté pour ✅ !` : (vote_data.vote_no[user.id()] ? `${user.mention()} tu as déjà voté contre ❌ !` : `J'attends ton vote ${user.mention()}`)
 
-        await new Message().set_text(text).set_client_only().set_channel(thread)
-            .send().then(message => {
-                this.create_or_update_vote_buttons(message, thread, true)
-                this.bind_button(message, async (button_interaction) => {
-                    await this.click_vote_button(button_interaction, thread)
-                    if (button_interaction.author().id() === user.id())
-                        await message.delete()
+            await new Message().set_text(text).set_client_only().set_channel(thread)
+                .send().then(message => {
+                    this.create_or_update_vote_buttons(message, thread, true)
+                    this.bind_button(message, async (button_interaction) => {
+                        await this.click_vote_button(button_interaction, thread)
+                        if (button_interaction.author().id() === user.id())
+                            await message.delete()
+                    })
                 })
-            })
+        }
     }
 }
 
