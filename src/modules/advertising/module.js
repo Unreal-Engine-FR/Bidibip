@@ -32,8 +32,9 @@ class Module extends ModuleBase {
                 .add_text_option('services', 'Quel est la liste des services que tu proposes ?')
                 .add_text_option('contact', 'Comment les clients potentiels peuvent-ils vous contacter ?')
                 .set_member_only(),
-            new CommandInfo('unpaid', 'Ajouter une annonce bénévole', this.unpaid)
+            new CommandInfo('unpaid', 'Ajouter une annonce pour une coopération', this.unpaid)
                 .add_text_option('titre', 'Ajoute un titre qui définit clairement ce que tu cherches')
+                .add_text_option('contrepartie', 'Précises ce que la personne a à gagner en travaillant sur ce projet (et ce n\'est pas de l\'argent')
                 .add_text_option('description', 'Ajoute une description détaillée du projet et ce dont tu as besoin')
                 .add_text_option('contact', 'Comment peut-on te contacter ?')
                 .set_member_only(),
@@ -179,6 +180,7 @@ class Module extends ModuleBase {
                     .set_author(command.author())
                     .set_title(command.read('titre') || 'Option manquante')
                     .set_description(command.read('description') || 'Option manquante')
+                    .add_field('contrepartie', command.read('contrepartie') || 'Option manquante')
                     .add_field('contact', command.read('contact') || 'Option manquante')
                 ),
             valid: true

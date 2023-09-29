@@ -56,7 +56,10 @@
         "Des projets réalisés par la communauté sont aussi disponibles dans #jeux-test. Pour proposer un jeu, contactez @NicolasBrg.",
         "",
         "### :man_factory_worker: Annonces de recrutements :man_factory_worker:",
-        "Le serveur dispose d'un système de recrutement, toutes les informations sont disponibles ici: #manuel-recrutement "
+        "Le serveur dispose d'un système de recrutement, toutes les informations sont disponibles ici: #manuel-recrutement ",
+		"",
+		"### :shield:  Besoin d'aide :shield:",
+		"En cas de problème, vous pouvez contacter la modération dans un canal privé via la commande :bidibip: `/modo`"
       ]
     },
     {
