@@ -8,6 +8,7 @@ const {Message} = require('../../utils/message')
 const DI = require('../../utils/discord_interface')
 const {Channel} = require("../../utils/channel");
 const {ModuleBase} = require("../../utils/module_base");
+const fs = require("fs");
 
 class Module extends ModuleBase {
     /**
@@ -71,6 +72,12 @@ class Module extends ModuleBase {
             }
         })
         DI.get().check_permissions_validity().catch(err => console.fatal(`Failed to check permissions validity : ${err}`))
+
+        try {
+            this.messages = JSON.parse(fs.readFileSync(`${__dirname}/messages.json`, 'utf8'))
+        } catch (err) {
+            console.error(`Failed to load welcome and leave messages : ${err}`)
+        }
     }
 
     async modules_infos(command_interaction) {
@@ -204,8 +211,10 @@ class Module extends ModuleBase {
      * @return {Promise<void>}
      */
     async user_joined(user) {
+        let randomMessage = this.messages.join[Math.floor(Math.random() * this.messages.join.length)];
+        randomMessage += "\n> N'oublies pas de lire le {reglement} pour accéder au serveur."
         new Message()
-            .set_text(this.app_config.WELCOME_MESSAGE.replace(/{user}/g, user.mention())
+            .set_text(randomMessage.replace(/{user}/g, user.mention())
                 .replace(/{reglement}/g, `<#${this.app_config.REGLEMENT_CHANNEL_ID}>`))
             .set_channel(new Channel().set_id(this.app_config.WELCOME_CHANNEL)).send()
             .catch(err => console.fatal(`Failed to send welcome message : ${err}`))
@@ -217,8 +226,9 @@ class Module extends ModuleBase {
      * @return {Promise<void>}
      */
     async user_leaved(user) {
+        let randomMessage = this.messages.leave[Math.floor(Math.random() * this.messages.leave.length)];
         new Message()
-            .set_text(this.app_config.LEAVE_MESSAGE.replace(/{user}/g, user.mention()))
+            .set_text(randomMessage.replace(/{user}/g, user.mention()))
             .set_channel(new Channel().set_id(this.app_config.WELCOME_CHANNEL)).send()
             .catch(err => console.fatal(`Failed to send leave message : ${err}`))
     }

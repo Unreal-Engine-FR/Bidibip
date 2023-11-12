@@ -16,8 +16,6 @@ class Configuration {
         this.MEMBER_ROLE_ID = '1108799832371515443'
         this.MUTE_ROLE_ID = '1115307412581257216'
         this.WELCOME_CHANNEL = '1110238160602013696'
-        this.WELCOME_MESSAGE = `Bienvenue sur Unreal Engine FR {user} :wave: ! N'oublies pas de lire le {reglement} pour accéder au serveur.`
-        this.LEAVE_MESSAGE = `{user} nous a quitté... C'est triste :pensive:`
 
         /* UTILITIES */
         this.CACHE_DIR = '../Bidibip_Cache/' // Where temps data is stored
