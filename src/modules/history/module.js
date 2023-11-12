@@ -36,16 +36,26 @@ class Module {
 
     async server_message_delete(message) {
 
-        const author = await message.author()
-        console.info(`Message deleted [${await author.full_name()}] :\n${message._text}`)
-        await new Message().set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
-            .add_embed(
-                new Embed()
-                    .set_title(`@${await author.full_name()} (${author.id()})`)
-                    .set_description('Message supprimé :')
-                    .set_color('#FF0000')
-                    .add_field(message._text ? 'Contenu' : '[Message vide]', message._text ? message._text.substring(0, 1024) : '[Message sans texte]')
-            ).send()
+        message.author().then(async author => {
+            console.info(`Message deleted [${await author.full_name()}] :\n${message._text}`)
+            await new Message().set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
+                .add_embed(
+                    new Embed()
+                        .set_title(`@${await author.full_name()} (${author.id()})`)
+                        .set_description('Message supprimé :')
+                        .set_color('#FF0000')
+                        .add_field(message._text ? 'Contenu' : '[Message vide]', message._text ? message._text.substring(0, 1024) : '[Message sans texte]')
+                ).send()
+        }).catch(async _ => {
+            console.info(`Unknown message deleted : ${message.url()}`)
+            await new Message().set_channel(new Channel().set_id(CONFIG.LOG_CHANNEL_ID))
+                .add_embed(
+                    new Embed()
+                        .set_title(`Message supprimé`)
+                        .set_description(`Ancien message supprimé : ${message.url()}`)
+                        .set_color('#FF0000')
+                ).send()
+        })
     }
 }
 

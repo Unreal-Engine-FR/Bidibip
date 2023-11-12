@@ -69,6 +69,14 @@ class Button {
         return this
     }
 
+    /**
+     * Check if the button is enabled
+     * @return {boolean}
+     */
+    is_enabled() {
+        return this._enabled;
+    }
+
     _to_discord_item() {
         const button = new ButtonBuilder()
             .setLabel(this._label)

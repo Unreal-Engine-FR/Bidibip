@@ -4,8 +4,7 @@ const {Message} = require('../../utils/message')
 const {Embed} = require('../../utils/embed')
 const {Channel} = require("../../utils/channel");
 const {ModuleBase} = require("../../utils/module_base");
-
-const PENDING_REQUESTS = {}
+const {Thread} = require("../../utils/thread.js");
 
 class Module extends ModuleBase {
     constructor(create_infos) {
@@ -56,13 +55,14 @@ class Module extends ModuleBase {
         if (await this.ask_user_confirmation(command_interaction, result.message
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
-            await this.build_paid(command_interaction).message.set_channel(new Channel().set_id(this.app_config.ADVERTISING_PAID_CHANNEL))
-                .set_text(`Nouvelle annonce de ${command_interaction.author().mention()} !`).send()
-            await this.build_paid(command_interaction).message.set_channel(new Channel().set_id(this.app_config.SHARED_SHARED_CHANNEL))
-                .set_text(`Nouvelle annonce de ${command_interaction.author().mention()} !`).send()
-                .then(message => {
+            await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
+                `${command_interaction.read('role')} chez ${command_interaction.read('societe')} (par ${await command_interaction.author().name()})`,
+                false,
+                this.build_paid(command_interaction).message,
+                ["Contrat rémunéré"])
+                .then(async thread => {
                     command_interaction.edit_reply(new Message()
-                        .set_text(`Ton annonce a bien été publiée : ${message.url()}`))
+                        .set_text(`Ton annonce a bien été publiée : ${new Channel().set_id(thread).url()}`))
                         .catch(err => console.fatal(`failed to edit reply : ${err}`))
                 })
         } else {
@@ -82,16 +82,18 @@ class Module extends ModuleBase {
             await command_interaction.reply(result.message)
             return
         }
+
         if (await this.ask_user_confirmation(command_interaction, result.message
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
-            await this.build_unpaid(command_interaction).message.set_channel(new Channel().set_id(this.app_config.ADVERTISING_UNPAID_CHANNEL))
-                .set_text(`Nouvelle annonce de ${command_interaction.author().mention()} !`).send()
-            await this.build_unpaid(command_interaction).message.set_channel(new Channel().set_id(this.app_config.SHARED_SHARED_CHANNEL))
-                .set_text(`Nouvelle annonce de ${command_interaction.author().mention()} !`).send()
-                .then(message => {
+            await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
+                `${command_interaction.read('titre')} (par ${await command_interaction.author().name()})`,
+                false,
+                this.build_unpaid(command_interaction).message,
+                ["Coopération"])
+                .then(async thread => {
                     command_interaction.edit_reply(new Message()
-                        .set_text(`Ton annonce a bien été publiée : ${message.url()}`))
+                        .set_text(`Ton annonce a bien été publiée : ${new Channel().set_id(thread).url()}`))
                         .catch(err => console.fatal(`failed to edit reply : ${err}`))
                 })
         } else {
@@ -115,13 +117,15 @@ class Module extends ModuleBase {
         if (await this.ask_user_confirmation(command_interaction, result.message
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
-            await this.build_freelance(command_interaction).message.set_channel(new Channel().set_id(this.app_config.ADVERTISING_FREELANCE_CHANNEL))
-                .set_text(`Nouvelle annonce de ${command_interaction.author().mention()} !`).send()
-            await this.build_freelance(command_interaction).message.set_channel(new Channel().set_id(this.app_config.SHARED_SHARED_CHANNEL))
-                .set_text(`Nouvelle annonce de ${command_interaction.author().mention()} !`).send()
-                .then(message => {
+
+            await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
+                `${command_interaction.read('nom')} (par ${await command_interaction.author().name()})`,
+                false,
+                this.build_freelance(command_interaction).message,
+                ["Freelance"])
+                .then(async thread => {
                     command_interaction.edit_reply(new Message()
-                        .set_text(`Ton annonce a bien été publiée : ${message.url()}`))
+                        .set_text(`Ton annonce a bien été publiée : ${new Channel().set_id(thread).url()}`))
                         .catch(err => console.fatal(`failed to edit reply : ${err}`))
                 })
         } else {

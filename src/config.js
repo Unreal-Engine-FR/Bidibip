@@ -28,10 +28,7 @@ class Configuration {
         this.ADMIN_APPLICATIONS_CHANNEL=null
 
         /* ADVERTISING MODULE */
-        this.ADVERTISING_UNPAID_CHANNEL = null
-        this.ADVERTISING_PAID_CHANNEL = null
-        this.ADVERTISING_FREELANCE_CHANNEL = null
-        this.SHARED_SHARED_CHANNEL = null
+        this.ADVERTISING_FORUM = null
 
         /* MODO MODULE */
         this.TICKET_CHANNEL_ID = '1089260511998263377';

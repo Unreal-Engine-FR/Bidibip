@@ -12,6 +12,7 @@ class Message {
         this._embeds = []
         this._interactions = []
         this._attachments = []
+
         if (api_handle) {
             if (api_handle.partial) {
                 this._id = api_handle.id
@@ -131,7 +132,9 @@ class Message {
     async author() {
         if (!this._author)
             await this._fill_internal()
-                .catch(err => console.fatal(`failed to retrieve internal data : ${err}`))
+                .catch(err => {
+                    throw new Error(`failed to retrieve internal data : ${err}`)
+                })
         return this._author
     }
 

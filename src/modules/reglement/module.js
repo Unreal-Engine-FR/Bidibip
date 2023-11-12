@@ -1,9 +1,6 @@
 const {ModuleBase} = require("../../utils/module_base");
 const {Channel} = require("../../utils/channel");
 const {Message} = require("../../utils/message");
-const {InteractionRow} = require("../../utils/interaction_row");
-const {Button} = require("../../utils/button");
-const {User} = require("../../utils/user");
 const {Embed} = require("../../utils/embed");
 const {json_to_message} = require("../../utils/json_to_message");
 
@@ -17,8 +14,9 @@ class Module extends ModuleBase {
             .set_id(this.module_config.approval)
 
         approval_message.is_valid().then(async result => {
-                if (result)
+            if (result)
                     await this.bind_approval(approval_message)
+                        .catch(err => console.error(`Failed to bind approval button : ${err}`))
                 else
                     console.error('No approval message is configured')
             }
@@ -37,10 +35,13 @@ class Module extends ModuleBase {
                 .then(async messages => {
                     for (const to_send of messages) {
                         await to_send.set_channel(new Channel().set_id(this.app_config.REGLEMENT_CHANNEL_ID)).send()
-                            .then(sent => {
-                                this.module_config.approval = sent.id()
-                                this.save_config()
-                                this.bind_approval(sent)
+                            .then(async sent => {
+                                if (await sent.get_button_by_id("approval")) {
+                                    this.module_config.approval = sent.id()
+                                    this.save_config()
+                                    await this.bind_approval(sent)
+                                    console.validate("Successfully updated approval message")
+                                }
                             })
                             .catch(err => console.fatal(`Failed to send reglement message : ${err}`))
                     }
@@ -58,7 +59,11 @@ class Module extends ModuleBase {
      * @return {Promise<void>}
      */
     async bind_approval(message) {
-        if (message.get_button_by_id('approval')) {
+        if (await message.get_button_by_id('approval')) {
+
+            let approvalButton = await message.get_button_by_id('approval')
+            if (!approvalButton.is_enabled())
+                console.fatal("Approval button is disabled ! Please fix it now !");
             this.bind_button(message, async (interaction) => {
                 if (interaction.button_id() === 'approval') {
                     await interaction.author().add_role(this.app_config.MEMBER_ROLE_ID)
@@ -66,6 +71,10 @@ class Module extends ModuleBase {
                 } else
                     await interaction.skip()
             })
+            console.validate("Successfully bound approval button");
+        }
+        else {
+            console.fatal("Failed to find approval button id");
         }
     }
 }
