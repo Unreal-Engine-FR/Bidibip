@@ -1,19 +1,19 @@
 {
   "join": [
     "{user} a rejoint le serveur, mes circuits frétilles!",
-    "Bienvenue {user} :NootNoot_CalmeBienvenue:",
+    "Bienvenue {user} <:NootNoot_CalmeBienvenue:1170408298823037020>",
     "Bienvenue {user} sur UEFR qui est d'après mes datas le meilleur serveur Unreal Engine de tous les temps!",
     "Salut à toi {user}, que l'engin irréel soit avec toi!",
     "Hello {user} 01000010 01101001 01100101 01101110 01110110 01100101 01101110 01110101 01100101!",
-    "{user} welcome! Bienvenido! 欢迎! NOOT-NOOT :NootNoot_CalmeBienvenue:!",
+    "{user} welcome! Bienvenido! 欢迎! NOOT-NOOT <:NootNoot_CalmeBienvenue:1170408298823037020>!",
     "{user} nous a rejoint, un futur grand développeur celui-là je le sens bien!",
     "{user} a spawn dans notre liste de membres!",
     "Réjouissez-vous {user} nous a rejoint!",
     "Bienvenue {user} prends le temps de bien te familiariser avec les salons du serveur, tu apprendras peut-être des choses inattendues!",
     "Coucou {user}! Je suis Bidibip le bot du serveur et je te souhaite la bienvenue!",
     "Bienvenue sur Unreal Engine FR {user} :wave:!",
-    "Bienvenue parmi nous {user} :Logo_UEFR: Ne rate pas le guide du serveur dans le salon #:receipt:-règlement!",
-    "{user} vient de nous rejoindre! Hâte de voir de quoi il est capable sur Unreal :Logo_unreal_engine:!"
+    "Bienvenue parmi nous {user} <:Logo_UEFR:1170408304766353488>",
+    "{user} vient de nous rejoindre! Hâte de voir de quoi il est capable sur Unreal <:Logo_unreal_engine:391887652217159680>!"
   ],
   "leave": [
     "{user} a quitté le serveur, j’en grille mes circuits..",
@@ -27,7 +27,7 @@
     "{user} a quitté le serveur, j'espère quand même qu'il reviendra bientôt!",
     "{user} nous a quitté, j'ai quand même apprécié le temps passé avec lui.",
     "{user} nous a quitté, j'en perds mon code!",
-    "{user} vient de quitter le serveur sans me dire au revoir:interrobang:",
+    "{user} vient de quitter le serveur sans me dire au revoir :interrobang:",
     ":NootNoot_Adieu: {user} est parti.."
   ]
 }
