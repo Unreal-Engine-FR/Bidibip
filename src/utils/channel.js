@@ -129,39 +129,41 @@ class Channel {
      * Create a thread in this channel
      * @param title {string}
      * @param private_thread {boolean}
-     * @param message {Message|null}
-     * @param tags {String[]|null}
+     * @param message {Message|undefined}
+     * @param tags {String[]|undefined}
      * @return {Promise<string>} channel id
      */
-    async create_thread(title, private_thread = false, message = null, tags = null) {
+    async create_thread(title, private_thread = false, message = undefined, tags = undefined) {
         const api_handle = await this._fetch_from_discord()
 
         const selectedTags = []
-        for (const tagName of tags) {
-            let found = false;
-            for (const tag of api_handle.availableTags) {
-                if (tag.name === tagName) {
-                    selectedTags.push(tag.id);
-                    found = true;
-                    break;
+        if (tags) {
+            for (const tagName of tags) {
+                let found = false;
+                for (const tag of api_handle.availableTags) {
+                    if (tag.name === tagName) {
+                        selectedTags.push(tag.id);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+
+                    const availableTags = []
+                    for (const tag of api_handle.availableTags)
+                        availableTags.push(tag.name)
+                    console.fatal(`There is no tag ${tagName} available in the forum ${await this.name()}. Available tags :\n${availableTags}`);
                 }
             }
-            if (!found) {
-
-                const availableTags = []
-                for (const tag of api_handle.availableTags)
-                    availableTags.push(tag.name)
-                console.fatal(`There is no tag ${tagName} available in the forum ${await this.name()}. Available tags :\n${availableTags}`);
-            }
         }
-
         const thread = await api_handle.threads.create({
             name: title,
             type: private_thread ? ChannelType.PrivateThread : ChannelType.Thread,
             reason: 'create modo ticket',
-            message: message ? await message._output_to_discord() : null,
-            appliedTags: tags ? selectedTags : null
+            message: message ? await message._output_to_discord() : undefined,
+            appliedTags: tags ? selectedTags : undefined
         }).catch(err => console.fatal('Failed to create thread : ', err));
+
         return String(thread.id);
     }
 }
