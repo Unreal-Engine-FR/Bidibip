@@ -9,30 +9,27 @@
       "textes": [
         "Bienvenue sur Unreal Engine FR!",
         "",
-        "# :warning: Règles  :warning:",
-        "Avant toutes choses, vous devez respecter les guidelines Discord: <https://discordapp.com/guidelines>",
+        "# :warning: Règlement :warning:",
+        "Le [règlement de Discord](https://discordapp.com/guidelines) s’applique en priorité. Vous devez le respecter par la même occasion : <https://discordapp.com/guidelines>",
         "",
         "### :one: - NSFW",
-        "Le contenu explicite incluant du contenu choquant, sexuel ou gore (communément appelé NSFW) est interdis sur le serveur, de plus toutes représentations ressemblants s'approchant de ce genre de contenu est aussi interdite.",
+        "Les contenus explicites ou implicites incluant des représentations ou propos discriminants, sexuels ou gores sont interdits sur le serveur, même sur le ton de l’humour.",
         "",
-        "### :two: - Respect des autres",
-        "Le respect des autres est primordial dans tous cas, il est interdis de discriminer, harceler, insulter, troller.",
-        "De même, surveillez votre humour, même dans un contexte entre amis il est interdis de faire des blagues borderline sur ce serveur et l'étendu de ses salons.",
+        "### :two: - Publicités, spams, mentions",
+        "Seule l’autopromotion concernant le développement de vos projets de jeux-vidéo ou autres projets Unreal Engine est autorisée et uniquement dans les salons dédiés.",
         "",
-        "### :three: - Publicité, spam, mentions",
-        "La publicité est interdite. En revanche, nous autorisons la publicité pour des projets concernant le secteur du jeu vidéo.",
-        "Le spam et les mentions abusives sont interdites.",
+        "### :three: - Aide",
+        "Nous décourageons la demande d’aide en privé pour que tout le monde puisse bénéficier des conseils promulgués.",
+        "Vous pouvez également utiliser les canaux vocaux dédiés à l'entraide à tout moment.",
+        "Après avoir posé une question, attendez au moins une heure avant de retenter si vous n'avez pas de réponse.",
         "",
-        "### :four: - Aide",
-        "Préférez l'aide sur le serveur plutôt que de contacter des membres ou Helpers en message privé, plus il y a de point de vues mieux c'est. Vous pouvez aussi user des canaux vocaux dédiés à l'entraide à tout moment.",
-        "Après avoir posé une question, attendez au moins une quinzaine de minutes avant de retenter si vous n'avez pas de réponse.",
-        "",
-        "### :five: - Vocal",
-        "Bien sûr, toutes les règles ci-dessus s'appliquent en vocal. L'entraide est si possible faite dans le salon Entraide.",
-        "Nous disposons aussi d'un salon textuel vocal Aucun accès, uniquement disponible aux staff et aux personnes en vocal.",
+        "### :four: - Vocal",
+        "Toutes les règles ci-dessus s'appliquent en vocal. Veillez à respecter la tranquillité et les oreilles des autres membres présents sur ce salon en évitant les cris ou l’abus de Soundboards.",
         "",
         "### :six: - Débats",
-        "Les débats sont autorisés, ceux textuels uniquement sur des threads dédiés. Lorsque le débat part en couilles: insultes, coupure du parole, sujet qui tourne en rond ou changement, propos extrêmes (incitations à la haine, discriminations) la modération se donne le droit d'arrêter et supprimer le débat en sanctionnant les participants si nécessaire."
+        "Nous ne souhaitons pas censurer les sujets de conversation n’évoquant pas directement Unreal Engine. Cependant les discussions hors-propos ne doivent pas sortir du salon #blabla.",
+        "",
+        "Nous nous réservons le droit d’appliquer des sanctions selon le contexte et le jugement de la modération."
       ],
       "interactions": [
         {
@@ -47,26 +44,37 @@
     {
       "textes": [
         "# Guide du serveur",
-        "### :tools: Helpers :tools:",
-        "Les helpers sont des personnes ayant un rôle particulier les distinguant par leur motivation et compétences à aider les personnes. C'est un rôle qui peut-être donné à n'importe quelle personne.",
+        "### :shield: Besoin d'aide :shield:",
+        "En cas de problème, vous pouvez contacter la modération dans un canal privé via la commande :bidibip: `/modo`",
+        "",
+        "Le serveur dispose de son propre Bot. Vous pouvez consulter la liste des commandes disponibles en tapant la commande :bidibip: `/help`",
+        "",
+        "### :tools: @Helpers :tools:",
+        "Le rôle de helper est un rôle décerné aux membres fiables ayant activement et efficacement aidé les membres du serveur dans des domaines liés à la création sur Unreal Engine.",
+        "",
+        "### :envelope_with_arrow: Proposition serveur :envelope_with_arrow:",
+        "Si vous remarquez un point à améliorer pour le serveur, vous pouvez le proposer. Résumez les points positifs et négatifs puis proposez votre idée dans le forum #\uD83D\uDCE8-propositions-serveur. Les membres pourront voter et si votre proposition reçoit une majorité de 3 votes et qu’elle ne porte pas préjudice au serveur et ses membres elle sera appliquée 1mois après la création de la proposition.",
         "",
         "### :paperclip: Projets :paperclip:",
-        "Nous proposons aussi une section \"PROJETS DE LA COMMUNAUTE\" qui vous permet d'héberger votre propre salon pour vos projets, vous pouvez visiter le forum #forum-vos-projets pour consulter les projets de la communauté, et pour tout ce qui est teaser, petit projet qui ne mérite pas un post, il y a #vos-projets-teasers",
+        "Nous proposons aussi une section \"PROJETS DE LA COMMUNAUTÉ\".\nSi vous souhaitez partager l’avancement d’un de vos projets pour vous faire de la pub ou prendre des retours, vous pouvez partager captures (photo, vidéo ou audio), liens de téléchargement, pages de jeu, articles et trailers sur le salon #\uD83D\uDD79-teasers-et-proto-projets.",
         "",
-        "Des projets réalisés par la communauté sont aussi disponibles dans #jeux-test. Pour proposer un jeu, contactez @NicolasBrg.",
+        "Si vous vous lancez dans l’aventure de création de projet via unreal.. Que vous avez déjà (même si c’est amené à évoluer) un nom de jeu, une description du gameplay, des images d'illustration, des objectifs et un minimum de contenu déjà créé… Et que vous pensez que notre communauté peut vous apporter.",
         "",
-        "### :man_factory_worker: Annonces de recrutements :man_factory_worker:",
-        "Le serveur dispose d'un système de recrutement, toutes les informations sont disponibles ici: #manuel-recrutement ",
-		"",
-		"### :shield:  Besoin d'aide :shield:",
-		"En cas de problème, vous pouvez contacter la modération dans un canal privé via la commande :bidibip: `/modo`"
+        "Si vous avez un projet remplissant déjà les conditions lui permettant d’être publié sur le forum, mais qu’en plus votre projet est au point d’avoir les 3C codés (pour un jeu), un début de D.A et au moins 10min de contenu. Vous pouvez demander directement aux @Modérateur - Section Projets d’évaluer votre projet et selon ils vous donneront un salon.",
+        "",
+        "Quand vous publiez une annonce pour votre projet dans #forum-vos-projets, vous pouvez faire la commande :bidibip: `/reposte` pour mettre ce message en avant et le rendre plus visible!",
+        "",
+        "Des projets finis réalisés par la communauté sont aussi disponibles dans #jeux-test. Pour proposer un jeu, contactez @NicolasBrg.",
+        "",
+        "### Annonces de recrutements",
+        "Le serveur dispose d'un système de recrutement, toutes les informations sont disponibles ici: #manuel-recrutement"
       ]
     },
     {
       "embeds": [
         {
-          "titre": ":warning: Rappel :warning:",
-          "description": "Vous devez accepter le réglement pour accéder au serveur !"
+          "titre": ":CompileWarning: Rappel :CompileWarning:",
+          "description": "Vous devez accepter le règlement pour accéder au serveur!"
         }
       ]
     },

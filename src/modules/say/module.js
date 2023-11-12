@@ -35,9 +35,8 @@ class Module {
                         message.set_channel(command.channel())
                         await message.send()
                             .catch(err => console.fatal(`Failed to send message : ${err}`))
-
-                        await command.skip()
                     }
+                    await command.skip()
                 })
                 .catch(async error => {
                     command.reply(
