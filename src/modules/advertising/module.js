@@ -56,7 +56,7 @@ class Module extends ModuleBase {
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
             await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
-                `${command_interaction.read('role')} chez ${command_interaction.read('societe')} (par ${await command_interaction.author().name()})`,
+                `🟣 Offre rémunérée : ${command_interaction.read('role')} chez ${command_interaction.read('societe')} (par ${await command_interaction.author().name()})`,
                 false,
                 this.build_paid(command_interaction).message,
                 ["Contrat rémunéré"])
@@ -87,7 +87,7 @@ class Module extends ModuleBase {
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
             await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
-                `${command_interaction.read('titre')} (par ${await command_interaction.author().name()})`,
+                `🟢 Coopération : ${command_interaction.read('titre')} (par ${await command_interaction.author().name()})`,
                 false,
                 this.build_unpaid(command_interaction).message,
                 ["Coopération"])
@@ -119,7 +119,7 @@ class Module extends ModuleBase {
 
 
             await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
-                `${command_interaction.read('nom')} (par ${await command_interaction.author().name()})`,
+                `🔵 Freelance chez ${command_interaction.read('nom')} (par ${await command_interaction.author().name()})`,
                 false,
                 this.build_freelance(command_interaction).message,
                 ["Freelance"])
@@ -155,7 +155,7 @@ class Module extends ModuleBase {
 
         const embed = new Embed()
             .set_author(command.author())
-            .set_color('#65eb34')
+            .set_color('#876be2')
             .set_title((command.read('role') || 'option manquante') + " Chez " + (command.read('societe') || 'option manquante'))
             .set_description(command.read('remote') || 'option manquante')
             .add_field('Durée du contrat', duree, true)
@@ -180,7 +180,7 @@ class Module extends ModuleBase {
             message: new Message()
                 .set_channel(command.channel())
                 .add_embed(new Embed()
-                    .set_color('#65eb34')
+                    .set_color('#16c40c')
                     .set_author(command.author())
                     .set_title(command.read('titre') || 'Option manquante')
                     .set_description(command.read('description') || 'Option manquante')
@@ -202,7 +202,7 @@ class Module extends ModuleBase {
             message: new Message()
                 .set_channel(command.channel())
                 .add_embed(new Embed()
-                    .set_color('#65eb34')
+                    .set_color('#0077d5')
                     .set_embed_author_name(command.read('nom') || 'Option manquante')
                     .set_title(`${command.read('role')} chez ${command.read('nom') || 'Option manquante'}`)
                     .set_author(command.author())
