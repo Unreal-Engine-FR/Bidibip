@@ -12,7 +12,7 @@
     "Bienvenue {user} prends le temps de bien te familiariser avec les salons du serveur, tu apprendras peut-être des choses inattendues!",
     "Coucou {user}! Je suis Bidibip le bot du serveur et je te souhaite la bienvenue!",
     "Bienvenue sur Unreal Engine FR {user} :wave:!",
-    "Bienvenue parmi nous {user} <:Logo_UEFR:1170408304766353488>",
+    "Bienvenue parmi nous {user} <:Logo_UEFR:1170408304766353488>!",
     "{user} vient de nous rejoindre! Hâte de voir de quoi il est capable sur Unreal <:Logo_unreal_engine:391887652217159680>!"
   ],
   "leave": [
@@ -28,6 +28,6 @@
     "{user} nous a quitté, j'ai quand même apprécié le temps passé avec lui.",
     "{user} nous a quitté, j'en perds mon code!",
     "{user} vient de quitter le serveur sans me dire au revoir :interrobang:",
-    ":NootNoot_Adieu: {user} est parti.."
+    "<:NootNoot_Adieu:1170408296587464704> {user} est parti.."
   ]
 }
