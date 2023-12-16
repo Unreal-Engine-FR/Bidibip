@@ -136,6 +136,9 @@ class Channel {
     async create_thread(title, private_thread = false, message = undefined, tags = undefined) {
         const api_handle = await this._fetch_from_discord()
 
+        if (title.length > 100)
+            console.fatal(`Thread title is too long : ${title.length} | ${title}`)
+
         const selectedTags = []
         if (tags) {
             for (const tagName of tags) {

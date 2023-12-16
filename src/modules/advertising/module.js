@@ -55,8 +55,14 @@ class Module extends ModuleBase {
         if (await this.ask_user_confirmation(command_interaction, result.message
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
+            const authorTitle =                 ` (par ${await command_interaction.author().name()})`;
+            let baseTitle = `🟣 Offre rémunérée : ${command_interaction.read('role')} chez ${command_interaction.read('societe')}`;
+
+            if (baseTitle.length > 100 - authorTitle.length)
+                baseTitle = `${baseTitle.substring(0, 100 - 3 - authorTitle.length)}...`;
+
             await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
-                `🟣 Offre rémunérée : ${command_interaction.read('role')} chez ${command_interaction.read('societe')} (par ${await command_interaction.author().name()})`,
+                `${baseTitle}${authorTitle}`,
                 false,
                 this.build_paid(command_interaction).message,
                 ["Contrat rémunéré"])
@@ -86,8 +92,14 @@ class Module extends ModuleBase {
         if (await this.ask_user_confirmation(command_interaction, result.message
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
+            const authorTitle = ` (par ${await command_interaction.author().name()}`;
+            let baseTitle = `🟢 Coopération : ${command_interaction.read('titre')})`;
+
+            if (baseTitle.length > 100 - authorTitle.length)
+                baseTitle = `${baseTitle.substring(0, 100 - 3 - authorTitle.length)}...`;
+
             await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
-                `🟢 Coopération : ${command_interaction.read('titre')} (par ${await command_interaction.author().name()})`,
+                `${baseTitle}${authorTitle}`,
                 false,
                 this.build_unpaid(command_interaction).message,
                 ["Coopération"])
@@ -117,9 +129,14 @@ class Module extends ModuleBase {
         if (await this.ask_user_confirmation(command_interaction, result.message
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
+            const authorTitle = ` (par ${await command_interaction.author().name()})`;
+            let baseTitle = `🔵 Freelance chez ${command_interaction.read('nom')}`;
+
+            if (baseTitle.length > 100 - authorTitle.length)
+                baseTitle = `${baseTitle.substring(0, 100 - 3 - authorTitle.length)}...`;
 
             await new Channel().set_id(this.app_config.ADVERTISING_FORUM).create_thread(
-                `🔵 Freelance chez ${command_interaction.read('nom')} (par ${await command_interaction.author().name()})`,
+                `${baseTitle}${authorTitle}`,
                 false,
                 this.build_freelance(command_interaction).message,
                 ["Freelance"])
