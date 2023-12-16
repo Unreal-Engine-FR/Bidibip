@@ -170,6 +170,22 @@ class Module extends ModuleBase {
 
         const duree = command.read('contrat') === 'Contractuel' ? command.read('duree') : 'permanent'
 
+
+        const responsabilites = command.read('responsabilites') || 'Option manquante';
+        if (responsabilites.length > 1024) {
+            return {message: new Message().set_client_only().set_text(`Message de responsabilites trop long : ${responsabilites.length} / 1024`), valid: false}
+        }
+
+        const qualification = command.read('qualification') || 'Option manquante';
+        if (qualification.length > 1024) {
+            return {message: new Message().set_client_only().set_text(`Message de qualification trop long : ${qualification.length} / 1024`), valid: false}
+        }
+
+        const postuler = command.read('postuler') || 'Option manquante';
+        if (postuler.length > 1024) {
+            return {message: new Message().set_client_only().set_text(`Message 'postuler' trop long : ${postuler.length} / 1024`), valid: false}
+        }
+
         const embed = new Embed()
             .set_author(command.author())
             .set_color('#876be2')
@@ -180,9 +196,9 @@ class Module extends ModuleBase {
         if (command.read('localisation'))
             embed.add_field('Localisation', command.read('localisation'), true)
 
-        embed.add_field('Responsabilités', command.read('responsabilites') || 'valeur manquante')
-            .add_field('Qualifications\n', command.read('qualifications') || 'valeur manquante')
-            .add_field('Comment postuler\n', command.read('postuler') || 'valeur manquante')
+        embed.add_field('Responsabilités', responsabilites)
+            .add_field('Qualifications\n', qualification)
+            .add_field('Comment postuler\n', postuler)
 
         return {
             message: new Message()
@@ -193,6 +209,15 @@ class Module extends ModuleBase {
     }
 
     build_unpaid(command) {
+
+        const counterPart = command.read('contrepartie') || 'Option manquante';
+        if (counterPart.length > 1024) {
+            return {message: new Message().set_client_only().set_text(`Message de contrepartie trop long : ${counterPart.length} / 1024`), valid: false}
+        }
+        const contact = command.read('contact') || 'Option manquante';
+        if (contact.length > 1024) {
+            return {message: new Message().set_client_only().set_text(`Message de contact trop long : ${contact.length} / 1024`), valid: false}
+        }
         return {
             message: new Message()
                 .set_channel(command.channel())
@@ -201,8 +226,8 @@ class Module extends ModuleBase {
                     .set_author(command.author())
                     .set_title(command.read('titre') || 'Option manquante')
                     .set_description(command.read('description') || 'Option manquante')
-                    .add_field('contrepartie', command.read('contrepartie') || 'Option manquante')
-                    .add_field('contact', command.read('contact') || 'Option manquante')
+                    .add_field('contrepartie', counterPart)
+                    .add_field('contact', contact)
                 ),
             valid: true
         }
@@ -215,6 +240,16 @@ class Module extends ModuleBase {
             return {message: new Message().set_client_only().set_text('Le portfolio doit être une URL'), valid: false}
         }
 
+        const contact = command.read('contact') || 'Option manquante';
+        if (contact.length > 1024) {
+            return {message: new Message().set_client_only().set_text(`Message de contact trop long : ${contact.length} / 1024`), valid: false}
+        }
+
+        const services = command.read('services') || 'Option manquante';
+        if (services.length > 1024) {
+            return {message: new Message().set_client_only().set_text(`Message de services trop long : ${services.length} / 1024`), valid: false}
+        }
+
         return {
             message: new Message()
                 .set_channel(command.channel())
@@ -224,8 +259,8 @@ class Module extends ModuleBase {
                     .set_title(`${command.read('role')} chez ${command.read('nom') || 'Option manquante'}`)
                     .set_author(command.author())
                     .set_description(url)
-                    .add_field('Services', command.read('services') || 'Option manquante')
-                    .add_field('Contacts', command.read('contact') || 'Option manquante')),
+                    .add_field('Services', services)
+                    .add_field('Contacts', contact)),
             valid: true
         }
     }
