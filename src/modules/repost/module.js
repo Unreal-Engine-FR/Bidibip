@@ -399,6 +399,11 @@ class Module extends ModuleBase {
             this.save_config()
         }
 
+        if (!this.module_config.repost_votes[thread.id()].bound_messages) {
+            console.warning("Failed to find bound message : the original thread was probably deleted");
+            return;
+        }
+
         if (this.module_config.repost_votes[thread.id()].bound_messages.indexOf(make_key(message)) === -1)
             this.module_config.repost_votes[thread.id()].bound_messages.push(make_key(message))
 
