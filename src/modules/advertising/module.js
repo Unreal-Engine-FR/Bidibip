@@ -92,8 +92,8 @@ class Module extends ModuleBase {
         if (await this.ask_user_confirmation(command_interaction, result.message
             .set_text('Prends le temps de vérifier ton message :')) === true) {
 
-            const authorTitle = ` (par ${await command_interaction.author().name()}`;
-            let baseTitle = `🟢 Coopération : ${command_interaction.read('titre')})`;
+            const authorTitle = ` (par ${await command_interaction.author().name()})`;
+            let baseTitle = `🟢 Coopération : ${command_interaction.read('titre')}`;
 
             if (baseTitle.length > 100 - authorTitle.length)
                 baseTitle = `${baseTitle.substring(0, 100 - 3 - authorTitle.length)}...`;
