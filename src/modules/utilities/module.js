@@ -229,7 +229,7 @@ class Module extends ModuleBase {
         let randomMessage = this.messages.leave[Math.floor(Math.random() * this.messages.leave.length)];
         new Message()
             .set_text(randomMessage.replace(/{user}/g, user.mention()))
-            .set_channel(new Channel().set_id(this.app_config.WELCOME_CHANNEL)).send()
+            .set_channel(new Channel().set_id(this.app_config.LOG_CHANNEL_ID)).send()
             .catch(err => console.fatal(`Failed to send leave message : ${err}`))
     }
 }

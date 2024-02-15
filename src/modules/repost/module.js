@@ -464,6 +464,8 @@ class Module extends ModuleBase {
 
     async update_all_messages(thread) {
         const vote_infos = this.module_config.repost_votes[thread.id()]
+        if (!vote_infos)
+            return;
         for (const message_to_update of vote_infos.bound_messages) {
             const vote_message = message_from_key(message_to_update)
             if (!await vote_message.is_valid() || !await thread.is_valid())
