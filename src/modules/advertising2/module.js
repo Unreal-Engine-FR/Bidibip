@@ -48,7 +48,7 @@ class Module extends ModuleBase {
 
         await command_interaction.reply(new Message().set_client_only().set_text(`Bien reçu, la suite se passe ici :arrow_right: ${thread.url()}`));
         const message = await thread.send(new Message()
-            .set_text(`Bienvenue dans le formulaire de création d'annonce ${(user.mention())} !`)
+            .set_text(`# Bienvenue dans le formulaire de création d'annonce ${(user.mention())} !`)
             .add_interaction_row(new InteractionRow()
                 .add_button(new Button().set_id("restart").set_label("♻ Recommencer").set_type(Button.Secondary))
                 .add_button(new Button().set_id("cancel").set_label("❌ Annuler").set_type(Button.Danger))));

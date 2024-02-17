@@ -68,7 +68,7 @@ async function format_message(data) {
  */
 async function search(ctx, kind) {
     const data = {kind, author: ctx.author, color: AdvertisingKinds.get(kind).color};
-    data.title = await ctx.askUser("Donne un titre à ton annonce ou précise ta spécialité", 128);
+    data.title = await ctx.askUser("Donne un titre à ton annonce ou précise ta spécialité :", 128);
     data.allow_remote = await ctx.askChoice("Souhaites-tu travailler à distance ou en présentiel ?", ["🌍 En distanciel", "🤷‍ Télétravail flexible", "🏣 Présentiel uniquement"]);
 
     if (data.allow_remote !== 0)
@@ -82,10 +82,10 @@ async function search(ctx, kind) {
     if (kind === AdvertisingKinds.UNPAID.type)
         data.counterpart = await ctx.askUser("Que souhaites tu en contrepartie ?", 1024);
     data.how = await ctx.askUser("Comment peut-on te contacter ? (précises ton mail / discord...)", 1024);
-    data.cv = await ctx.askUser("Lien vers ton CV",1024, false);
-    data.lm = await ctx.askUser("Lien vers ta lettre de motivation complète",1024, false);
-    data.folio = await ctx.askUser("Lien vers ton ou tes portfolios",1024, false);
-    data.links = await ctx.askUser("Tu peux ajouter quelques liens utils si tu le souhaites (portfolio, book, site web etc..)",1024, false);
+    data.cv = await ctx.askUser("Ajoutes un lien vers ton CV :",1024, false);
+    data.lm = await ctx.askUser("Ajoutes un lien vers une lettre de motivation :",1024, false);
+    data.folio = await ctx.askUser("Ajoutes les url de tes portfolios :",1024, false);
+    data.links = await ctx.askUser("Tu peux ajouter quelques liens utiles si tu le souhaites (portfolio, book, site web etc..)",1024, false);
 
     const formatted_message = (await format_message(data)).set_text("Vérifie ton annonce avant qu'elle soit postée");
 

@@ -49,6 +49,7 @@ function parseUrls(baseText) {
                         case 'de':
                         case 'jp':
                         case 'ca':
+                        case 'gg':
                             is_url = true;
                             break;
                         default:
@@ -101,7 +102,7 @@ class AdvertisingSetup {
     }
 
     async askChoice(text, questions) {
-        const baseMessage = new Message().set_text(`<:Bidibip:1124387202915389520> ${text}`);
+        const baseMessage = new Message().set_text(`## ▶  ${text}`);
 
         let interaction = null;
         for (const i in questions) {
@@ -133,8 +134,7 @@ class AdvertisingSetup {
     }
 
     async askUser(question, max_length = null, required = true) {
-        const message = new Message()
-            .set_text(`<:Bidibip:1124387202915389520> ${question}`);
+        const message = new Message().set_text(`## ▶  ${question}`);
         if (!required) {
             message.add_interaction_row(new InteractionRow().add_button(new Button().set_id("no").set_label("✖ Je ne suis pas concerné").set_type(Button.Secondary)));
         }

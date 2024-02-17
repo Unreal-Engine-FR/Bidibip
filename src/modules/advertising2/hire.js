@@ -66,8 +66,8 @@ async function format_message(data) {
  */
 async function hire(ctx, kind) {
     const data = {kind, author: ctx.author, color: AdvertisingKinds.get(kind).color};
-    data.title = await ctx.askUser("Donnes un titre à ton annonce", 128);
-    data.studio = await ctx.askUser("Nom du studio / entreprise", 100, false);
+    data.title = await ctx.askUser("Donnes un titre à ton annonce :", 128);
+    data.studio = await ctx.askUser("Quel est le nom de ton studio ou de ton entreprise ?", 100, false);
     data.allow_remote = await ctx.askChoice("Peut-on travailler en distanciel ?", ["🌍 Distanciel possible", "🏙 Présentiel flexible", "🤷‍♀️ Au choix", "🏣 Présentiel uniquement"]);
 
     if (data.allow_remote !== 0)
