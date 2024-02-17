@@ -40,19 +40,19 @@ class AdvertisingKinds {
                 break;
             case AdvertisingKinds.WORK_STUDY.type:
                 tags.push("Alternance");
-                tags.push("Contrat Rémunéré");
+                tags.push("Contrat rémunéré");
                 break;
             case AdvertisingKinds.PAID_LIMITED.type:
                 tags.push("CDD");
-                tags.push("Contrat Rémunéré");
+                tags.push("Contrat rémunéré");
                 break;
             case AdvertisingKinds.PAID_UNLIMITED.type:
                 tags.push("CDI");
-                tags.push("Contrat Rémunéré");
+                tags.push("Contrat rémunéré");
                 break;
             case AdvertisingKinds.FREELANCE.type:
                 tags.push("Freelance");
-                tags.push("Contrat Rémunéré");
+                tags.push("Contrat rémunéré");
                 break;
         }
         return tags;
