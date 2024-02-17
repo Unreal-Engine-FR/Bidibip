@@ -55,6 +55,17 @@ class Thread extends Channel {
         this._archived = _api_handle.archived;
     }
 
+    /**
+     * Delete this thread definitively
+     */
+    async delete() {
+        const api_handle = await this._fetch_from_discord();
+        if (api_handle) {
+            console.warning(`Deleted thread ${await this.name()}`)
+            await api_handle.delete();
+        }
+    }
+
     first_message() {
         return new Message().set_id(this._id).set_channel(this)
     }

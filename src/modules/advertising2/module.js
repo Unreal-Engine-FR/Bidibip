@@ -6,8 +6,7 @@ const {ModuleBase} = require("../../utils/module_base");
 const {Thread} = require("../../utils/thread.js");
 const {InteractionRow} = require("../../utils/interaction_row");
 const {Button} = require("../../utils/button");
-const HIRE = require("./hire")
-const APPLY = require("./hire")
+const {AdvertisingSetup} = require("./setup");
 
 class Module extends ModuleBase {
     constructor(create_infos) {
@@ -18,6 +17,20 @@ class Module extends ModuleBase {
             new CommandInfo('annonce', 'Créer une annonce d\'offre ou de recherche d\'emploi', this.annonce)
                 .set_member_only(),
         ]
+
+        (async () => {
+            if (this.module_config.registered_threads)
+                for (const thread of this.module_config.registered_threads) {
+                    const channel = new Thread().set_id(thread)
+                    if (await channel.is_valid()) {
+                        await channel.delete();
+                    }
+                }
+        })().catch((error)=> {console.error(`Failed to cleanup old thread : ${error}`)})
+
+        this.module_config.registered_threads = []
+        this.save_config();
+        this.advertising_setups = {};
     }
 
     /**
@@ -33,118 +46,36 @@ class Module extends ModuleBase {
         const thread = await new Thread().set_id(await thread_channel.create_thread(`Annonce de ${await user.name()}`, true)
             .catch(err => console.fatal(`Failed to create thread for announcement : ${err}`)));
 
-        const response = await thread.send(
-            new Message()
-                .set_text(`Bienvenue dans le formulaire de création d'annonce ${(user.mention())}.\n Quel type d'annonce souhaites tu publier ?`)
-                .add_interaction_row(
-                    new InteractionRow()
-                        .add_button(new Button().set_id("hire.js").set_label("Je recrute"))
-                        .add_button(new Button().set_id("apply").set_label("Je cherche du travail"))));
+        await command_interaction.reply(new Message().set_client_only().set_text(`Bien reçu, la suite se passe ici :arrow_right: ${thread.url()}`));
+        const message = await thread.send(new Message()
+            .set_text(`Bienvenue dans le formulaire de création d'annonce ${(user.mention())} !`)
+            .add_interaction_row(new InteractionRow()
+                .add_button(new Button().set_id("restart").set_label("Recommencer").set_type(Button.Secondary))
+                .add_button(new Button().set_id("cancel").set_label("Annuler").set_type(Button.Danger))));
 
-        this.bind_button(response, async (interaction) => {
-            if (interaction.button_id() === 'hire.js') {
-                (await response.get_button_by_id('hire.js')).set_type(Button.Success).set_enabled(false);
-                (await response.get_button_by_id('apply')).set_type(Button.Secondary).set_enabled(false);
-                await response.update(response);
-                await interaction.skip();
-                await this.mode_hire(thread, user);
-            }
-            else if (interaction.button_id() === 'apply') {
-                (await response.get_button_by_id('hire.js')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('apply')).set_type(Button.Success).set_enabled(false);
-                await response.update(response);
-                await interaction.skip();
-                await this.mode_apply(thread, user);
-            }
-        })
+        let setup = new AdvertisingSetup(this, thread, user);
+        this.module_config.registered_threads.push(thread.id())
+        this.save_config();
 
-        await command_interaction.reply(new Message().set_client_only().set_text(`Bien reçu, la suite se passe ici :arrow_right: ${thread.url()}`))
+        this.bind_button(message, async (interaction) => {
+            if (interaction.button_id() === 'restart') {
+                await interaction.skip();
+                setup = new AdvertisingSetup(this, thread, user);
+            }
+            if (interaction.button_id() === 'cancel') {
+                await thread.delete();
+            }
+        });
     }
 
     /**
-     * @param thread {Thread}
-     * @param owner {User}
+     * @param message {Message}
+     * @return {Promise<void>}
      */
-    async mode_hire(thread, owner) {
-        const response = await thread.send(
-            new Message()
-                .set_text(`Quel type de contrat proposes-tu ?`)
-                .add_interaction_row(
-                    new InteractionRow()
-                        .add_button(new Button().set_id("freelance").set_label("Freelance"))
-                        .add_button(new Button().set_id("unpaid").set_label("Coopération (non rémunéré)"))
-                        .add_button(new Button().set_id("paid").set_label("Contrat rémunéré"))
-                ));
-
-        this.bind_button(response, async (interaction) => {
-            if (interaction.button_id() === 'freelance') {
-                (await response.get_button_by_id('freelance')).set_type(Button.Success).set_enabled(false);
-                (await response.get_button_by_id('unpaid')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('paid')).set_type(Button.Secondary).set_enabled(false);
-                await response.update(response);
-                await interaction.skip();
-                await HIRE.freelance(thread, owner)
-            }
-            else if (interaction.button_id() === 'unpaid') {
-                (await response.get_button_by_id('freelance')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('unpaid')).set_type(Button.Success).set_enabled(false);
-                (await response.get_button_by_id('paid')).set_type(Button.Secondary).set_enabled(false);
-                await response.update(response);
-                await interaction.skip();
-                await HIRE.unpaid(thread, owner)
-            }
-            else if (interaction.button_id() === 'paid') {
-                (await response.get_button_by_id('freelance')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('unpaid')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('paid')).set_type(Button.Success).set_enabled(false);
-                await response.update(response);
-                await interaction.skip();
-                await HIRE.paid(thread, owner)
-            }
-        })
-    }
-
-    /**
-     * @param thread {Thread}
-     * @param owner {User}
-     */
-    async mode_apply(thread, owner) {
-        const response = await thread.send(
-            new Message()
-                .set_text(`Quel type de contrat cherches-tu ?`)
-                .add_interaction_row(
-                    new InteractionRow()
-                        .add_button(new Button().set_id("freelance").set_label("Freelance"))
-                        .add_button(new Button().set_id("unpaid").set_label("Coopération (non rémunéré)"))
-                        .add_button(new Button().set_id("paid").set_label("Contrat rémunéré"))
-                ));
-
-        this.bind_button(response, async (interaction) => {
-            if (interaction.button_id() === 'freelance') {
-                (await response.get_button_by_id('freelance')).set_type(Button.Success).set_enabled(false);
-                (await response.get_button_by_id('unpaid')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('paid')).set_type(Button.Secondary).set_enabled(false);
-                await response.update(response);
-                await interaction.skip();
-                await APPLY.freelance(thread, owner)
-            }
-            else if (interaction.button_id() === 'unpaid') {
-                (await response.get_button_by_id('freelance')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('unpaid')).set_type(Button.Success).set_enabled(false);
-                (await response.get_button_by_id('paid')).set_type(Button.Secondary).set_enabled(false);
-                await response.update(response);
-                await interaction.skip();
-                await APPLY.unpaid(thread, owner)
-            }
-            else if (interaction.button_id() === 'paid') {
-                (await response.get_button_by_id('freelance')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('unpaid')).set_type(Button.Secondary).set_enabled(false);
-                (await response.get_button_by_id('paid')).set_type(Button.Success).set_enabled(false);
-                await response.update(response);
-                await interaction.skip();
-                await APPLY.paid(thread, owner)
-            }
-        })
+    async server_message(message) {
+        const channelId = (await message.channel()).id();
+        if (this.advertising_setups[channelId])
+            await this.advertising_setups[channelId].received_message(message);
     }
 }
 
