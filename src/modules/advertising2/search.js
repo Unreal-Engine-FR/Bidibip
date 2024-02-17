@@ -3,16 +3,17 @@ const {Embed} = require("../../utils/embed");
 const {AdvertisingKinds} = require("./types");
 const {InteractionRow} = require("../../utils/interaction_row");
 const {Button} = require("../../utils/button");
+const {Channel} = require("../../utils/channel");
 
 
 function format_remote(remote_id) {
     switch (remote_id) {
         case 0:
-            return "En distanciel uniquement";
+            return "🌍 En distanciel uniquement";
         case 1:
-            return "Distanciel ou présentiel possible";
-        case 3:
-            return "Présentiel uniquement";
+            return "‍🤷‍ Distanciel ou présentiel possible";
+        case 2:
+            return "🏣 Présentiel uniquement";
     }
 }
 
@@ -20,12 +21,12 @@ async function format_message(data) {
     const message = new Message();
     const embed = new Embed()
         .set_author(data.author)
-        .set_color('#876be2')
+        .set_color(data.color)
         .set_title(`${await data.author.name()} : ${data.title}`)
         .set_description(format_remote(data.allow_remote))
 
     if (data.duration)
-        embed.add_field('Durée du contrat', data.duration, data.allow_remote !== 0);
+        embed.add_field('Durée du contrat :', data.duration, data.allow_remote !== 0);
 
     if (data.where)
         embed.add_field('Je cherche du travail dans cette région :', data.where);
@@ -33,17 +34,17 @@ async function format_message(data) {
 
     message.add_embed(new Embed()
         .set_title('Compétences')
-        .set_color('#876be2')
+        .set_color(data.color)
         .set_description(data.skills));
 
     message.add_embed(new Embed()
         .set_title('Experiences passées')
-        .set_color('#876be2')
+        .set_color(data.color)
         .set_description(data.xp));
 
     const last = new Embed()
         .set_title('Autres informations')
-        .set_color('#876be2')
+        .set_color(data.color)
         .add_field("Me contacter :", data.how, true);
 
     if (data.cv)
@@ -66,9 +67,9 @@ async function format_message(data) {
  * @param kind {number}
  */
 async function search(ctx, kind) {
-    const data = {kind, author: ctx.author};
+    const data = {kind, author: ctx.author, color: AdvertisingKinds.get(kind).color};
     data.title = await ctx.askUser("Donne un titre à ton annonce ou précise ta spécialité", 128);
-    data.allow_remote = await ctx.askChoice("Souhaites-tu travailler à distance ou en présentiel ?", ["En distanciel", "Télétravail flexible", "Présentiel uniquement"]);
+    data.allow_remote = await ctx.askChoice("Souhaites-tu travailler à distance ou en présentiel ?", ["🌍 En distanciel", "🤷‍ Télétravail flexible", "🏣 Présentiel uniquement"]);
 
     if (data.allow_remote !== 0)
         data.where = await ctx.askUser("Dans quelle région cherches-tu du travail ?", 1024);
@@ -96,11 +97,35 @@ async function search(ctx, kind) {
     ctx.ctx.bind_button(result, async (interaction) => {
 
         if (interaction.button_id() === 'yes') {
+            const authorTitle = ` (par ${await ctx.author.name()})`;
+            let baseTitle = `${AdvertisingKinds.get(kind).emote} Cherche ${AdvertisingKinds.get(kind).text_small} : ${data.title}`;
 
-            //POSTTTEEEERRRR
+            if (baseTitle.length > 100 - authorTitle.length)
+                baseTitle = `${baseTitle.substring(0, 100 - 3 - authorTitle.length)}...`;
 
-
-            await interaction.skip();
+            const tags = AdvertisingKinds.getTags(kind);
+            tags.push("Recherche d'emploi");
+            switch (data.allow_remote) {
+                case 0:
+                    tags.push('Distanciel')
+                    break;
+                case 1:
+                    tags.push('Distanciel')
+                    tags.push('Présentiel')
+                    break;
+                case 2:
+                    tags.push('Présentiel')
+                    break;
+            }
+            await new Channel().set_id(ctx.ctx.app_config.ADVERTISING_FORUM).create_thread(
+                `${baseTitle}${authorTitle}`,
+                false,
+                await format_message(data),
+                tags)
+                .then(async _thread => {
+                    await interaction.skip();
+                    await ctx.thread.delete();
+                })
         }
         else if (interaction.button_id() === 'no') {
             await interaction.skip();

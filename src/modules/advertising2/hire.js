@@ -3,18 +3,19 @@ const {Message} = require("../../utils/message");
 const {Embed} = require("../../utils/embed");
 const {InteractionRow} = require("../../utils/interaction_row");
 const {Button} = require("../../utils/button");
+const {Channel} = require("../../utils/channel");
 
 
 function format_remote(remote_id) {
     switch (remote_id) {
         case 0:
-            return "Distanciel uniquement";
+            return "🌍 Distanciel uniquement";
         case 1:
-            return "Travail en Présentiel avec Flexibilité Télétravail";
+            return "🏙 Travail en Présentiel avec Flexibilité Télétravail";
         case 2:
-            return "Distanciel ou présentiel au choix";
+            return "🤷‍♀️ Distanciel ou présentiel au choix";
         case 3:
-            return "Présentiel uniquement";
+            return "🏣 Présentiel uniquement";
     }
 }
 
@@ -22,12 +23,15 @@ async function format_message(data) {
     const message = new Message();
     const embed = new Embed()
             .set_author(data.author)
-            .set_color('#876be2')
+            .set_color(data.color)
             .set_title(data.title + " Chez " + (data.studio || await data.author.name()))
             .set_description(format_remote(data.allow_remote))
 
     if (data.duration)
-        embed.add_field('Durée du contrat', data.duration, data.allow_remote !== 0);
+        embed.add_field('Durée du contrat :', data.duration, data.allow_remote !== 0);
+
+    if (data.pay)
+        embed.add_field('Salaire :', data.pay, true);
 
     if (data.where)
         embed.add_field('Localisation', data.where);
@@ -35,18 +39,18 @@ async function format_message(data) {
 
     message.add_embed(new Embed()
         .set_title('Responsabilités')
-        .set_color('#876be2')
+        .set_color(data.color)
         .set_description(data.responsibility));
 
     message.add_embed(new Embed()
         .set_title('Qualifications')
-        .set_color('#876be2')
+        .set_color(data.color)
         .set_description(data.qualification));
 
     const last = new Embed()
         .set_title('Autres informations')
-        .set_color('#876be2')
-        .add_field("Comment postuler", data.how, true);
+        .set_color(data.color)
+        .add_field("Comment postuler :", data.how, true);
 
     if (data.links)
         last.add_field("Liens utils :", data.links);
@@ -61,16 +65,19 @@ async function format_message(data) {
  * @param kind {number}
  */
 async function hire(ctx, kind) {
-    const data = {kind, author: ctx.author};
+    const data = {kind, author: ctx.author, color: AdvertisingKinds.get(kind).color};
     data.title = await ctx.askUser("Donnes un titre à ton annonce", 128);
     data.studio = await ctx.askUser("Nom du studio / entreprise", 100, false);
-    data.allow_remote = await ctx.askChoice("Peut-on travailler en distanciel ?", ["Distanciel possible", "Présentiel flexible", "Au choix", "Présentiel uniquement"]);
+    data.allow_remote = await ctx.askChoice("Peut-on travailler en distanciel ?", ["🌍 Distanciel possible", "🏙 Présentiel flexible", "🤷‍♀️ Au choix", "🏣 Présentiel uniquement"]);
 
     if (data.allow_remote !== 0)
         data.where = await ctx.askUser("Où se situent les bureaux ? (ville / pays)", 1024);
 
     if (kind !== AdvertisingKinds.PAID_UNLIMITED.type && kind !== AdvertisingKinds.UNPAID.type)
         data.duration = await ctx.askUser("Quelle est la durée du contrat ?", 1024);
+
+    if (kind !== AdvertisingKinds.INTERN_FREE.type && kind !== AdvertisingKinds.UNPAID.type)
+        data.pay = await ctx.askUser("Quelle est le salaire (taux horraire) ?", 1024);
 
     data.responsibility = await ctx.askUser("Quelles seront les responsabilités et le travail à réaliser ?", 1024);
     data.qualification = await ctx.askUser("Quelles sont les qualifications recherchées ?", 1024);
@@ -90,10 +97,38 @@ async function hire(ctx, kind) {
 
         if (interaction.button_id() === 'yes') {
 
-            //POSTTTEEEERRRR
+            const authorTitle = ` (par ${await ctx.author.name()})`;
+            let baseTitle = `${AdvertisingKinds.get(kind).emote} Offre ${AdvertisingKinds.get(kind).text_small} : ${data.title}${data.studio ? " chez " + data.studio : ""}`;
 
+            if (baseTitle.length > 100 - authorTitle.length)
+                baseTitle = `${baseTitle.substring(0, 100 - 3 - authorTitle.length)}...`;
 
-            await interaction.skip();
+            const tags = AdvertisingKinds.getTags(kind);
+            tags.push("Offre d'emploi");
+            switch (data.allow_remote) {
+                case 0:
+                    tags.push('Distanciel')
+                    break;
+                case 2:
+                    tags.push('Présentiel flexible')
+                    break;
+                case 2:
+                    tags.push('Distanciel')
+                    tags.push('Présentiel')
+                    break;
+                case 3:
+                    tags.push('Présentiel')
+                    break;
+            }
+            await new Channel().set_id(ctx.ctx.app_config.ADVERTISING_FORUM).create_thread(
+                `${baseTitle}${authorTitle}`,
+                false,
+                await format_message(data),
+                tags)
+                .then(async _thread => {
+                    await interaction.skip();
+                    await ctx.thread.delete();
+                })
         }
         else if (interaction.button_id() === 'no') {
             await interaction.skip();

@@ -50,8 +50,8 @@ class Module extends ModuleBase {
         const message = await thread.send(new Message()
             .set_text(`Bienvenue dans le formulaire de création d'annonce ${(user.mention())} !`)
             .add_interaction_row(new InteractionRow()
-                .add_button(new Button().set_id("restart").set_label("Recommencer").set_type(Button.Secondary))
-                .add_button(new Button().set_id("cancel").set_label("Annuler").set_type(Button.Danger))));
+                .add_button(new Button().set_id("restart").set_label("♻ Recommencer").set_type(Button.Secondary))
+                .add_button(new Button().set_id("cancel").set_label("❌ Annuler").set_type(Button.Danger))));
 
         new AdvertisingSetup(this, thread, user);
         this.module_config.registered_threads.push(thread.id())

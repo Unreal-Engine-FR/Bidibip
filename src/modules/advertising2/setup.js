@@ -85,7 +85,7 @@ class AdvertisingSetup {
     }
 
     async start() {
-        switch (await this.askChoice('Que cherches tu ?', ['Je cherche du travail', 'Je recrute'])) {
+        switch (await this.askChoice('Que cherches tu ?', ['👩‍🔧 Je cherche du travail', '🕵️‍♀️ Je recrute'])) {
             case 0:
                 await search(this, await this.askChoice('Quel type de contrat recherches-tu ?', AdvertisingKinds.allTexts()));
                 break;
@@ -101,8 +101,7 @@ class AdvertisingSetup {
     }
 
     async askChoice(text, questions) {
-        console.log(text + ` ; ${questions}`, questions)
-        const baseMessage = new Message().set_text(text);
+        const baseMessage = new Message().set_text(`<:Bidibip:1124387202915389520> ${text}`);
 
         let interaction = null;
         for (const i in questions) {
@@ -135,9 +134,9 @@ class AdvertisingSetup {
 
     async askUser(question, max_length = null, required = true) {
         const message = new Message()
-            .set_text(question);
+            .set_text(`<:Bidibip:1124387202915389520> ${question}`);
         if (!required) {
-            message.add_interaction_row(new InteractionRow().add_button(new Button().set_id("no").set_label("Je ne suis pas concerné").set_type(Button.Secondary)));
+            message.add_interaction_row(new InteractionRow().add_button(new Button().set_id("no").set_label("✖ Je ne suis pas concerné").set_type(Button.Secondary)));
         }
         const sent = await this.thread.send(message);
 
