@@ -153,7 +153,7 @@ class Module extends ModuleBase {
                         .set_client_only())
                 } else {
                     command_interaction.reply(new Message()
-                        .set_text(`Mise à jour disponible, Redémarage en cours ! (${res.currentVersion} => ${res.remoteVersion})`)
+                        .set_text(`Mise à jour disponible, Redémarrage en cours ! (${res.currentVersion} => ${res.remoteVersion})`)
                         .set_client_only())
                         .then(_ => {
                             console.warning("restarting for update...")
