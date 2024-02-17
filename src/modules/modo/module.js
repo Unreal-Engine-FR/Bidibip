@@ -7,6 +7,7 @@ const {Message} = require("../../utils/message");
 const {Embed} = require("../../utils/embed");
 const {User} = require("../../utils/user");
 
+
 class Module extends ModuleBase {
     constructor(create_infos) {
         super(create_infos)

@@ -9,18 +9,22 @@ class Module extends ModuleBase {
     constructor(create_infos) {
         super(create_infos);
 
-        const approval_message = new Message()
-            .set_channel(new Channel().set_id(this.app_config.REGLEMENT_CHANNEL_ID))
-            .set_id(this.module_config.approval)
+        if (this.module_config.approval) {
+            const approval_message = new Message()
+                .set_channel(new Channel().set_id(this.app_config.REGLEMENT_CHANNEL_ID))
+                .set_id(this.module_config.approval)
 
-        approval_message.is_valid().then(async result => {
-            if (result)
-                    await this.bind_approval(approval_message)
-                        .catch(err => console.error(`Failed to bind approval button : ${err}`))
-                else
-                    console.error('No approval message is configured')
-            }
-        )
+            approval_message.is_valid().then(async result => {
+                    if (result)
+                        await this.bind_approval(approval_message)
+                            .catch(err => console.error(`Failed to bind approval button : ${err}`))
+                    else
+                        console.error('No approval message is configured')
+                }
+            )
+        }
+        else
+            console.error('No approval message is configured')
     }
 
 

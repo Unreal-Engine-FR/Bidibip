@@ -1,4 +1,5 @@
 const {ButtonBuilder} = require("discord.js");
+const assert = require("assert");
 
 class Button {
     static Primary = 1
@@ -25,6 +26,8 @@ class Button {
      * @returns {Button}
      */
     set_id(id) {
+        if (typeof(id) !== 'string')
+            console.fatal("Id should be a string : ", id);
         this._id = id
         return this
     }

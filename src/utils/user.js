@@ -1,6 +1,7 @@
 const DI = require('./discord_interface')
 const Discord = require('discord.js')
 const CONFIG = require("../config");
+const assert = require("assert");
 
 class User {
     constructor(_api_handle = null) {
@@ -36,6 +37,8 @@ class User {
      * @return {User}
      */
     set_id(user_id) {
+        if (typeof(user_id) !== 'number' && typeof(user_id) !== 'string')
+            console.fatal("Id should be a number : ", user_id);
         this._id = user_id
         return this
     }

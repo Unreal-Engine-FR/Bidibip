@@ -2,11 +2,13 @@ const DI = require("./discord_interface");
 const CONFIG = require("../config");
 const {Embed} = require("./embed");
 const {ChannelType} = require('discord.js');
+const assert = require("assert");
 
 class Channel {
 
     static TypeChannel = 0
     static TypeThread = 11
+    static TypePrivateThread = 12
     static TypeForum = 15
 
     constructor(_api_handle) {
@@ -15,7 +17,13 @@ class Channel {
         }
     }
 
+    /**
+     * @param id {string}
+     * @returns {Channel | Thread}
+     */
     set_id(id) {
+        if (typeof(id) !== 'number' && typeof(id) !== 'string')
+            console.fatal("Id should be a number : ", id);
         this._id = id
         return this
     }
@@ -135,6 +143,9 @@ class Channel {
      */
     async create_thread(title, private_thread = false, message = undefined, tags = undefined) {
         const api_handle = await this._fetch_from_discord()
+
+        if (!api_handle)
+            console.fatal(`Invalid thread : ${this.id()}`);
 
         if (title.length > 100)
             console.fatal(`Thread title is too long : ${title.length} | ${title}`)

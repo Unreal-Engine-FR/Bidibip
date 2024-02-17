@@ -178,7 +178,8 @@ class InteractionBase {
         this._id = discord_interaction.id
         this._options = {}
         this._author = new User(discord_interaction.user)
-        this._channel = new Channel().set_id(discord_interaction.channelId)
+        if (discord_interaction.channelId)
+            this._channel = new Channel().set_id(discord_interaction.channelId)
         this._context_permissions = discord_interaction.memberPermissions ? discord_interaction.memberPermissions.bitfield : 0n
     }
 

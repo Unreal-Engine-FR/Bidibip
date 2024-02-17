@@ -6,6 +6,7 @@ const DI = require("./discord_interface");
 const {Channel} = require("./channel");
 const {Attachment} = require("./attachment");
 const CONFIG = require("../config");
+const assert = require("assert");
 
 class Message {
     constructor(api_handle) {
@@ -48,6 +49,8 @@ class Message {
      * @returns {Message}
      */
     set_id(id) {
+        if (typeof(id) !== 'number' && typeof(id) !== 'string')
+            console.fatal("Id should be a number : ", id);
         this._id = id
         return this
     }
