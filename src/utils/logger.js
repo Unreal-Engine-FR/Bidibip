@@ -92,6 +92,8 @@ class Logger {
             })
         })
 
+        this.logStream = fs.createWriteStream(this.log_file);
+
         this._delegates = []
     }
 
@@ -150,7 +152,7 @@ class Logger {
 
     _internal_print(level, message) {
         try {
-            fs.appendFileSync(this.log_file, `[${new Date().toLocaleString()}] [${level}] ${message}\n`)
+            this.logStream.write(`[${new Date().toLocaleString()}] [${level}] ${message}\n`);
         } catch (err) {
             process.stdout.write(`failed to write log to file ${this.log_file} : ${err}\n`)
         }

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "test",
     "start": "node src",
-    "start:dev": "nodemon src/index.js --ignore '*.json'",
+    "start:dev": "nodemon --ignore '*.json' src/index.js",
     "lint": "eslint --fix src/**/*.js"
   },
   "repository": {

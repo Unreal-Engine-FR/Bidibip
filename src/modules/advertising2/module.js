@@ -16,7 +16,7 @@ class Module extends ModuleBase {
         this.commands = [
             new CommandInfo('annonce', 'Créer une annonce d\'offre ou de recherche d\'emploi', this.annonce)
                 .set_member_only(),
-        ]
+        ];
 
         (async () => {
             if (this.module_config.registered_threads)
@@ -53,16 +53,16 @@ class Module extends ModuleBase {
                 .add_button(new Button().set_id("restart").set_label("Recommencer").set_type(Button.Secondary))
                 .add_button(new Button().set_id("cancel").set_label("Annuler").set_type(Button.Danger))));
 
-        let setup = new AdvertisingSetup(this, thread, user);
+        new AdvertisingSetup(this, thread, user);
         this.module_config.registered_threads.push(thread.id())
         this.save_config();
 
         this.bind_button(message, async (interaction) => {
             if (interaction.button_id() === 'restart') {
                 await interaction.skip();
-                setup = new AdvertisingSetup(this, thread, user);
+                new AdvertisingSetup(this, thread, user);
             }
-            if (interaction.button_id() === 'cancel') {
+            else if (interaction.button_id() === 'cancel') {
                 await thread.delete();
             }
         });
