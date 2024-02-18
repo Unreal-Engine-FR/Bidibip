@@ -145,7 +145,8 @@ class AdvertisingSetup {
                 this.ctx.bind_button(sent, async (interaction) => {
                     if (interaction.button_id() === 'no') {
                         await interaction.skip();
-                        await sent.delete()
+                        if (await sent.is_valid())
+                            await sent.delete()
                         resolve(null);
                     }
                 })
