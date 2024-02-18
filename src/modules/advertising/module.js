@@ -102,7 +102,7 @@ class Module extends ModuleBase {
                 `${baseTitle}${authorTitle}`,
                 false,
                 this.build_unpaid(command_interaction).message,
-                ["Coopération"])
+                ["Bénévolat"])
                 .then(async thread => {
                     command_interaction.edit_reply(new Message()
                         .set_text(`Ton annonce a bien été publiée : ${new Channel().set_id(thread).url()}`))
