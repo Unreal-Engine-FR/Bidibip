@@ -49,8 +49,11 @@ function parseUrls(baseText) {
                         case 'de':
                         case 'jp':
                         case 'ca':
+                            is_url = true;
+                            break;
                         case 'gg':
                             is_url = true;
+                            display_url = display_url.split('/')[0];
                             break;
                         default:
                             break;

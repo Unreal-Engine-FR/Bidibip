@@ -8,7 +8,7 @@ function arg_to_string(arg, depth = '  ', object_map = new Set()) {
         let res = ''
         for (const item of arg)
             res += `${arg_to_string(item, depth, object_map)}, `
-        return '[' + res.substring(0, res.length - 2) + ']'
+        return res.length > 2 ? '[' + res.substring(0, res.length - 2) + ']' : '';
     } else if (arg === Object(arg)) {
         if (object_map.has(arg))
             return `\x1b[36m[Circular]\x1b[0m`;
