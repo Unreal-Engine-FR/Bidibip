@@ -49,8 +49,11 @@ function parseUrls(baseText) {
                         case 'de':
                         case 'jp':
                         case 'ca':
+                            is_url = true;
+                            break;
                         case 'gg':
                             is_url = true;
+                            display_url = display_url.split('/')[0];
                             break;
                         default:
                             break;
@@ -145,8 +148,7 @@ class AdvertisingSetup {
                 this.ctx.bind_button(sent, async (interaction) => {
                     if (interaction.button_id() === 'no') {
                         await interaction.skip();
-                        if (await sent.is_valid())
-                            await sent.delete()
+                        await sent.delete()
                         resolve(null);
                     }
                 })
