@@ -122,17 +122,20 @@ class Module extends ModuleBase {
                     await author.kick(`Anti-spam confirmé`)
                     if (await message.is_valid())
                         await message.delete()
-                    await admin_message.delete()
-                    await admin_button.reply(new Message().set_text("Et paf ca dégage !").set_client_only())
+                    admin_message.clear_interactions();
+                    admin_message.add_interaction_row(new InteractionRow().add_button(new Button("").set_enabled(false).set_id("kicked").set_label(`Dégagé par par ${await admin_button.author().name()} !`).set_type(Button.Danger)))
+                    await admin_message.update(admin_message);
                 } else {
                     await author.remove_role(this.app_config.MUTE_ROLE_ID)
                     if (await message.is_valid())
                         await message.delete()
-                    await admin_message.delete()
-                    await admin_button.reply(new Message().set_text("C'est noté !").set_client_only())
+                    admin_message.clear_interactions();
+                    admin_message.add_interaction_row(new InteractionRow().add_button(new Button("").set_enabled(false).set_id("pardon").set_label(`Pardonné par ${await admin_button.author().name()} !`).set_type(Button.Success)))
+                    await admin_message.update(admin_message);
                 }
                 delete this.module_config[author.id()]
                 this.save_config()
+                await admin_button.skip();
             })
         }
     }
