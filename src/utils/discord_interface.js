@@ -20,6 +20,10 @@ class DiscordInterface {
         this.on_reaction_add = null
         this.on_user_join = null
         this.on_user_leave = null
+        this.on_user_excluded = null
+        this.on_user_kicked = null
+        this.on_user_banned = null
+        this.on_user_unbanned = null
 
         client.on(Discord.Events.ThreadCreate, this._on_thread_create)
         client.on(Discord.Events.MessageCreate, this._on_message)
@@ -29,6 +33,7 @@ class DiscordInterface {
         client.on(Discord.Events.MessageReactionAdd, this._on_reaction_add)
         client.on(Discord.Events.GuildMemberAdd, this._on_user_join)
         client.on(Discord.Events.GuildMemberRemove, this._on_user_leave)
+        client.on(Discord.Events.GuildAuditLogEntryCreate, this._on_log_entry_create)
 
         this._everyone_role = null
         this._admin_role = null
@@ -95,7 +100,39 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
             DISCORD_CLIENT.on_user_join(user)
     }
 
-    _on_user_leave(user) {
+    async _on_log_entry_create(audit_log) {
+        // Define your variables.
+        const {action, executorId, targetId, changes, reason} = audit_log;
+
+        if (action === Discord.AuditLogEvent.MemberUpdate && changes && changes.length > 0 && changes[0].key === 'communication_disabled_until') {
+            if (DISCORD_CLIENT.on_user_excluded)
+                if (changes[0].new)
+                    DISCORD_CLIENT.on_user_excluded(targetId, executorId, reason, changes[0].new);
+                else
+                    DISCORD_CLIENT.on_user_excluded(targetId, executorId, reason, null);
+            return;
+        }
+
+        if (action === Discord.AuditLogEvent.MemberKick) {
+            if (DISCORD_CLIENT.on_user_kicked)
+                DISCORD_CLIENT.on_user_kicked(targetId, executorId, reason);
+            return;
+        }
+
+        if (action === Discord.AuditLogEvent.MemberBanAdd) {
+            if (DISCORD_CLIENT.on_user_banned)
+                DISCORD_CLIENT.on_user_banned(targetId, executorId, reason);
+            return;
+        }
+
+        if (action === Discord.AuditLogEvent.MemberBanRemove) {
+            if (DISCORD_CLIENT.on_user_unbanned)
+                DISCORD_CLIENT.on_user_unbanned(targetId, executorId, reason);
+            return;
+        }
+    }
+
+    async _on_user_leave(user) {
         if (DISCORD_CLIENT.on_user_leave)
             DISCORD_CLIENT.on_user_leave(user)
     }
@@ -118,9 +155,26 @@ admin = ${DISCORD_CLIENT._admin_role.permissions.bitfield.toString(2)}\n${DISCOR
         }
     }
 
-    _on_message_delete(msg) {
+    async _on_message_delete(msg) {
+        const fetchedLogs = await msg.guild.fetchAuditLogs({
+            limit: 1,
+            type: Discord.AuditLogEvent.MessageDelete,
+        });
+
+        const DeleteLog = fetchedLogs.entries.first();
+
+        // Let's perform a sanity check here and make sure we got *something*
+        if (!DeleteLog) {
+            console.error(`Failed to get message delete log : ${fetchedLogs}`);
+            return;
+        }
+
+        // We now grab the user object of the person who kicked our member
+        // Let us also grab the target of this action to double check things
+        const {executor, target} = fetchedLogs.entries.first();
+
         if (DISCORD_CLIENT.on_message_delete && (!msg.author || !msg.author.bot))
-            DISCORD_CLIENT.on_message_delete(msg)
+            DISCORD_CLIENT.on_message_delete(msg, target.tag, executor.tag)
     }
 
     _on_message_udpate(old_msg, new_msg) {

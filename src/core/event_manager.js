@@ -28,10 +28,22 @@ class EventManager {
         DI.get().on_user_leave = user => {
             this._on_user_leave(new User(user))
         }
-        DI.get().on_message_delete = msg => {
+        DI.get().on_user_excluded = (targetId, executorId, reason, until) => {
+            this._on_user_excluded(new User().set_id(targetId), new User().set_id(executorId), reason, until)
+        }
+        DI.get().on_user_kicked = (targetId, executorId, reason) => {
+            this._on_user_kicked(new User().set_id(targetId), new User().set_id(executorId), reason)
+        }
+        DI.get().on_user_banned = (targetId, executorId, reason) => {
+            this._on_user_banned(new User().set_id(targetId), new User().set_id(executorId), reason)
+        }
+        DI.get().on_user_unbanned = (targetId, executorId, reason) => {
+            this._on_user_unbanned(new User().set_id(targetId), new User().set_id(executorId), reason)
+        }
+        DI.get().on_message_delete = (msg, from, by) => {
             const message = new Message(msg)
             if (!message.is_dm())
-                this._server_message_delete(message)
+                this._server_message_delete(message, from, by)
         }
         DI.get().on_message_update = (old_message, new_message) => {
             const old = new Message(old_message)
@@ -179,11 +191,11 @@ class EventManager {
                 })()
     }
 
-    _server_message_delete(message) {
+    _server_message_delete(message, from, by) {
         for (const module of this._bound_modules)
             if (module.server_message_delete)
                 (async () => {
-                    module.server_message_delete(message)
+                    module.server_message_delete(message, from, by)
                         .catch(err => console.error(`Failed to call 'server_message_delete()' on module ${module.name} :\n${err}`))
                 })()
     }
@@ -221,6 +233,38 @@ class EventManager {
                 (async () => {
                     module.user_leaved(user)
                         .catch(err => console.error(`Failed to call 'user_leaved()' on module ${module.name} :\n${err}`))
+                })()
+    }
+    _on_user_excluded(target, executor, reason, until) {
+        for (const module of this._bound_modules)
+            if (module.user_excluded)
+                (async () => {
+                    module.user_excluded(target, executor, reason, until)
+                        .catch(err => console.error(`Failed to call 'user_excluded()' on module ${module.name} :\n${err}`))
+                })()
+    }
+    _on_user_kicked(target, executor, reason) {
+        for (const module of this._bound_modules)
+            if (module.user_kicked)
+                (async () => {
+                    module.user_kicked(target, executor, reason)
+                        .catch(err => console.error(`Failed to call 'user_kicked()' on module ${module.name} :\n${err}`))
+                })()
+    }
+    _on_user_banned(target, executor, reason) {
+        for (const module of this._bound_modules)
+            if (module.user_banned)
+                (async () => {
+                    module.user_banned(target, executor, reason)
+                        .catch(err => console.error(`Failed to call 'user_banned()' on module ${module.name} :\n${err}`))
+                })()
+    }
+    _on_user_unbanned(target, executor, reason) {
+        for (const module of this._bound_modules)
+            if (module.user_unbanned)
+                (async () => {
+                    module.user_unbanned(target, executor, reason)
+                        .catch(err => console.error(`Failed to call 'user_unbanned()' on module ${module.name} :\n${err}`))
                 })()
     }
     get_commands(permissions) {

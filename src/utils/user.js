@@ -88,7 +88,7 @@ class User {
      * @return {Promise<string>}
      */
     async full_name() {
-        return `${await this.name()}#${await this.discriminator()}`
+        return `${await this.name()}`
     }
 
     /**

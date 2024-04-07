@@ -43,7 +43,8 @@ updater.autoUpdate()
                         GatewayIntentBits.GuildMembers,
                         GatewayIntentBits.MessageContent,
                         GatewayIntentBits.GuildMessageReactions,
-                        GatewayIntentBits.DirectMessages
+                        GatewayIntentBits.DirectMessages,
+                        GatewayIntentBits.GuildModeration
                     ], // This is the action the bot will be able to do
                 }
             )
