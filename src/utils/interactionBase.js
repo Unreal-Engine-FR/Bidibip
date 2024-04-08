@@ -295,6 +295,8 @@ class CommandInteraction extends InteractionBase {
 
         for (const option of message_options) {
             const current_string = this._options[option]
+            if (!current_string)
+                continue;
             const message = new Message().set_id(current_string).set_channel(this.channel())
 
             if (current_string.includes('/')) {
