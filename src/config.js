@@ -33,6 +33,9 @@ class Configuration {
         /* MODO MODULE */
         this.TICKET_CHANNEL_ID = '1089260511998263377';
 
+        /* WARNS MODULE */
+        this.WARN_CHANNEL = '482308070584614942';
+
         require('dotenv').config()
 
         for (const [key, value] of Object.entries(process.env)) {
