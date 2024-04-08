@@ -82,7 +82,7 @@ class Module extends ModuleBase {
         const OutMessage =
             new Message()
                 .set_channel(new Channel().set_id(this.app_config.WARN_CHANNEL))
-                .set_text(`Warn de ${user.mention()} par ${command_interaction.author().mention()}`)
+                .set_text(`Warn de ${user.mention()} par ${command_interaction.author().mention()} <@&${this.app_config.ADMIN_ROLE_ID}>`)
                 .add_embed(embed)
 
 
