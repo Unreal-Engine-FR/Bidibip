@@ -1,4 +1,3 @@
-using Bidibip.Plugin.Sdk;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -17,14 +16,16 @@ public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContex
         ad.EditingStep = stepName;
         await AdvertisingPlugin.SaveConfigAsync(config);
 
-        var currentValue = AdStateMachine.GetValueForStep(ad, stepName) ?? "";
-        var questionText = AdStateMachine.GetQuestionText(stepName, ad);
+        var step = AdStepRegistry.GetStep(stepName);
+        var currentValue = step?.GetValue(ad) ?? "";
+        var questionText = step?.GetQuestionText(ad) ?? stepName;
         var modalTitle = questionText.Length > 45 ? questionText[..45] : questionText;
 
         var modal = new ModalBuilder()
             .WithTitle(modalTitle)
             .WithCustomId("ad-field-modal")
-            .AddTextInput("Nouveau contenu", "text", TextInputStyle.Paragraph, placeholder: "Nouveau contenu", value: currentValue)
+            .AddTextInput("Nouveau contenu", "text", TextInputStyle.Paragraph,
+                placeholder: "Nouveau contenu", value: currentValue)
             .Build();
 
         await Context.Interaction.RespondWithModalAsync(modal);
@@ -48,20 +49,17 @@ public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContex
         ad.EditingStep = null;
 
         var newValue = modal.Text?.Trim();
-
         if (string.IsNullOrWhiteSpace(newValue))
         {
             await FollowupAsync("La valeur ne peut pas \u00eatre vide.", ephemeral: true);
             return;
         }
 
-        AdStateMachine.SetValueForStep(ad, stepName, newValue);
-        if (stepName == "other_urls")
-            ad.OtherUrlsSkipped = false;
+        AdStepRegistry.GetStep(stepName)?.SetValue(ad, newValue);
 
         await AdQuestions.EditQuestionWithAnswer(Context.Channel, ad, stepName, newValue);
 
-        ad.Step = AdStateMachine.FindNextMissingStep(ad);
+        ad.Step = AdStepRegistry.FindNextMissingStep(ad);
 
         if (ad.Step == "preview")
             await AdQuestions.AdvanceAsync(Context.Channel, ad, config, Context.User);
@@ -78,13 +76,16 @@ public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContex
         var ad = FindAd(config);
         if (ad is null) return;
 
-        AdStateMachine.SetValueForStep(ad, stepName, null);
-        if (stepName == "other_urls")
-            ad.OtherUrlsSkipped = true;
+        var step = AdStepRegistry.GetStep(stepName);
+        step?.SetValue(ad, null);
+
+        // If clearing an optional step, mark it as skipped
+        if (step is TextStep { IsOptional: true } textStep)
+            textStep.OnSkip?.Invoke(ad);
 
         await AdQuestions.EditQuestionAsCleared(Context.Channel, ad, stepName);
 
-        ad.Step = AdStateMachine.FindNextMissingStep(ad);
+        ad.Step = AdStepRegistry.FindNextMissingStep(ad);
 
         if (ad.Step == "preview")
             await AdQuestions.AdvanceAsync(Context.Channel, ad, config, Context.User);

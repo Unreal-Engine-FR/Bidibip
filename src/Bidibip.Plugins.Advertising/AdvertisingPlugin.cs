@@ -86,15 +86,17 @@ public sealed class AdvertisingPlugin : IBidibipPlugin
         try
         {
             var currentStep = ad.Step;
-            var handled = AdStateMachine.ProcessTextStep(ad, text);
-            if (!handled)
+            var stepDef = AdStepRegistry.GetTextStep(currentStep);
+            if (stepDef is null || !stepDef.IsApplicable(ad))
                 return;
+
+            stepDef.SetValue(ad, text);
 
             await AdQuestions.EditQuestionWithAnswer(thread, ad, currentStep, text);
 
             try { await ((IUserMessage)message).DeleteAsync(); } catch { /* ignore */ }
 
-            ad.Step = AdStateMachine.FindNextMissingStep(ad);
+            ad.Step = AdStepRegistry.FindNextMissingStep(ad);
             await AdQuestions.AdvanceAsync(thread, ad, config, message.Author);
             await SaveConfigAsync(config);
         }
