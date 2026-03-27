@@ -1,0 +1,30 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+
+## IDE
+.vs/
+.vscode/
+.claude/
+.idea/
+claude.md
+*.swp
+
+## Environment
+.env
+appsettings.Development.json
+
+## Plugins (runtime directory - only keep .gitkeep)
+plugins/*
+!plugins/.gitkeep
+
+## Plugin build version counters
+src/**/.version
+saved/
+
+## OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,53 @@
+<Project>
+
+  <!--
+    Shared properties for Bidibip plugins.
+    Import this in your plugin .csproj:
+      <Import Project="../Bidibip.Plugin.props" />
+
+    Auto-increments the patch version on each build using a .version file
+    next to the .csproj. The file stores a single integer (the patch number).
+  -->
+
+  <PropertyGroup>
+    <PluginMajor>0</PluginMajor>
+    <PluginMinor>0</PluginMinor>
+    <PluginVersionFile>$(MSBuildProjectDirectory)/.version</PluginVersionFile>
+  </PropertyGroup>
+
+  <!-- Read current patch from .version file, default to 0 -->
+  <Target Name="_ReadPluginVersion" BeforeTargets="BeforeBuild">
+    <ReadLinesFromFile File="$(PluginVersionFile)" Condition="Exists('$(PluginVersionFile)')">
+      <Output TaskParameter="Lines" ItemName="_VersionLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <PluginPatch Condition="'@(_VersionLines)' != ''">@(_VersionLines)</PluginPatch>
+      <PluginPatch Condition="'$(PluginPatch)' == ''">0</PluginPatch>
+    </PropertyGroup>
+  </Target>
+
+  <!-- Increment patch and write back after successful build -->
+  <Target Name="_IncrementPluginVersion" AfterTargets="Build">
+    <ReadLinesFromFile File="$(PluginVersionFile)" Condition="Exists('$(PluginVersionFile)')">
+      <Output TaskParameter="Lines" ItemName="_CurrentVersionLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <_CurrentPatch Condition="'@(_CurrentVersionLines)' != ''">@(_CurrentVersionLines)</_CurrentPatch>
+      <_CurrentPatch Condition="'$(_CurrentPatch)' == ''">0</_CurrentPatch>
+      <_NextPatch>$([MSBuild]::Add($(_CurrentPatch), 1))</_NextPatch>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(PluginVersionFile)" Lines="$(_NextPatch)" Overwrite="true" />
+  </Target>
+
+  <!-- Set the assembly version from the version file -->
+  <Target Name="_SetPluginAssemblyVersion" BeforeTargets="CoreCompile" DependsOnTargets="_ReadPluginVersion">
+    <PropertyGroup>
+      <Version>$(PluginMajor).$(PluginMinor).$(PluginPatch)</Version>
+      <AssemblyVersion>$(PluginMajor).$(PluginMinor).$(PluginPatch).0</AssemblyVersion>
+      <FileVersion>$(PluginMajor).$(PluginMinor).$(PluginPatch).0</FileVersion>
+      <InformationalVersion>$(PluginMajor).$(PluginMinor).$(PluginPatch)</InformationalVersion>
+    </PropertyGroup>
+    <Message Importance="high" Text="Plugin version: $(Version)" />
+  </Target>
+
+</Project>

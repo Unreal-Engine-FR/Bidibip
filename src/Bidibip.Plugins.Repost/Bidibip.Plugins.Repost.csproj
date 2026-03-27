@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Bidibip.Plugin.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Bidibip.Plugins.Repost</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputPath>../../plugins/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Bidibip.Plugin.Sdk\Bidibip.Plugin.Sdk.csproj"><Private>false</Private><ExcludeAssets>runtime</ExcludeAssets></ProjectReference>
+    <PackageReference Include="Discord.Net.Core" Version="3.17.2"><Private>false</Private><ExcludeAssets>runtime</ExcludeAssets></PackageReference>
+    <PackageReference Include="Discord.Net.Interactions" Version="3.17.2"><Private>false</Private><ExcludeAssets>runtime</ExcludeAssets></PackageReference>
+    <PackageReference Include="Discord.Net.WebSocket" Version="3.17.2"><Private>false</Private><ExcludeAssets>runtime</ExcludeAssets></PackageReference>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,83 @@
+using System.Text.Json;
+using Bidibip.Plugin.Sdk;
+using Discord;
+using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
+
+namespace Bidibip.Plugins.Welcome;
+
+[BidibipPlugin]
+public sealed class WelcomePlugin : IBidibipPlugin
+{
+    public string Name => "Welcome";
+    public string Description => "Sends welcome and leave messages in configured channels.";
+
+    private static readonly JsonSerializerOptions JsonOptions = PluginJsonOptions.Default;
+    private static readonly Random Rng = new();
+
+    private ILogger _logger = null!;
+    private WelcomeConfig _config = null!;
+    private string _configPath = null!;
+
+    public async Task InitializeAsync(PluginContext context)
+    {
+        _logger = context.Logger;
+        _configPath = Path.Combine(context.DataPath, "config.json");
+
+        await LoadOrCreateConfigAsync();
+
+        context.Events.OnUserJoined(async user =>
+        {
+            if (_config.JoinChannel == 0 || _config.WelcomeMessages.Length == 0) return;
+
+            var guild = user is SocketGuildUser sgu ? sgu.Guild : null;
+            var channel = guild?.GetTextChannel(_config.JoinChannel);
+            if (channel is null) return;
+
+            var template = _config.WelcomeMessages[Rng.Next(_config.WelcomeMessages.Length)];
+            var reglementMention = _config.ReglementChannel != 0
+                ? $"<#{_config.ReglementChannel}>"
+                : "#reglement";
+
+            var message = template
+                .Replace("{user}", user.Mention)
+                .Replace("{reglement}", reglementMention);
+
+            await channel.SendMessageAsync(message);
+        });
+
+        context.Events.OnUserLeft(async (guild, user) =>
+        {
+            if (_config.LeaveChannel == 0 || _config.LeaveMessages.Length == 0) return;
+
+            var socketGuild = guild as SocketGuild;
+            var channel = socketGuild?.GetTextChannel(_config.LeaveChannel);
+            if (channel is null) return;
+
+            var template = _config.LeaveMessages[Rng.Next(_config.LeaveMessages.Length)];
+            var message = template.Replace("{user}", user.GlobalName ?? user.Username);
+
+            await channel.SendMessageAsync(message);
+        });
+
+        _logger.LogInformation("Welcome plugin initialized");
+    }
+
+    private async Task LoadOrCreateConfigAsync()
+    {
+        if (File.Exists(_configPath))
+        {
+            var json = await File.ReadAllTextAsync(_configPath);
+            _config = JsonSerializer.Deserialize<WelcomeConfig>(json, JsonOptions) ?? WelcomeConfig.CreateDefault();
+        }
+        else
+        {
+            _config = WelcomeConfig.CreateDefault();
+            var json = JsonSerializer.Serialize(_config, JsonOptions);
+            await File.WriteAllTextAsync(_configPath, json);
+            _logger.LogInformation("Default welcome config created at {Path}", _configPath);
+        }
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+}
