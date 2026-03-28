@@ -109,21 +109,28 @@ public sealed class FreeForTheMonthPlugin : IBidibipPlugin
                 ? string.Join(", ", listing.Formats)
                 : "N/A";
 
-            var ratingStr = listing.TotalRatings > 0
-                ? $"{listing.AverageRating:F1}/5 ({listing.TotalRatings} avis)"
-                : "Pas encore note";
+            var description = listing.DescriptionSnippet is not null
+                ? $"*{listing.DescriptionSnippet}*"
+                : "";
 
             var embed = new EmbedBuilder()
+                .WithAuthor(
+                    $"{listing.Seller}  \u2022  {listing.DisplayType}",
+                    listing.SellerAvatarUrl ?? "https://www.fab.com/favicon.ico",
+                    listing.Url)
                 .WithTitle(listing.Title)
                 .WithUrl(listing.Url)
-                .WithDescription($"Par **{listing.Seller}**")
-                .AddField("Prix original", $"~~{listing.OriginalPrice:F2} EUR~~ **GRATUIT**", inline: true)
+                .WithDescription(description)
+                .AddField("Prix", $"~~${listing.StartingPriceUsd:F2}~~ **GRATUIT**", inline: true)
                 .AddField("Formats", formats, inline: true)
-                .AddField("Note", ratingStr, inline: true)
-                .WithColor(Color.Green);
+                .AddField("Note", listing.StarsDisplay, inline: false)
+                .WithColor(new Color(0x00, 0xD1, 0x76));
 
-            if (listing.ThumbnailUrl is not null)
-                embed.WithThumbnailUrl(listing.ThumbnailUrl);
+            if (listing.ImageUrl is not null)
+                embed.WithImageUrl(listing.ImageUrl);
+
+            if (listing.DiscountEnd.HasValue)
+                embed.WithFooter($"Gratuit jusqu'au {listing.DiscountEnd.Value:dd/MM/yyyy HH:mm} UTC");
 
             embeds.Add(embed.Build());
         }
