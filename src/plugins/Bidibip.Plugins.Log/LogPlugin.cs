@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Discord;
 using Discord.WebSocket;
@@ -20,17 +19,7 @@ public sealed class LogPlugin : IBidibipPlugin
         _logger = context.Logger;
 
         var configPath = Path.Combine(context.DataPath, "config.json");
-        if (File.Exists(configPath))
-        {
-            var json = await File.ReadAllTextAsync(configPath);
-            _config = JsonSerializer.Deserialize<LogConfig>(json, PluginJsonOptions.Default) ?? new LogConfig();
-        }
-        else
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
-            var json = JsonSerializer.Serialize(_config, PluginJsonOptions.Default);
-            await File.WriteAllTextAsync(configPath, json);
-        }
+        _config = await PluginData.LoadAsync<LogConfig>(configPath);
 
         context.Events.OnUserJoined(user =>
         {

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Discord;
 using Microsoft.Extensions.Logging;
@@ -13,7 +12,6 @@ public sealed class AdvertisingPlugin : IBidibipPlugin
 
     internal static string ConfigPath { get; private set; } = null!;
     internal static BotConfig BotConfig { get; private set; } = null!;
-    internal static readonly JsonSerializerOptions JsonOptions = PluginJsonOptions.Default;
 
     private ILogger _logger = null!;
 
@@ -23,40 +21,18 @@ public sealed class AdvertisingPlugin : IBidibipPlugin
         BotConfig = context.BotConfig;
         ConfigPath = Path.Combine(context.DataPath, "config.json");
 
-        await EnsureConfigAsync();
+        await PluginData.LoadAsync<AdConfig>(ConfigPath);
 
         context.Events.OnMessageReceived(HandleMessageReceivedAsync);
     }
 
     // ── Config persistence ───────────────────────────────────────────
 
-    private async Task EnsureConfigAsync()
-    {
-        if (File.Exists(ConfigPath))
-            return;
+    internal static async Task<AdConfig> LoadConfigAsync() =>
+        await PluginData.LoadAsync<AdConfig>(ConfigPath);
 
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        var config = new AdConfig();
-        var json = JsonSerializer.Serialize(config, JsonOptions);
-        await File.WriteAllTextAsync(ConfigPath, json);
-        _logger.LogWarning("Advertising config not found, created default at {Path}.", ConfigPath);
-    }
-
-    internal static async Task<AdConfig> LoadConfigAsync()
-    {
-        if (!File.Exists(ConfigPath))
-            return new AdConfig();
-
-        var json = await File.ReadAllTextAsync(ConfigPath);
-        return JsonSerializer.Deserialize<AdConfig>(json, JsonOptions) ?? new AdConfig();
-    }
-
-    internal static async Task SaveConfigAsync(AdConfig config)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        var json = JsonSerializer.Serialize(config, JsonOptions);
-        await File.WriteAllTextAsync(ConfigPath, json);
-    }
+    internal static async Task SaveConfigAsync(AdConfig config) =>
+        await PluginData.SaveAsync(ConfigPath, config);
 
     // ── Message handler (text input steps) ───────────────────────────
 

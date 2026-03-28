@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Discord;
 using Microsoft.Extensions.Logging;
@@ -13,7 +12,6 @@ public sealed class WarnPlugin : IBidibipPlugin
 
     internal static string DataPath { get; private set; } = "";
     internal static BotConfig BotConfig { get; private set; } = null!;
-    internal static readonly JsonSerializerOptions JsonOptions = PluginJsonOptions.Default;
 
     private ILogger _logger = null!;
 
@@ -30,24 +28,13 @@ public sealed class WarnPlugin : IBidibipPlugin
 
     // ── Data persistence ─────────────────────────────────────────────
 
-    internal static async Task<WarnData> LoadDataAsync()
-    {
-        var path = Path.Combine(DataPath, "warns.json");
-        if (File.Exists(path))
-        {
-            var json = await File.ReadAllTextAsync(path);
-            return JsonSerializer.Deserialize<WarnData>(json, JsonOptions) ?? new WarnData();
-        }
-        return new WarnData();
-    }
+    private static string WarnsPath => Path.Combine(DataPath, "warns.json");
 
-    internal static async Task SaveDataAsync(WarnData data)
-    {
-        var path = Path.Combine(DataPath, "warns.json");
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var json = JsonSerializer.Serialize(data, JsonOptions);
-        await File.WriteAllTextAsync(path, json);
-    }
+    internal static async Task<WarnData> LoadDataAsync() =>
+        await PluginData.LoadAsync<WarnData>(WarnsPath);
+
+    internal static async Task SaveDataAsync(WarnData data) =>
+        await PluginData.SaveAsync(WarnsPath, data);
 
     internal static async Task StoreWarnAsync(WarnRecord record)
     {

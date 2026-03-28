@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Discord;
 using Discord.WebSocket;
@@ -12,7 +11,6 @@ public sealed class WelcomePlugin : IBidibipPlugin
     public string Name => "Welcome";
     public string Description => "Sends welcome and leave messages in configured channels.";
 
-    private static readonly JsonSerializerOptions JsonOptions = PluginJsonOptions.Default;
     private static readonly Random Rng = new();
 
     private ILogger _logger = null!;
@@ -24,7 +22,7 @@ public sealed class WelcomePlugin : IBidibipPlugin
         _logger = context.Logger;
         _configPath = Path.Combine(context.DataPath, "config.json");
 
-        await LoadOrCreateConfigAsync();
+        _config = await PluginData.LoadAsync<WelcomeConfig>(_configPath);
 
         context.Events.OnUserJoined(async user =>
         {
@@ -77,22 +75,6 @@ public sealed class WelcomePlugin : IBidibipPlugin
 
             await channel.SendMessageAsync(message);
         });
-    }
-
-    private async Task LoadOrCreateConfigAsync()
-    {
-        if (File.Exists(_configPath))
-        {
-            var json = await File.ReadAllTextAsync(_configPath);
-            _config = JsonSerializer.Deserialize<WelcomeConfig>(json, JsonOptions) ?? WelcomeConfig.CreateDefault();
-        }
-        else
-        {
-            _config = WelcomeConfig.CreateDefault();
-            var json = JsonSerializer.Serialize(_config, JsonOptions);
-            await File.WriteAllTextAsync(_configPath, json);
-            _logger.LogInformation("Default welcome config created at {Path}", _configPath);
-        }
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

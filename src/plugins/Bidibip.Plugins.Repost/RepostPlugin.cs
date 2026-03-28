@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Discord;
 using Discord.WebSocket;
@@ -16,7 +15,6 @@ public sealed class RepostPlugin : IBidibipPlugin
     private ILogger _logger = null!;
 
     internal static string ConfigPath = null!;
-    internal static readonly JsonSerializerOptions JsonOptions = PluginJsonOptions.Default;
 
     // Tracks threads already being processed to prevent duplicate handling
     // (Discord fires ThreadCreated twice for forum posts: creation + bot auto-join)
@@ -34,37 +32,16 @@ public sealed class RepostPlugin : IBidibipPlugin
         _logger = context.Logger;
         ConfigPath = Path.Combine(context.DataPath, "config.json");
 
-        await EnsureConfigAsync();
+        await PluginData.LoadAsync<RepostConfig>(ConfigPath);
 
         context.Events.OnThreadCreated(HandleThreadCreatedAsync);
     }
 
-    private async Task EnsureConfigAsync()
-    {
-        if (File.Exists(ConfigPath))
-            return;
+    internal static async Task<RepostConfig> LoadConfigAsync() =>
+        await PluginData.LoadAsync<RepostConfig>(ConfigPath);
 
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        var config = new RepostConfig();
-        var json = JsonSerializer.Serialize(config, JsonOptions);
-        await File.WriteAllTextAsync(ConfigPath, json);
-    }
-
-    internal static async Task<RepostConfig> LoadConfigAsync()
-    {
-        if (!File.Exists(ConfigPath))
-            return new RepostConfig();
-
-        var json = await File.ReadAllTextAsync(ConfigPath);
-        return JsonSerializer.Deserialize<RepostConfig>(json, JsonOptions) ?? new RepostConfig();
-    }
-
-    internal static async Task SaveConfigAsync(RepostConfig config)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        var json = JsonSerializer.Serialize(config, JsonOptions);
-        await File.WriteAllTextAsync(ConfigPath, json);
-    }
+    internal static async Task SaveConfigAsync(RepostConfig config) =>
+        await PluginData.SaveAsync(ConfigPath, config);
 
     private async Task HandleThreadCreatedAsync(SocketThreadChannel thread)
     {

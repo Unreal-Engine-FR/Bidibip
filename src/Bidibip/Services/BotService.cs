@@ -62,7 +62,7 @@ public class BotService : IHostedService
         _interactions.SlashCommandExecuted += SlashCommandExecutedAsync;
 
         var token = _configuration["Discord:Token"]
-            ?? throw new InvalidOperationException("Discord:Token is not configured. Set it in appsettings.json or via DISCORD__TOKEN environment variable.");
+            ?? throw new InvalidOperationException("Discord:Token is not configured. Set it in .env via DISCORD__TOKEN.");
 
         await _client.LoginAsync(TokenType.Bot, token);
         await _client.StartAsync();

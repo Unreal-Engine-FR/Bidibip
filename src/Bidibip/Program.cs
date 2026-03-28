@@ -38,17 +38,45 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    var configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+    var configPath = Path.Combine("Saved", "config.json");
+    Directory.CreateDirectory("Saved");
+
+    // Seed a default config file if none exists
+    if (!File.Exists(configPath))
+    {
+        var defaultConfig = """
+            {
+              "Bot": {
+                "GuildId": "0",
+                "Roles": {
+                  "Administrator": "0",
+                  "Moderator": "0",
+                  "Helper": "0",
+                  "Member": "0",
+                  "Mute": "0"
+                },
+                "Channels": {
+                  "LogChannel": "0",
+                  "StaffChannel": "0"
+                }
+              },
+              "Plugins": {
+                "Path": "plugins"
+              }
+            }
+            """;
+        File.WriteAllText(configPath, defaultConfig);
+        Log.Logger.Warning("Default config created at {Path} — please fill in the values", configPath);
+    }
+
     Log.Logger.Information("Load config from {Path}", configPath);
-    
+
     var host = Host.CreateDefaultBuilder(args)
         .UseSerilog()
         .ConfigureAppConfiguration((context, config) =>
         {
-            // Load appsettings.json from the binary directory so it works
-            // regardless of which directory the bot is launched from.
             config.AddJsonFile(configPath,
-                optional: true,
+                optional: false,
                 reloadOnChange: true);
             // Load .env file from the working directory if it exists.
             // Values set here become environment variables and override appsettings.

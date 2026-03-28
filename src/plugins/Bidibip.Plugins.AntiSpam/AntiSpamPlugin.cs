@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Discord;
 
@@ -35,7 +34,7 @@ public sealed class AntiSpamPlugin : IBidibipPlugin
         DataPath = context.DataPath;
         _configPath = Path.Combine(context.DataPath, "config.json");
 
-        await LoadConfigAsync();
+        _config = await PluginData.LoadAsync<AntiSpamConfig>(_configPath);
 
         context.Events.OnMessageReceived(HandleMessageAsync);
     }
@@ -171,6 +170,7 @@ public sealed class AntiSpamPlugin : IBidibipPlugin
                 allowedMentions: new AllowedMentions(AllowedMentionTypes.Everyone | AllowedMentionTypes.Users));
 
             // Save spammer context
+            AntiSpamConfig snapshot;
             lock (_configLock)
             {
                 _config.Spammers[modoMessage.Id.ToString()] = new SpammerContext
@@ -179,9 +179,10 @@ public sealed class AntiSpamPlugin : IBidibipPlugin
                     PardonButton = pardonButtonId,
                     Spammer = userId
                 };
+                snapshot = _config;
             }
 
-            await SaveConfigAsync();
+            await PluginData.SaveAsync(_configPath, snapshot);
         }
         catch (Exception ex)
         {
@@ -192,36 +193,6 @@ public sealed class AntiSpamPlugin : IBidibipPlugin
     internal static void ClearUserHistory(ulong userId)
     {
         History.TryRemove(userId, out _);
-    }
-
-    internal async Task SaveConfigAsync()
-    {
-        AntiSpamConfig snapshot;
-        lock (_configLock)
-        {
-            snapshot = _config;
-        }
-
-        Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
-        var json = JsonSerializer.Serialize(snapshot, PluginJsonOptions.Default);
-        await File.WriteAllTextAsync(_configPath, json);
-    }
-
-    private async Task LoadConfigAsync()
-    {
-        if (File.Exists(_configPath))
-        {
-            var json = await File.ReadAllTextAsync(_configPath);
-            _config = JsonSerializer.Deserialize<AntiSpamConfig>(json, PluginJsonOptions.Default) ?? new AntiSpamConfig();
-        }
-        else
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
-            _config = new AntiSpamConfig();
-            var json = JsonSerializer.Serialize(_config, PluginJsonOptions.Default);
-            await File.WriteAllTextAsync(_configPath, json);
-            _logger.LogWarning("AntiSpam config not found, created default at {Path}. Please configure moderation_channel and mute_role.", _configPath);
-        }
     }
 
     public ValueTask DisposeAsync()

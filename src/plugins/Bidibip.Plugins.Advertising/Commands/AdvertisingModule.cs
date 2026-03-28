@@ -142,8 +142,8 @@ public sealed class AdvertisingModule : InteractionModuleBase<SocketInteractionC
 
     internal static AdInProgress CloneAdForEdit(StoredAd stored)
     {
-        var json = JsonSerializer.Serialize(stored.Description, AdvertisingPlugin.JsonOptions);
-        return JsonSerializer.Deserialize<AdInProgress>(json, AdvertisingPlugin.JsonOptions) ?? new AdInProgress();
+        var json = JsonSerializer.Serialize(stored.Description, PluginJsonOptions.Default);
+        return JsonSerializer.Deserialize<AdInProgress>(json, PluginJsonOptions.Default) ?? new AdInProgress();
     }
 
     internal static void StoreAd(AdConfig config, AdInProgress ad, ulong channelId, ulong messageId)

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
@@ -87,23 +86,11 @@ public sealed class AntiSpamModule : InteractionModuleBase<SocketInteractionCont
         await SaveConfigAsync(config);
     }
 
-    private async Task<AntiSpamConfig> LoadConfigAsync()
-    {
-        var configPath = Path.Combine(AntiSpamPlugin.DataPath, "config.json");
-        if (File.Exists(configPath))
-        {
-            var json = await File.ReadAllTextAsync(configPath);
-            return JsonSerializer.Deserialize<AntiSpamConfig>(json, PluginJsonOptions.Default) ?? new AntiSpamConfig();
-        }
+    private static string ConfigPath => Path.Combine(AntiSpamPlugin.DataPath, "config.json");
 
-        return new AntiSpamConfig();
-    }
+    private async Task<AntiSpamConfig> LoadConfigAsync() =>
+        await PluginData.LoadAsync<AntiSpamConfig>(ConfigPath);
 
-    private async Task SaveConfigAsync(AntiSpamConfig config)
-    {
-        var configPath = Path.Combine(AntiSpamPlugin.DataPath, "config.json");
-        Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
-        var json = JsonSerializer.Serialize(config, PluginJsonOptions.Default);
-        await File.WriteAllTextAsync(configPath, json);
-    }
+    private async Task SaveConfigAsync(AntiSpamConfig config) =>
+        await PluginData.SaveAsync(ConfigPath, config);
 }

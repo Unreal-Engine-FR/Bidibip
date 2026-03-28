@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
@@ -140,27 +139,11 @@ public sealed class ModoModule : InteractionModuleBase<SocketInteractionContext>
         });
     }
 
-    private async Task<ModoConfig> LoadConfigAsync()
-    {
-        var configPath = Path.Combine(ModoPlugin.DataPath, "config.json");
-        if (File.Exists(configPath))
-        {
-            var json = await File.ReadAllTextAsync(configPath);
-            return JsonSerializer.Deserialize<ModoConfig>(json, PluginJsonOptions.Default) ?? new ModoConfig();
-        }
+    private static string ConfigPath => Path.Combine(ModoPlugin.DataPath, "config.json");
 
-        var defaultConfig = new ModoConfig();
-        Directory.CreateDirectory(ModoPlugin.DataPath);
-        var defaultJson = JsonSerializer.Serialize(defaultConfig, PluginJsonOptions.Default);
-        await File.WriteAllTextAsync(configPath, defaultJson);
-        return defaultConfig;
-    }
+    private async Task<ModoConfig> LoadConfigAsync() =>
+        await PluginData.LoadAsync<ModoConfig>(ConfigPath);
 
-    private async Task SaveConfigAsync(ModoConfig config)
-    {
-        var configPath = Path.Combine(ModoPlugin.DataPath, "config.json");
-        Directory.CreateDirectory(ModoPlugin.DataPath);
-        var json = JsonSerializer.Serialize(config, PluginJsonOptions.Default);
-        await File.WriteAllTextAsync(configPath, json);
-    }
+    private async Task SaveConfigAsync(ModoConfig config) =>
+        await PluginData.SaveAsync(ConfigPath, config);
 }

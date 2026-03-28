@@ -143,21 +143,10 @@ public sealed class ReglementModule : InteractionModuleBase<SocketInteractionCon
         await FollowupAsync("Bienvenue !", ephemeral: true);
     }
 
-    private async Task<ReglementConfig> LoadConfigAsync()
-    {
-        var configPath = Path.Combine(ReglementPlugin.DataPath, "config.json");
-        if (File.Exists(configPath))
-        {
-            var json = await File.ReadAllTextAsync(configPath);
-            return JsonSerializer.Deserialize<ReglementConfig>(json, PluginJsonOptions.Default) ?? new ReglementConfig();
-        }
+    private static string ConfigPath => Path.Combine(ReglementPlugin.DataPath, "config.json");
 
-        var defaultConfig = new ReglementConfig();
-        Directory.CreateDirectory(ReglementPlugin.DataPath);
-        var defaultJson = JsonSerializer.Serialize(defaultConfig, PluginJsonOptions.Default);
-        await File.WriteAllTextAsync(configPath, defaultJson);
-        return defaultConfig;
-    }
+    private async Task<ReglementConfig> LoadConfigAsync() =>
+        await PluginData.LoadAsync<ReglementConfig>(ConfigPath);
 }
 
 internal sealed class ReglementConfig

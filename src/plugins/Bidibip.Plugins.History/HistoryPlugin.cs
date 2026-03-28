@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bidibip.Plugin.Sdk;
 using Discord;
 using Discord.WebSocket;
@@ -23,26 +22,10 @@ public sealed class HistoryPlugin : IBidibipPlugin
         _botConfig = context.BotConfig;
         _configPath = Path.Combine(context.DataPath, "config.json");
 
-        await LoadConfigAsync();
+        _config = await PluginData.LoadAsync<HistoryConfig>(_configPath);
 
         context.Events.OnMessageDeleted(HandleMessageDeletedAsync);
         context.Events.OnMessageUpdated(HandleMessageUpdatedAsync);
-    }
-
-    private async Task LoadConfigAsync()
-    {
-        if (File.Exists(_configPath))
-        {
-            var json = await File.ReadAllTextAsync(_configPath);
-            _config = JsonSerializer.Deserialize<HistoryConfig>(json, PluginJsonOptions.Default) ?? new HistoryConfig();
-        }
-        else
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
-            _config = new HistoryConfig();
-            var json = JsonSerializer.Serialize(_config, PluginJsonOptions.Default);
-            await File.WriteAllTextAsync(_configPath, json);
-        }
     }
 
     private async Task HandleMessageDeletedAsync(Cacheable<IMessage, ulong> cachedMessage, Cacheable<IMessageChannel, ulong> cachedChannel)
