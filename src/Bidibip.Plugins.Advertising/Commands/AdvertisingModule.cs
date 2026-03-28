@@ -112,18 +112,21 @@ public sealed class AdvertisingModule : InteractionModuleBase<SocketInteractionC
 
         await thread.AddUserAsync((IGuildUser)user);
 
-        await thread.SendMessageAsync(
-            $"# Bienvenue dans le formulaire de cr\u00e9ation d'annonce {user.Username} !");
+        var isEditing = ad.EditedPostChannel.HasValue && ad.Title is not null;
+
+        await thread.SendMessageAsync(isEditing
+            ? $"# Bienvenue dans le formulaire de modification d'annonce {user.Username} !\n> Tu peux modifier les champs individuellement en cliquant sur les boutons ci-dessous."
+            : $"# Bienvenue dans le formulaire de cr\u00e9ation d'annonce {user.Username} !");
 
         ad.UserId = userId;
         ad.ThreadId = thread.Id;
 
-        if (ad.EditedPostChannel.HasValue && ad.Title is not null)
-            ad.Step = "preview";
-
         config.InProgress[thread.Id.ToString()] = ad;
 
-        await AdQuestions.AdvanceAsync(thread, ad, config, user);
+        if (isEditing)
+            await AdQuestions.DisplayPrefilledAsync(thread, ad, config, user);
+        else
+            await AdQuestions.AdvanceAsync(thread, ad, config, user);
         await AdvertisingPlugin.SaveConfigAsync(config);
 
         var note = removedOld

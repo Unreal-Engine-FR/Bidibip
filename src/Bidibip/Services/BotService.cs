@@ -77,12 +77,12 @@ public class BotService : IHostedService
     private async Task HandleInteractionAsync(SocketInteraction interaction)
     {
         var commandName = interaction is SocketSlashCommand slash ? slash.CommandName : "N/A";
-        _logger.LogInformation("Interaction received: {Type} {Name}", interaction.Type, commandName);
+        _logger.LogInformation("²Interaction received: {Type} {Name}", interaction.Type, commandName);
 
-        // Only auto-defer slash commands and context menus.
-        // Component interactions (buttons) and modal submissions are NOT deferred
-        // so handlers can respond with modals or choose their own response type.
-        if (interaction is SocketSlashCommand or SocketUserCommand)
+        // Auto-defer slash commands so handlers can use FollowupAsync.
+        // User context menu commands are NOT auto-deferred so handlers can respond with modals.
+        // Specific slash commands that need modals (e.g. "sanction") are also excluded.
+        if (interaction is SocketSlashCommand slashCmd && slashCmd.CommandName != "sanction")
         {
             try
             {

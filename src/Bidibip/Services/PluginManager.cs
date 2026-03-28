@@ -341,10 +341,7 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
     public async Task RegisterCommandsAsync()
     {
         if (_client.ConnectionState != ConnectionState.Connected)
-        {
-            _logger.LogWarning("Skipping command registration — bot is not connected yet");
             return;
-        }
 
         // Build a set of what we want registered: "name:description"
         var localCommands = _interactions.Modules

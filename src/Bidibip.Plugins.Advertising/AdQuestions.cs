@@ -61,6 +61,78 @@ internal static class AdQuestions
             components: builder.Build());
     }
 
+    // ── Display pre-filled steps (for editing an existing ad) ────────
+
+    public static async Task DisplayPrefilledAsync(IMessageChannel channel, AdInProgress ad, AdConfig config, IUser user)
+    {
+        // Clear old question message IDs — they belonged to a previous thread
+        ad.QuestionMessages.Clear();
+
+        foreach (var step in AdStepRegistry.Steps)
+        {
+            if (!step.IsApplicable(ad))
+                continue;
+
+            var value = step.GetValue(ad);
+
+            if (step is TextStep textStep)
+            {
+                if (!string.IsNullOrEmpty(value))
+                {
+                    var question = textStep.GetQuestionText(ad);
+                    var quotedValue = string.Join("\n", value.Split('\n').Select(l => $"> {l}"));
+
+                    var builder = new ComponentBuilder()
+                        .WithButton("Modifier", $"ad-field-edit-{step.Id}", ButtonStyle.Primary);
+
+                    if (textStep.IsOptional)
+                        builder.WithButton("Supprimer", $"ad-field-clear-{step.Id}", ButtonStyle.Danger);
+
+                    var msg = await channel.SendMessageAsync(
+                        $"## ▶  {question}\n{quotedValue}",
+                        components: builder.Build());
+
+                    ad.QuestionMessages[step.Id] = msg.Id;
+                }
+                else if (textStep.IsOptional && (textStep.IsSkippedCheck?.Invoke(ad) ?? false))
+                {
+                    var question = textStep.GetQuestionText(ad);
+                    var builder = new ComponentBuilder()
+                        .WithButton("Modifier", $"ad-field-edit-{step.Id}", ButtonStyle.Primary);
+
+                    var msg = await channel.SendMessageAsync(
+                        $"## ▶  {question}\n:negative_squared_cross_mark:",
+                        components: builder.Build());
+
+                    ad.QuestionMessages[step.Id] = msg.Id;
+                }
+            }
+            else if (step is ChoiceStep choiceStep && !string.IsNullOrEmpty(value))
+            {
+                var builder = new ComponentBuilder();
+                foreach (var option in choiceStep.Options)
+                {
+                    var isSelected = option.Value == value;
+                    builder.WithButton(
+                        option.Label,
+                        $"ad-c:{step.Id}:{option.Value}",
+                        isSelected ? ButtonStyle.Success : ButtonStyle.Secondary,
+                        row: option.Row);
+                }
+
+                var msg = await channel.SendMessageAsync(
+                    $"## ▶  {choiceStep.GetQuestionText(ad)}",
+                    components: builder.Build());
+
+                ad.QuestionMessages[step.Id] = msg.Id;
+            }
+        }
+
+        // If any step is still incomplete, send its question; otherwise show preview
+        ad.Step = AdStepRegistry.FindNextMissingStep(ad);
+        await AdvanceAsync(channel, ad, config, user);
+    }
+
     // ── Question message editing ─────────────────────────────────────
 
     public static async Task EditQuestionWithAnswer(IMessageChannel channel, AdInProgress ad, string stepId, string value)

@@ -4,8 +4,14 @@ namespace Bidibip.Plugins.Warn;
 
 public sealed class WarnData
 {
+    [JsonPropertyName("public_warn_channel")]
+    public ulong PublicWarnChannel { get; set; }
+
     [JsonPropertyName("moderation_channel")]
     public ulong ModerationChannel { get; set; }
+
+    [JsonPropertyName("ban_vocal")]
+    public ulong BanVocal { get; set; }
 
     [JsonPropertyName("warns")]
     public Dictionary<string, List<WarnRecord>> Warns { get; set; } = new();

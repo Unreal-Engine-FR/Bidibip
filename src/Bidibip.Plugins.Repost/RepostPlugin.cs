@@ -25,8 +25,6 @@ public sealed class RepostPlugin : IBidibipPlugin
         await EnsureConfigAsync();
 
         context.Events.OnMessageReceived(HandleMessageReceivedAsync);
-
-        _logger.LogInformation("Repost plugin initialized.");
     }
 
     private async Task EnsureConfigAsync()

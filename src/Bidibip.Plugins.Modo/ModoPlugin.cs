@@ -14,7 +14,6 @@ public sealed class ModoPlugin : IBidibipPlugin
     public Task InitializeAsync(PluginContext context)
     {
         DataPath = context.DataPath;
-        context.Logger.LogInformation("Modo plugin initialized.");
         return Task.CompletedTask;
     }
 

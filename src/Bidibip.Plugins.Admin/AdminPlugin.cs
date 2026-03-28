@@ -11,7 +11,6 @@ public sealed class AdminPlugin : IBidibipPlugin
 
     public Task InitializeAsync(PluginContext context)
     {
-        context.Logger.LogInformation("Admin plugin initialized!");
         return Task.CompletedTask;
     }
 

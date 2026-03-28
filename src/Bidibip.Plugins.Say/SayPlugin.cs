@@ -11,7 +11,6 @@ public sealed class SayPlugin : IBidibipPlugin
 
     public Task InitializeAsync(PluginContext context)
     {
-        context.Logger.LogInformation("Say plugin initialized");
         return Task.CompletedTask;
     }
 

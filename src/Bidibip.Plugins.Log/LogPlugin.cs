@@ -42,7 +42,6 @@ public sealed class LogPlugin : IBidibipPlugin
             return Task.CompletedTask;
         });
 
-        _logger.LogInformation("Log plugin initialized");
         return Task.CompletedTask;
     }
 

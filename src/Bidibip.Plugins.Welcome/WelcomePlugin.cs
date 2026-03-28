@@ -59,8 +59,6 @@ public sealed class WelcomePlugin : IBidibipPlugin
 
             await channel.SendMessageAsync(message);
         });
-
-        _logger.LogInformation("Welcome plugin initialized");
     }
 
     private async Task LoadOrCreateConfigAsync()

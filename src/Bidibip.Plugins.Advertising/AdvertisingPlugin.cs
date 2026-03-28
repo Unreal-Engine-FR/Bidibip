@@ -26,8 +26,6 @@ public sealed class AdvertisingPlugin : IBidibipPlugin
         await EnsureConfigAsync();
 
         context.Events.OnMessageReceived(HandleMessageReceivedAsync);
-
-        _logger.LogInformation("Advertising plugin initialized.");
     }
 
     // ── Config persistence ───────────────────────────────────────────

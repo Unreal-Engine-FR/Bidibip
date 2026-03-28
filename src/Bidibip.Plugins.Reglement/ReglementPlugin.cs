@@ -14,7 +14,6 @@ public sealed class ReglementPlugin : IBidibipPlugin
     public Task InitializeAsync(PluginContext context)
     {
         DataPath = context.DataPath;
-        context.Logger.LogInformation("Reglement plugin initialized.");
         return Task.CompletedTask;
     }
 

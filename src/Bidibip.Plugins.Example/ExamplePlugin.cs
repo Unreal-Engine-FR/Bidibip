@@ -14,7 +14,6 @@ public sealed class ExamplePlugin : IBidibipPlugin
     public Task InitializeAsync(PluginContext context)
     {
         _logger = context.Logger;
-        _logger.LogInformation("Example plugin initialized!");
 
         context.Events.OnMessageReceived(async msg =>
         {

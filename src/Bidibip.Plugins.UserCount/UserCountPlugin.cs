@@ -39,7 +39,6 @@ public sealed class UserCountPlugin : IBidibipPlugin
                 await UpdateStatusAsync(sg2);
         });
 
-        _logger.LogInformation("UserCount plugin initialized");
         return Task.CompletedTask;
     }
 

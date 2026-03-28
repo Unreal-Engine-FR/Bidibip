@@ -29,9 +29,6 @@ public sealed class AntiSpamPlugin : IBidibipPlugin
         await LoadConfigAsync();
 
         context.Events.OnMessageReceived(HandleMessageReceivedAsync);
-
-        _logger.LogInformation("AntiSpam plugin initialized. MinOccurrences={Min}, MaxDelay={Delay}ms, ModerationChannel={Channel}",
-            _config.MinOccurrences, _config.MaxDelayMs, _config.ModerationChannel);
     }
 
     private async Task LoadConfigAsync()

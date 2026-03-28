@@ -25,8 +25,6 @@ public sealed class HistoryPlugin : IBidibipPlugin
 
         context.Events.OnMessageDeleted(HandleMessageDeletedAsync);
         context.Events.OnMessageUpdated(HandleMessageUpdatedAsync);
-
-        _logger.LogInformation("History plugin initialized. Tracking channel: {Channel}", _config.HistoryChannel);
     }
 
     private async Task LoadConfigAsync()

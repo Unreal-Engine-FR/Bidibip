@@ -11,7 +11,6 @@ public sealed class HelpPlugin : IBidibipPlugin
 
     public Task InitializeAsync(PluginContext context)
     {
-        context.Logger.LogInformation("Help plugin initialized!");
         return Task.CompletedTask;
     }
 
