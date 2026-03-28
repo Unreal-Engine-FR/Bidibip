@@ -18,10 +18,6 @@
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Discord.Net.Interactions" Version="3.17.2">
-      <Private>false</Private>
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
     <PackageReference Include="Discord.Net.WebSocket" Version="3.17.2">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
