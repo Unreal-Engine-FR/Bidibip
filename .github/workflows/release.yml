@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - rid: linux-x64
+            name: linux-x64
+          - rid: linux-musl-x64
+            name: linux-alpine-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish host
+        run: |
+          dotnet publish src/Bidibip/Bidibip.csproj \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -o out/${{ matrix.name }}
+
+      - name: Build plugins
+        run: |
+          for csproj in src/plugins/*/Bidibip.Plugins.*.csproj; do
+            dotnet build "$csproj" -c Release -o out/${{ matrix.name }}/plugins
+          done
+
+      - name: Package
+        run: |
+          cd out
+          tar czf Bidibip-${{ matrix.name }}.tar.gz ${{ matrix.name }}/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bidibip-${{ matrix.name }}
+          path: out/Bidibip-${{ matrix.name }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/*.tar.gz
