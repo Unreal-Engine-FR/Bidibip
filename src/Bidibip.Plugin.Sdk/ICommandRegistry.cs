@@ -1,3 +1,5 @@
+using Bidibip.Plugin.Sdk.Permissions;
+
 namespace Bidibip.Plugin.Sdk;
 
 public interface ICommandRegistry
@@ -10,4 +12,5 @@ public sealed class CommandInfo
     public required string Name { get; init; }
     public required string Description { get; init; }
     public string? PluginName { get; init; }
+    public BotRole MinimumRole { get; init; } = BotRole.Administrator;
 }

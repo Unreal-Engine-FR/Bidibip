@@ -10,17 +10,24 @@ namespace Bidibip.Plugins.Help.Commands;
 public class HelpModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly ICommandRegistry _commands;
+    private readonly BotConfig _botConfig;
 
-    public HelpModule(ICommandRegistry commands)
+    public HelpModule(ICommandRegistry commands, BotConfig botConfig)
     {
         _commands = commands;
+        _botConfig = botConfig;
     }
 
     [SlashCommand("help", "Lists all available commands")]
     [AllowedBotRole(BotRole.Everyone)]
     public async Task HelpAsync()
     {
-        var commands = _commands.GetCommands();
+        var userRole = PermissionHelper.GetHighestRole((SocketGuildUser)Context.User, _botConfig);
+        var isOwner = Context.Guild.OwnerId == Context.User.Id;
+
+        var commands = _commands.GetCommands()
+            .Where(cmd => isOwner || userRole >= cmd.MinimumRole)
+            .ToList();
 
         var embed = new EmbedBuilder()
             .WithTitle("Available Commands")

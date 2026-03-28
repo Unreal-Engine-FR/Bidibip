@@ -8,7 +8,6 @@ using Discord.WebSocket;
 
 namespace Bidibip.Plugins.Warn.Commands;
 
-[DefaultMemberPermissions(GuildPermission.ModerateMembers)]
 public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly DiscordSocketClient _client;

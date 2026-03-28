@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using Bidibip.Plugin.Sdk;
+using Bidibip.Plugin.Sdk.Permissions;
 using Bidibip.Plugins;
 using Discord;
 using Discord.Interactions;
@@ -28,6 +29,7 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
     private readonly SemaphoreSlim _loadLock = new(1, 1);
     internal IServiceProvider ServiceProvider => _globalServiceProvider;
     private readonly IServiceProvider _globalServiceProvider;
+    private readonly PermissionData _permissionData = new();
     private FileSystemWatcher? _watcher;
     private string _pluginsPath = null!;
 
@@ -76,11 +78,16 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
                     }
                 }
 
+                var roleAttr = cmd.Preconditions
+                    .OfType<AllowedBotRoleAttribute>()
+                    .FirstOrDefault();
+
                 return new SdkCommandInfo
                 {
                     Name = cmd.Name,
                     Description = cmd.Description,
-                    PluginName = pluginName
+                    PluginName = pluginName,
+                    MinimumRole = roleAttr?.MinimumRole ?? BotRole.Administrator
                 };
             })
             .ToList();
@@ -343,10 +350,16 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         if (_client.ConnectionState != ConnectionState.Connected)
             return;
 
-        // Build a set of what we want registered: "name:description"
-        var localCommands = _interactions.Modules
-            .SelectMany(m => m.SlashCommands)
-            .Select(c => $"{c.Name}:{c.Description}")
+        // Fetch actual role permissions from Discord (like the Rust implementation's fetch_roles)
+        if (!_permissionData.IsLoaded)
+            await _permissionData.FetchRolesAsync(_client, _botConfig, _logger);
+
+        // Build command properties with DefaultMemberPermissions derived from AllowedBotRole
+        var commandProperties = BuildCommandProperties();
+
+        // Build a fingerprint of what we want registered: "name:perms"
+        var localFingerprint = commandProperties
+            .Select(c => $"{c.Name}:{c.DefaultMemberPermissions}")
             .OrderBy(c => c)
             .ToList();
 
@@ -366,32 +379,144 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
             remoteCommands = await _client.GetGlobalApplicationCommandsAsync();
         }
 
-        var remoteSet = remoteCommands
-            .Where(c => c.Type == ApplicationCommandType.Slash)
-            .Select(c => $"{c.Name}:{c.Description}")
+        var remoteFingerprint = remoteCommands
+            .Select(c => $"{c.Name}:{c.DefaultMemberPermissions}")
             .OrderBy(c => c)
             .ToList();
 
-        if (localCommands.SequenceEqual(remoteSet))
+        if (localFingerprint.SequenceEqual(remoteFingerprint))
         {
-            _logger.LogInformation("Commands are up to date ({Count} command(s)), skipping registration", localCommands.Count);
+            _logger.LogInformation("Commands are up to date ({Count} command(s)), skipping registration", commandProperties.Count);
             return;
         }
 
         _logger.LogInformation("Commands changed (local: [{Local}], remote: [{Remote}]), registering...",
-            string.Join(", ", localCommands.Select(c => c.Split(':')[0])),
-            string.Join(", ", remoteSet.Select(c => c.Split(':')[0])));
+            string.Join(", ", localFingerprint.Select(c => c.Split(':')[0])),
+            string.Join(", ", remoteFingerprint.Select(c => c.Split(':')[0])));
 
         if (guildId != 0)
         {
-            await _interactions.RegisterCommandsToGuildAsync(guildId);
-            _logger.LogInformation("Registered {Count} command(s) to guild {GuildId}", localCommands.Count, guildId);
+            var guild = _client.GetGuild(guildId);
+            if (guild != null)
+                await guild.BulkOverwriteApplicationCommandAsync(commandProperties.ToArray());
+            _logger.LogInformation("Registered {Count} command(s) to guild {GuildId}", commandProperties.Count, guildId);
         }
         else
         {
-            await _interactions.RegisterCommandsGloballyAsync();
-            _logger.LogInformation("Registered {Count} command(s) globally (may take up to 1 hour)", localCommands.Count);
+            await _client.BulkOverwriteGlobalApplicationCommandsAsync(commandProperties.ToArray());
+            _logger.LogInformation("Registered {Count} command(s) globally (may take up to 1 hour)", commandProperties.Count);
         }
+    }
+
+    /// <summary>
+    /// Builds ApplicationCommandProperties for all registered slash/user/message commands,
+    /// automatically deriving DefaultMemberPermissions from AllowedBotRole attributes.
+    /// This replaces InteractionService.RegisterCommandsToGuildAsync so we control the
+    /// Discord-side visibility of commands based on our permission system.
+    /// </summary>
+    private List<ApplicationCommandProperties> BuildCommandProperties()
+    {
+        var result = new List<ApplicationCommandProperties>();
+
+        foreach (var module in _interactions.Modules)
+        {
+            // Slash commands
+            foreach (var cmd in module.SlashCommands)
+            {
+                var builder = new SlashCommandBuilder()
+                    .WithName(cmd.Name)
+                    .WithDescription(cmd.Description);
+
+                // Add parameters
+                foreach (var param in cmd.Parameters)
+                {
+                    builder.AddOption(BuildSlashOption(param));
+                }
+
+                // Derive DefaultMemberPermissions from AllowedBotRole
+                var minRole = ExtractMinimumRole(cmd.Preconditions);
+                var discordPerm = ResolveDiscordPermission(minRole);
+                if (discordPerm.HasValue)
+                    builder.WithDefaultMemberPermissions(discordPerm.Value);
+
+                result.Add(builder.Build());
+            }
+
+            // User context menu commands
+            foreach (var cmd in module.ContextCommands)
+            {
+                if (cmd.CommandType == ApplicationCommandType.User)
+                {
+                    var builder = new UserCommandBuilder()
+                        .WithName(cmd.Name);
+
+                    var minRole = ExtractMinimumRole(cmd.Preconditions);
+                    var discordPerm = ResolveDiscordPermission(minRole);
+                    if (discordPerm.HasValue)
+                        builder.WithDefaultMemberPermissions(discordPerm.Value);
+
+                    result.Add(builder.Build());
+                }
+                else if (cmd.CommandType == ApplicationCommandType.Message)
+                {
+                    var builder = new MessageCommandBuilder()
+                        .WithName(cmd.Name);
+
+                    var minRole = ExtractMinimumRole(cmd.Preconditions);
+                    var discordPerm = ResolveDiscordPermission(minRole);
+                    if (discordPerm.HasValue)
+                        builder.WithDefaultMemberPermissions(discordPerm.Value);
+
+                    result.Add(builder.Build());
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static SlashCommandOptionBuilder BuildSlashOption(Discord.Interactions.SlashCommandParameterInfo param)
+    {
+        var option = new SlashCommandOptionBuilder()
+            .WithName(param.Name)
+            .WithDescription(param.Description ?? param.Name)
+            .WithRequired(param.IsRequired)
+            .WithType(param.DiscordOptionType ?? ApplicationCommandOptionType.String);
+
+        foreach (var choice in param.Choices)
+        {
+            option.AddChoice(choice.Name, choice.Value?.ToString() ?? choice.Name);
+        }
+
+        return option;
+    }
+
+    /// <summary>
+    /// Resolves the Discord permission set for command visibility based on the
+    /// fetched role permissions. Uses the intersection of all tiers >= the target role,
+    /// reproducing the Rust implementation's at_least_X() approach.
+    /// Returns null for Member/Everyone (visible to all).
+    /// </summary>
+    private GuildPermission? ResolveDiscordPermission(BotRole role)
+    {
+        if (!_permissionData.IsLoaded)
+        {
+            // Fallback if permissions haven't been fetched yet
+            return role switch
+            {
+                BotRole.Administrator => GuildPermission.Administrator,
+                BotRole.Moderator => GuildPermission.ModerateMembers,
+                _ => null
+            };
+        }
+
+        return _permissionData.AtLeast(role);
+    }
+
+    private static BotRole ExtractMinimumRole(IReadOnlyCollection<PreconditionAttribute> preconditions)
+    {
+        var attr = preconditions.OfType<AllowedBotRoleAttribute>().FirstOrDefault();
+        return attr?.MinimumRole ?? BotRole.Administrator;
     }
 
     private ulong ResolveGuildId()
