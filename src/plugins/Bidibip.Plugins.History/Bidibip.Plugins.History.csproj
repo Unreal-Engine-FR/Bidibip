@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../Bidibip.Plugin.props" />
+  <Import Project="../../Bidibip.Plugin.props" />
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <RootNamespace>Bidibip.Plugins.UserCount</RootNamespace>
+    <RootNamespace>Bidibip.Plugins.History</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <OutputPath>../../plugins/</OutputPath>
+    <OutputPath>../../../plugins/</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Bidibip.Plugin.Sdk\Bidibip.Plugin.Sdk.csproj">
+    <ProjectReference Include="..\..\Bidibip.Plugin.Sdk\Bidibip.Plugin.Sdk.csproj">
       <Private>false</Private>
       <ExcludeAssets>runtime</ExcludeAssets>
     </ProjectReference>
