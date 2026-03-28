@@ -42,7 +42,7 @@ jobs:
       - name: Build plugins
         run: |
           for csproj in src/plugins/*/Bidibip.Plugins.*.csproj; do
-            dotnet build "$csproj" -c Release -o out/${{ matrix.name }}/plugins
+            dotnet build "$csproj" -c Release -p:DebugType=none -o out/${{ matrix.name }}/plugins
           done
 
       - name: Write version file
