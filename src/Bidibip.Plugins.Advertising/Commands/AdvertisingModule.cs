@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Bidibip.Plugin.Sdk;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -18,6 +19,7 @@ public sealed class AdvertisingModule : InteractionModuleBase<SocketInteractionC
     }
 
     [SlashCommand("annonce", "Cr\u00e9er une annonce d'offre ou de recherche d'emploi")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task AnnonceAsync()
     {
         var config = await AdvertisingPlugin.LoadConfigAsync();
@@ -71,6 +73,7 @@ public sealed class AdvertisingModule : InteractionModuleBase<SocketInteractionC
     }
 
     [ComponentInteraction("ad-create-new")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task CreateNewAdAsync()
     {
         await DeferAsync(ephemeral: true);

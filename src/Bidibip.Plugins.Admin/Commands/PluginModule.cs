@@ -1,12 +1,12 @@
 using System.Text;
 using Bidibip.Plugin.Sdk;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 
 namespace Bidibip.Plugins.Admin.Commands;
 
-[DefaultMemberPermissions(GuildPermission.Administrator)]
 public class PluginModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly IPluginManager _pluginManager;
@@ -17,6 +17,7 @@ public class PluginModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("plugins", "List all available plugins")]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task ListPluginsAsync()
     {
         var plugins = _pluginManager.GetAllPlugins();
@@ -44,6 +45,7 @@ public class PluginModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("plugin-enable", "Enable a disabled plugin")]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task EnablePluginAsync(
         [Summary("name", "Name of the plugin to enable")] string pluginName)
     {
@@ -55,6 +57,7 @@ public class PluginModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("plugin-disable", "Disable a plugin")]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task DisablePluginAsync(
         [Summary("name", "Name of the plugin to disable")] string pluginName)
     {

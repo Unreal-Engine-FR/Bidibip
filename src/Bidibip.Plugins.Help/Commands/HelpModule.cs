@@ -1,5 +1,6 @@
 using System.Text;
 using Bidibip.Plugin.Sdk;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -16,6 +17,7 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("help", "Lists all available commands")]
+    [AllowedBotRole(BotRole.Everyone)]
     public async Task HelpAsync()
     {
         var commands = _commands.GetCommands();

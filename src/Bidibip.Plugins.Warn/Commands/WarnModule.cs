@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Bidibip.Plugin.Sdk;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -26,6 +27,7 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
     // ── Slash commands ──────────────────────────────────────────────
 
     [SlashCommand("sanction", "Sanctionner un utilisateur")]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task SanctionAsync(
         [Summary("cible", "utilisateur à sanctionner")] IUser target,
         [Summary("action", "sanction à appliquer")]
@@ -41,9 +43,10 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
         await OpenWarnModalAsync(target, action);
     }
 
-    [SlashCommand("casier", "Voir l'historique des sanctions d'un utilisateur")]
-    public async Task CasierAsync(
-        [Summary("utilisateur", "Utilisateur dont on veut voir le casier")] IUser target)
+    [SlashCommand("historique", "Voir l'historique des sanctions d'un utilisateur")]
+    [AllowedBotRole(BotRole.Helper)]
+    public async Task HistoriqueAsync(
+        [Summary("utilisateur", "Utilisateur dont on veut voir l'historique de sanctions")] IUser target)
     {
         var data = await WarnPlugin.LoadDataAsync();
         var userId = target.Id.ToString();
@@ -52,7 +55,7 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
         {
             await FollowupAsync(
                 embed: new EmbedBuilder()
-                    .WithTitle($"Casier de {target.Username}")
+                    .WithTitle($"Historique de {target.Username}")
                     .WithDescription("Aucune sanction enregistrée.")
                     .WithColor(Color.Green)
                     .Build(),
@@ -61,7 +64,7 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
         }
 
         var embed = new EmbedBuilder()
-            .WithTitle($"Casier de {target.Username} ({records.Count} sanction(s))")
+            .WithTitle($"Historique de {target.Username} ({records.Count} sanction(s))")
             .WithColor(Color.Orange);
 
         foreach (var record in records.OrderByDescending(r => r.Date))
@@ -84,22 +87,27 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
     // ── User context menu commands ──────────────────────────────────
 
     [UserCommand("warn")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task WarnContextAsync(IUser user)
         => await OpenWarnModalAsync(user, "warn");
 
     [UserCommand("ban du vocal")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task BanVocalContextAsync(IUser user)
         => await OpenWarnModalAsync(user, "ban_vocal");
 
     [UserCommand("kick")]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task KickContextAsync(IUser user)
         => await OpenWarnModalAsync(user, "kick");
 
     [UserCommand("exclusion 1h")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task Mute1hContextAsync(IUser user)
         => await OpenWarnModalAsync(user, "mute_1h");
 
     [UserCommand("ban")]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task BanContextAsync(IUser user)
         => await OpenWarnModalAsync(user, "ban");
 
@@ -139,6 +147,7 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [ModalInteraction("warn-modal")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task HandleWarnModalAsync(WarnModal modal)
     {
         await DeferAsync(ephemeral: true);
@@ -165,6 +174,7 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
     // ── History button ──────────────────────────────────────────────
 
     [ComponentInteraction("warn_update_message")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task HistoryButtonAsync()
     {
         var data = await WarnPlugin.LoadDataAsync();

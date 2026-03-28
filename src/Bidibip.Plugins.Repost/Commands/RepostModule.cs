@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -15,7 +16,7 @@ public sealed partial class RepostModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("set-forum-link", "Lier un forum a un canal de destination pour le repost")]
-    [DefaultMemberPermissions(GuildPermission.Administrator)]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task SetForumLinkAsync(
         [Summary("forum", "Le canal forum source")] IChannel forum,
         [Summary("destination", "Le canal de destination pour les reposts")] IChannel destination,
@@ -50,7 +51,7 @@ public sealed partial class RepostModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("repost", "Reposter manuellement un message depuis un fil de forum")]
-    [DefaultMemberPermissions(GuildPermission.Administrator)]
+    [AllowedBotRole(BotRole.Member)]
     public async Task RepostAsync(
         [Summary("message", "URL ou ID du message a reposter")] string messageRef)
     {
@@ -160,6 +161,7 @@ public sealed partial class RepostModule : InteractionModuleBase<SocketInteracti
     }
 
     [SlashCommand("repost-votes", "Voir la liste des votants pour ce fil")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task RepostVotesAsync()
     {
         if (Context.Channel is not IThreadChannel thread)
@@ -196,6 +198,7 @@ public sealed partial class RepostModule : InteractionModuleBase<SocketInteracti
     }
 
     [ComponentInteraction("repost::vote_yes::*")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task VoteYesAsync()
     {
         await DeferAsync(ephemeral: true);
@@ -211,6 +214,7 @@ public sealed partial class RepostModule : InteractionModuleBase<SocketInteracti
     }
 
     [ComponentInteraction("repost::vote_no::*")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task VoteNoAsync()
     {
         await DeferAsync(ephemeral: true);

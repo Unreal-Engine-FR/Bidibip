@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Bidibip.Plugin.Sdk;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -18,6 +19,7 @@ public sealed class ModoModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("modo", "Ouvrir un ticket de support")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task ModoAsync()
     {
         var config = await LoadConfigAsync();
@@ -82,6 +84,7 @@ public sealed class ModoModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [ComponentInteraction("modo::close")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task CloseTicketAsync()
     {
         await DeferAsync(ephemeral: true);

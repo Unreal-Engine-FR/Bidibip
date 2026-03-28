@@ -1,16 +1,17 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 
 namespace Bidibip.Plugins.Say.Commands;
 
-[DefaultMemberPermissions(GuildPermission.Administrator)]
 public class SayModule : InteractionModuleBase<SocketInteractionContext>
 {
     [SlashCommand("say", "Envoie un message via le bot dans le canal actuel")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task SayAsync(
         [Summary("message", "Le texte à envoyer")] string message)
     {
@@ -19,6 +20,7 @@ public class SayModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("say-file", "Envoie des messages formatés depuis un fichier JSON")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task SayFileAsync(
         [Summary("fichier", "Le fichier JSON contenant les messages")] IAttachment fichier)
     {

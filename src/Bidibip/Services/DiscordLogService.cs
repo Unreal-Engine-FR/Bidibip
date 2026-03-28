@@ -119,9 +119,9 @@ public sealed class DiscordLogService
         sb.Append(' ');
         sb.Append(source);
 
-        if (entry.Level >= LogEventLevel.Error && _config?.Roles.Support is > 0)
+        if (entry.Level >= LogEventLevel.Error && _config?.Roles.Administrator is > 0)
         {
-            sb.Append($"<@&{_config.Roles.Support}>");
+            sb.Append($"<@&{_config.Roles.Administrator}>");
             sb.Append(' ');
         }
 
@@ -146,7 +146,7 @@ public sealed class DiscordLogService
                 return;
 
             var mentions = hasRolePing
-                ? new AllowedMentions { RoleIds = GetSupportRoleList() }
+                ? new AllowedMentions { RoleIds = GetAdminRoleList() }
                 : AllowedMentions.None;
 
             await channel.SendMessageAsync(text, allowedMentions: mentions);
@@ -158,10 +158,10 @@ public sealed class DiscordLogService
         }
     }
 
-    private List<ulong> GetSupportRoleList()
+    private List<ulong> GetAdminRoleList()
     {
-        if (_config?.Roles.Support is > 0)
-            return [_config.Roles.Support];
+        if (_config?.Roles.Administrator is > 0)
+            return [_config.Roles.Administrator];
         return [];
     }
 

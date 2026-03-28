@@ -1,3 +1,4 @@
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord.Interactions;
 using Discord.WebSocket;
 
@@ -9,6 +10,7 @@ public sealed class AdFormModule : InteractionModuleBase<SocketInteractionContex
     // Button custom IDs follow the pattern: ad-c:{stepId}:{value}
 
     [ComponentInteraction("ad-c:*")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task HandleChoiceAsync(string payload)
     {
         var sep = payload.IndexOf(':');
@@ -38,6 +40,7 @@ public sealed class AdFormModule : InteractionModuleBase<SocketInteractionContex
     // Button custom IDs follow the pattern: ad-skip:{stepId}
 
     [ComponentInteraction("ad-skip:*")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task HandleSkipAsync(string stepId)
     {
         await DeferAsync();

@@ -1,3 +1,4 @@
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -14,6 +15,7 @@ public sealed class AntiSpamModule : InteractionModuleBase<SocketInteractionCont
     }
 
     [ComponentInteraction("antispam::kick::*")]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task KickUserAsync()
     {
         await DeferAsync(ephemeral: true);
@@ -56,6 +58,7 @@ public sealed class AntiSpamModule : InteractionModuleBase<SocketInteractionCont
     }
 
     [ComponentInteraction("antispam::pardon::*")]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task PardonUserAsync()
     {
         await DeferAsync(ephemeral: true);

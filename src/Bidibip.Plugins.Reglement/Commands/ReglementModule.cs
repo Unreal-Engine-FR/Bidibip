@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Bidibip.Plugin.Sdk;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -20,7 +21,7 @@ public sealed class ReglementModule : InteractionModuleBase<SocketInteractionCon
     }
 
     [SlashCommand("reglement", "Poster ou rafraichir le reglement")]
-    [DefaultMemberPermissions(GuildPermission.Administrator)]
+    [AllowedBotRole(BotRole.Moderator)]
     public async Task ReglementAsync(
         [Summary("fichier", "Fichier JSON contenant le reglement")] IAttachment attachment)
     {
@@ -111,6 +112,7 @@ public sealed class ReglementModule : InteractionModuleBase<SocketInteractionCon
     }
 
     [ComponentInteraction("reglement::approve")]
+    [AllowedBotRole(BotRole.Everyone)]
     public async Task ApproveReglementAsync()
     {
         await DeferAsync(ephemeral: true);

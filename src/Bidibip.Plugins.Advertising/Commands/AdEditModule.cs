@@ -1,3 +1,4 @@
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -7,6 +8,7 @@ namespace Bidibip.Plugins.Advertising.Commands;
 public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContext>
 {
     [ComponentInteraction("ad-field-edit-*")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task EditFieldAsync(string stepName)
     {
         var config = await AdvertisingPlugin.LoadConfigAsync();
@@ -32,6 +34,7 @@ public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContex
     }
 
     [ModalInteraction("ad-field-modal")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task EditFieldModalAsync(EditFieldModal modal)
     {
         await DeferAsync(ephemeral: true);
@@ -69,6 +72,7 @@ public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContex
     }
 
     [ComponentInteraction("ad-field-clear-*")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task ClearFieldAsync(string stepName)
     {
         await DeferAsync(ephemeral: true);

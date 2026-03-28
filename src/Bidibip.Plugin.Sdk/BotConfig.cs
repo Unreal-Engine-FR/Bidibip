@@ -10,8 +10,8 @@ public sealed class BotConfig
 public sealed class RolesConfig
 {
     public ulong Administrator { get; set; }
+    public ulong Moderator { get; set; }
     public ulong Helper { get; set; }
-    public ulong Support { get; set; }
     public ulong Member { get; set; }
     public ulong Mute { get; set; }
 }

@@ -1,4 +1,5 @@
 using Bidibip.Plugin.Sdk;
+using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -19,6 +20,7 @@ public sealed class AdReviewModule : InteractionModuleBase<SocketInteractionCont
     // ── Pre-publish (user submits for review) ────────────────────────
 
     [ComponentInteraction("ad-pre-publish")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task PrePublishAsync()
     {
         await DeferAsync(ephemeral: true);
@@ -66,6 +68,7 @@ public sealed class AdReviewModule : InteractionModuleBase<SocketInteractionCont
     // ── Validate (reviewer approves) ─────────────────────────────────
 
     [ComponentInteraction("ad-validate")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task ValidateAsync()
     {
         await DeferAsync(ephemeral: true);
@@ -179,12 +182,14 @@ public sealed class AdReviewModule : InteractionModuleBase<SocketInteractionCont
     // ── Deny button (opens modal) ────────────────────────────────────
 
     [ComponentInteraction("ad-deny")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task DenyAsync()
     {
         await Context.Interaction.RespondWithModalAsync<DenyModal>("ad-deny-modal");
     }
 
     [ModalInteraction("ad-deny-modal")]
+    [AllowedBotRole(BotRole.Helper)]
     public async Task DenyModalAsync(DenyModal modal)
     {
         await DeferAsync();
@@ -218,6 +223,7 @@ public sealed class AdReviewModule : InteractionModuleBase<SocketInteractionCont
     // ── Edit existing ad ─────────────────────────────────────────────
 
     [ComponentInteraction("ad-edit-ad-*")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task EditAdAsync(string channelId)
     {
         await DeferAsync(ephemeral: true);
@@ -243,6 +249,7 @@ public sealed class AdReviewModule : InteractionModuleBase<SocketInteractionCont
     // ── Delete existing ad ───────────────────────────────────────────
 
     [ComponentInteraction("ad-delete-ad-*")]
+    [AllowedBotRole(BotRole.Member)]
     public async Task DeleteAdAsync(string channelId)
     {
         await DeferAsync(ephemeral: true);
