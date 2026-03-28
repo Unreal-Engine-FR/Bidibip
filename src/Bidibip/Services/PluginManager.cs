@@ -30,6 +30,7 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
     internal IServiceProvider ServiceProvider => _globalServiceProvider;
     private readonly IServiceProvider _globalServiceProvider;
     private readonly PermissionData _permissionData = new();
+    private volatile bool _botReady;
     private FileSystemWatcher? _watcher;
     private string _pluginsPath = null!;
 
@@ -345,9 +346,11 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         await LoadPluginAsync(dllPath);
     }
 
+    public void MarkBotReady() => _botReady = true;
+
     public async Task RegisterCommandsAsync()
     {
-        if (_client.ConnectionState != ConnectionState.Connected)
+        if (!_botReady)
             return;
 
         // Fetch actual role permissions from Discord (like the Rust implementation's fetch_roles)
@@ -358,8 +361,16 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         var commandProperties = BuildCommandProperties();
 
         // Build a fingerprint of what we want registered: "name:perms"
+        // Use raw numeric permission values to ensure consistent comparison
         var localFingerprint = commandProperties
-            .Select(c => $"{c.Name}:{c.DefaultMemberPermissions}")
+            .Select(c =>
+            {
+                var name = c.Name.IsSpecified ? c.Name.Value : "";
+                var perms = c.DefaultMemberPermissions.IsSpecified
+                    ? ((ulong)c.DefaultMemberPermissions.Value).ToString()
+                    : "none";
+                return $"{name}:{perms}";
+            })
             .OrderBy(c => c)
             .ToList();
 
@@ -380,7 +391,13 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         }
 
         var remoteFingerprint = remoteCommands
-            .Select(c => $"{c.Name}:{c.DefaultMemberPermissions}")
+            .Select(c =>
+            {
+                var perms = c.DefaultMemberPermissions.RawValue != 0
+                    ? c.DefaultMemberPermissions.RawValue.ToString()
+                    : "none";
+                return $"{c.Name}:{perms}";
+            })
             .OrderBy(c => c)
             .ToList();
 
@@ -692,6 +709,26 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
                         plugin.Instance.Name);
                 }
             }
+        };
+
+        _client.ThreadCreated += thread =>
+        {
+            _ = Task.Run(async () =>
+            {
+                foreach (var plugin in _plugins.Values)
+                {
+                    try
+                    {
+                        await plugin.EventBus.DispatchThreadCreated(thread);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error in plugin {Name} thread created handler",
+                            plugin.Instance.Name);
+                    }
+                }
+            });
+            return Task.CompletedTask;
         };
 
         _client.MessageDeleted += async (message, channel) =>

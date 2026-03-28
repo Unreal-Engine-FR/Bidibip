@@ -77,6 +77,7 @@ public class BotService : IHostedService
     {
         _logger.LogInformation("Bot is connected as {User}", _client.CurrentUser);
         _discordLogService.MarkReady();
+        _pluginManager.MarkBotReady();
         await _pluginManager.RegisterCommandsAsync();
     }
 

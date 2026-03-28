@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
@@ -6,325 +5,220 @@ using Discord.WebSocket;
 
 namespace Bidibip.Plugins.Repost.Commands;
 
-public sealed partial class RepostModule : InteractionModuleBase<SocketInteractionContext>
+public sealed class RepostModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly DiscordSocketClient _client;
-
-    public RepostModule(DiscordSocketClient client)
-    {
-        _client = client;
-    }
-
-    [SlashCommand("set-forum-link", "Lier un forum a un canal de destination pour le repost")]
-    [AllowedBotRole(BotRole.Moderator)]
+    [SlashCommand("set-forum-link", "Lie un forum à un channel de repost")]
+    [AllowedBotRole(BotRole.Administrator)]
     public async Task SetForumLinkAsync(
-        [Summary("forum", "Le canal forum source")] IChannel forum,
-        [Summary("destination", "Le canal de destination pour les reposts")] IChannel destination,
-        [Summary("vote", "Activer les boutons de vote sur les reposts")] bool vote = false,
-        [Summary("enable", "Activer ou desactiver le lien")] bool enable = true)
+        [Summary("forum", "Forum où seront suivis les nouveaux posts")] IChannel forum,
+        [Summary("repost-channel", "Canal où seront repostés les évenements du forum")] IChannel repostChannel,
+        [Summary("vote", "Active les fonctionnalités de vote")] bool vote,
+        [Summary("enabled", "Active ou désactive le lien")] bool enabled)
     {
         var config = await RepostPlugin.LoadConfigAsync();
+        var forumKey = forum.Id.ToString();
 
-        var existing = config.Links.FirstOrDefault(l => l.ForumId == forum.Id);
-        if (existing is not null)
+        if (enabled)
         {
-            existing.DestinationId = destination.Id;
-            existing.VotingEnabled = vote;
-            existing.Enabled = enable;
+            if (!config.Forums.TryGetValue(forumKey, out var forumConfig))
+            {
+                forumConfig = new ForumConfig();
+                config.Forums[forumKey] = forumConfig;
+            }
+            forumConfig.RepostChannels.Add(repostChannel.Id);
+            forumConfig.VoteEnabled = vote;
+
+            await RepostPlugin.SaveConfigAsync(config);
+            await FollowupAsync($"Forum <#{forum.Id}> connecté au channel <#{repostChannel.Id}> !", ephemeral: true);
         }
         else
         {
-            config.Links.Add(new ForumLink
-            {
-                ForumId = forum.Id,
-                DestinationId = destination.Id,
-                VotingEnabled = vote,
-                Enabled = enable
-            });
+            config.Forums.Remove(forumKey);
+            await RepostPlugin.SaveConfigAsync(config);
+            await FollowupAsync($"Forum <#{forum.Id}> déconnecté du channel <#{repostChannel.Id}> !", ephemeral: true);
         }
-
-        await RepostPlugin.SaveConfigAsync(config);
-
-        var status = enable ? "active" : "desactive";
-        var voteStatus = vote ? "avec votes" : "sans votes";
-        await FollowupAsync($"Lien forum configure : <#{forum.Id}> -> <#{destination.Id}> ({status}, {voteStatus})", ephemeral: true);
     }
 
-    [SlashCommand("repost", "Reposter manuellement un message depuis un fil de forum")]
+    [SlashCommand("reposte", "Promeut le message donné dans le salon de repost")]
     [AllowedBotRole(BotRole.Member)]
-    public async Task RepostAsync(
-        [Summary("message", "URL ou ID du message a reposter")] string messageRef)
+    public async Task ReposteAsync(
+        [Summary("message", "lien du message à promouvoir")] string message)
     {
-        // Check that we're in a thread
-        if (Context.Channel is not IThreadChannel thread)
+        if (Context.Channel is not SocketThreadChannel thread)
         {
-            await FollowupAsync("Cette commande doit etre utilisee dans un fil de forum.", ephemeral: true);
+            await FollowupAsync("La commande doit être exécutée depuis un fil qui t'appartient", ephemeral: true);
             return;
         }
 
         var parentId = thread.CategoryId;
         if (parentId is null)
         {
-            await FollowupAsync("Impossible de determiner le canal parent de ce fil.", ephemeral: true);
-            return;
-        }
-
-        var config = await RepostPlugin.LoadConfigAsync();
-        var link = config.Links.FirstOrDefault(l => l.Enabled && l.ForumId == parentId.Value);
-        if (link is null)
-        {
-            await FollowupAsync("Aucun lien de forum configure pour ce canal.", ephemeral: true);
+            await FollowupAsync("La commande doit être exécutée depuis un fil qui t'appartient", ephemeral: true);
             return;
         }
 
         // Parse message ID from URL or raw ID
-        ulong messageId;
-        var urlMatch = MessageUrlRegex().Match(messageRef);
-        if (urlMatch.Success)
+        var lastPart = message.Split('/').Last();
+        if (!ulong.TryParse(lastPart, out var messageId))
         {
-            messageId = ulong.Parse(urlMatch.Groups[1].Value);
-        }
-        else if (ulong.TryParse(messageRef, out var parsedId))
-        {
-            messageId = parsedId;
-        }
-        else
-        {
-            await FollowupAsync("Format de message invalide. Fournissez une URL ou un ID de message.", ephemeral: true);
+            await FollowupAsync("L'option message doit être un identifiant de message ou le lien vers le message", ephemeral: true);
             return;
         }
 
-        var message = await thread.GetMessageAsync(messageId);
-        if (message is null)
+        IMessage? sourceMessage;
+        try
         {
-            await FollowupAsync("Message introuvable dans ce fil.", ephemeral: true);
+            sourceMessage = await thread.GetMessageAsync(messageId);
+        }
+        catch (Exception ex)
+        {
+            await FollowupAsync($"Le message fourni n'est pas valid : {ex.Message}", ephemeral: true);
             return;
         }
 
-        var guild = Context.Guild;
-        var destinationChannel = guild.GetTextChannel(link.DestinationId);
-        if (destinationChannel is null)
+        if (sourceMessage == null)
         {
-            await FollowupAsync("Le canal de destination est introuvable.", ephemeral: true);
-            return;
-        }
-
-        // Build the repost embed
-        var embedBuilder = new EmbedBuilder()
-            .WithColor(Color.Blue)
-            .WithAuthor(message.Author.Username, message.Author.GetAvatarUrl() ?? message.Author.GetDefaultAvatarUrl())
-            .WithTitle(thread.Name)
-            .WithTimestamp(message.Timestamp);
-
-        if (!string.IsNullOrWhiteSpace(message.Content))
-        {
-            var content = message.Content.Length > 2048
-                ? message.Content[..2045] + "..."
-                : message.Content;
-            embedBuilder.WithDescription(content);
-        }
-
-        var imageAttachment = message.Attachments
-            .FirstOrDefault(a => a.ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true);
-        if (imageAttachment is not null)
-        {
-            embedBuilder.WithImageUrl(imageAttachment.Url);
-        }
-
-        var threadUrl = $"https://discord.com/channels/{guild.Id}/{thread.Id}";
-        var components = new ComponentBuilder()
-            .WithButton("Voir le fil", style: ButtonStyle.Link, url: threadUrl)
-            .Build();
-
-        var repostMessage = await destinationChannel.SendMessageAsync(embed: embedBuilder.Build(), components: components);
-
-        if (link.VotingEnabled)
-        {
-            var threadIdStr = thread.Id.ToString();
-
-            var voteComponents = new ComponentBuilder()
-                .WithButton($"Oui (0)", $"repost::vote_yes::{thread.Id}", ButtonStyle.Success)
-                .WithButton($"Non (0)", $"repost::vote_no::{thread.Id}", ButtonStyle.Danger)
-                .Build();
-
-            var voteMessage = await destinationChannel.SendMessageAsync("Votez :", components: voteComponents);
-
-            config.Votes[threadIdStr] = new ThreadVoteData
-            {
-                RepostMessageId = repostMessage.Id,
-                VoteMessageId = voteMessage.Id
-            };
-            await RepostPlugin.SaveConfigAsync(config);
-        }
-
-        await FollowupAsync($"Message reposte dans <#{link.DestinationId}>.", ephemeral: true);
-    }
-
-    [SlashCommand("repost-votes", "Voir la liste des votants pour ce fil")]
-    [AllowedBotRole(BotRole.Member)]
-    public async Task RepostVotesAsync()
-    {
-        if (Context.Channel is not IThreadChannel thread)
-        {
-            await FollowupAsync("Cette commande doit etre utilisee dans un fil de forum.", ephemeral: true);
+            await FollowupAsync("Le message fourni n'est pas valid : message introuvable", ephemeral: true);
             return;
         }
 
         var config = await RepostPlugin.LoadConfigAsync();
-        var threadIdStr = thread.Id.ToString();
+        var forumKey = parentId.Value.ToString();
 
-        if (!config.Votes.TryGetValue(threadIdStr, out var voteData))
+        if (!config.Forums.TryGetValue(forumKey, out var forumConfig))
         {
-            await FollowupAsync("Aucun vote enregistre pour ce fil.", ephemeral: true);
+            await FollowupAsync("La fonctionnalité de reposte n'est pas disponible dans ce contexte", ephemeral: true);
             return;
         }
 
-        var yesVoters = voteData.Yes.Count > 0
-            ? string.Join("\n", voteData.Yes.Select(id => $"<@{id}>"))
-            : "Aucun";
+        var member = Context.Guild.GetUser(Context.User.Id);
+        if (member == null)
+        {
+            await FollowupAsync("Impossible de résoudre l'utilisateur.", ephemeral: true);
+            return;
+        }
 
-        var noVoters = voteData.No.Count > 0
-            ? string.Join("\n", voteData.No.Select(id => $"<@{id}>"))
-            : "Aucun";
+        var forumName = Context.Guild.GetChannel(parentId.Value)?.Name ?? "Unknown";
+        var messageUrl = $"https://discord.com/channels/{Context.Guild.Id}/{thread.Id}/{sourceMessage.Id}";
+        var threadKey = thread.Id.ToString();
 
-        var embed = new EmbedBuilder()
-            .WithColor(Color.Gold)
-            .WithTitle($"Votes - {thread.Name}")
-            .AddField($"Oui ({voteData.Yes.Count})", yesVoters, inline: true)
-            .AddField($"Non ({voteData.No.Count})", noVoters, inline: true)
-            .Build();
+        foreach (var repostChannelId in forumConfig.RepostChannels)
+        {
+            var destChannel = Context.Guild.GetTextChannel(repostChannelId);
+            if (destChannel == null) continue;
 
-        await FollowupAsync(embed: embed, ephemeral: true);
+            var sentMessages = await RepostPlugin.SendRepostMessagesAsync(
+                destChannel, sourceMessage, messageUrl, thread.Name, forumName,
+                member.DisplayName, member.GetAvatarUrl() ?? member.GetDefaultAvatarUrl());
+
+            // Track ALL sent messages for vote updates (matching Rust reposte behavior)
+            if (config.Votes.TryGetValue(threadKey, out var votes))
+            {
+                foreach (var msg in sentMessages)
+                {
+                    votes.RepostedMessages.Add(new MessageRef
+                    {
+                        ChannelId = repostChannelId,
+                        MessageId = msg.Id
+                    });
+                }
+            }
+        }
+
+        if (forumConfig.VoteEnabled)
+        {
+            await RepostPlugin.SaveConfigAsync(config);
+            await RepostPlugin.UpdateVoteMessagesAsync(Context.Guild, thread.Id, config);
+        }
+
+        await FollowupAsync("Message reposté !", ephemeral: true);
     }
 
-    [ComponentInteraction("repost::vote_yes::*")]
+    [ComponentInteraction("repost:vote-yes:*")]
     [AllowedBotRole(BotRole.Member)]
     public async Task VoteYesAsync()
     {
-        await DeferAsync(ephemeral: true);
         var customId = ((IComponentInteraction)Context.Interaction).Data.CustomId;
-        var parts = customId.Split("::");
-        if (parts.Length < 3 || !ulong.TryParse(parts[2], out var threadId))
-        {
-            await FollowupAsync("Identifiant de fil invalide.", ephemeral: true);
-            return;
-        }
-
+        var threadId = ulong.Parse(customId.Split(':').Last());
         await HandleVoteAsync(threadId, isYes: true);
     }
 
-    [ComponentInteraction("repost::vote_no::*")]
+    [ComponentInteraction("repost:vote-no:*")]
     [AllowedBotRole(BotRole.Member)]
     public async Task VoteNoAsync()
     {
-        await DeferAsync(ephemeral: true);
         var customId = ((IComponentInteraction)Context.Interaction).Data.CustomId;
-        var parts = customId.Split("::");
-        if (parts.Length < 3 || !ulong.TryParse(parts[2], out var threadId))
-        {
-            await FollowupAsync("Identifiant de fil invalide.", ephemeral: true);
-            return;
-        }
-
+        var threadId = ulong.Parse(customId.Split(':').Last());
         await HandleVoteAsync(threadId, isYes: false);
+    }
+
+    [ComponentInteraction("repost:see-votes:*")]
+    [AllowedBotRole(BotRole.Member)]
+    public async Task SeeVotesAsync()
+    {
+        var customId = ((IComponentInteraction)Context.Interaction).Data.CustomId;
+        var threadId = ulong.Parse(customId.Split(':').Last());
+
+        var config = await RepostPlugin.LoadConfigAsync();
+        var threadKey = threadId.ToString();
+
+        if (!config.Votes.TryGetValue(threadKey, out var voteData))
+            return;
+
+        var yStr = string.Join("\n", voteData.Yes.Values);
+        var nStr = string.Join("\n", voteData.No.Values);
+
+        var embed = new EmbedBuilder()
+            .WithTitle("Votes actuels")
+            .WithDescription($"Nombre de votes : {voteData.Yes.Count + voteData.No.Count}")
+            .AddField("Pour \u2705", RepostPlugin.Truncate(string.IsNullOrEmpty(yStr) ? "-" : yStr, 1024), inline: true)
+            .AddField("Contre \u274c", RepostPlugin.Truncate(string.IsNullOrEmpty(nStr) ? "-" : nStr, 1024), inline: true)
+            .Build();
+
+        await Context.Interaction.RespondAsync(embed: embed, ephemeral: true);
     }
 
     private async Task HandleVoteAsync(ulong threadId, bool isYes)
     {
         var config = await RepostPlugin.LoadConfigAsync();
-        var threadIdStr = threadId.ToString();
+        var threadKey = threadId.ToString();
 
-        if (!config.Votes.TryGetValue(threadIdStr, out var voteData))
+        if (!config.Votes.TryGetValue(threadKey, out var voteData))
+            return;
+
+        // Check if source thread is archived
+        var sourceThread = Context.Guild.GetChannel(voteData.SourceThread) as SocketThreadChannel;
+        if (sourceThread?.IsArchived == true)
         {
-            await FollowupAsync("Aucun vote enregistre pour ce fil.", ephemeral: true);
+            await Context.Interaction.RespondAsync(
+                "Ce thread a été archivé. tu ne peux plus voter.", ephemeral: true);
             return;
         }
 
-        var userIdStr = Context.User.Id.ToString();
+        var userKey = Context.User.Id.ToString();
+        var displayName = (Context.User as IGuildUser)?.DisplayName ?? Context.User.Username;
 
-        // Toggle: remove from opposite list if present, then add/remove from target list
         if (isYes)
         {
-            voteData.No.Remove(userIdStr);
-            if (voteData.Yes.Contains(userIdStr))
-            {
-                voteData.Yes.Remove(userIdStr);
-                await FollowupAsync("Vote retire.", ephemeral: true);
-            }
+            voteData.No.Remove(userKey);
+            if (voteData.Yes.ContainsKey(userKey))
+                voteData.Yes.Remove(userKey);
             else
-            {
-                voteData.Yes.Add(userIdStr);
-                await FollowupAsync("Vote enregistre : Oui", ephemeral: true);
-            }
+                voteData.Yes[userKey] = displayName;
         }
         else
         {
-            voteData.Yes.Remove(userIdStr);
-            if (voteData.No.Contains(userIdStr))
-            {
-                voteData.No.Remove(userIdStr);
-                await FollowupAsync("Vote retire.", ephemeral: true);
-            }
+            voteData.Yes.Remove(userKey);
+            if (voteData.No.ContainsKey(userKey))
+                voteData.No.Remove(userKey);
             else
-            {
-                voteData.No.Add(userIdStr);
-                await FollowupAsync("Vote enregistre : Non", ephemeral: true);
-            }
+                voteData.No[userKey] = displayName;
         }
 
         await RepostPlugin.SaveConfigAsync(config);
+        await RepostPlugin.UpdateVoteMessagesAsync(Context.Guild, threadId, config);
 
-        // Update the vote message buttons with new counts
-        await UpdateVoteButtonsAsync(voteData, threadId);
+        await Context.Interaction.RespondAsync(
+            "Ton vote a bien été pris en compte !", ephemeral: true);
     }
-
-    private async Task UpdateVoteButtonsAsync(ThreadVoteData voteData, ulong threadId)
-    {
-        if (voteData.VoteMessageId == 0)
-            return;
-
-        try
-        {
-            // Find the channel containing the vote message
-            // The vote message is in the destination channel for the forum link
-            var config = await RepostPlugin.LoadConfigAsync();
-
-            // Find the thread's parent forum to get the destination channel
-            var thread = Context.Guild.GetChannel(threadId);
-            ulong? parentId = null;
-            if (thread is IThreadChannel threadChannel)
-            {
-                parentId = threadChannel.CategoryId;
-            }
-
-            if (parentId is null)
-                return;
-
-            var link = config.Links.FirstOrDefault(l => l.ForumId == parentId.Value);
-            if (link is null)
-                return;
-
-            var destChannel = Context.Guild.GetTextChannel(link.DestinationId);
-            if (destChannel is null)
-                return;
-
-            var voteMessage = await destChannel.GetMessageAsync(voteData.VoteMessageId);
-            if (voteMessage is not IUserMessage userMessage)
-                return;
-
-            var updatedComponents = new ComponentBuilder()
-                .WithButton($"Oui ({voteData.Yes.Count})", $"repost::vote_yes::{threadId}", ButtonStyle.Success)
-                .WithButton($"Non ({voteData.No.Count})", $"repost::vote_no::{threadId}", ButtonStyle.Danger)
-                .Build();
-
-            await userMessage.ModifyAsync(m => m.Components = updatedComponents);
-        }
-        catch
-        {
-            // Best effort - button update failure is not critical
-        }
-    }
-
-    [GeneratedRegex(@"/(\d+)$")]
-    private static partial Regex MessageUrlRegex();
 }
