@@ -41,6 +41,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "plugins", "plugins", "{E1F2
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bidibip.Plugins.Update", "src\plugins\Bidibip.Plugins.Update\Bidibip.Plugins.Update.csproj", "{28C9919D-38BE-4F13-8DF2-6B81280DB507}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bidibip.Plugins.FreeForTheMonth", "src\plugins\Bidibip.Plugins.FreeForTheMonth\Bidibip.Plugins.FreeForTheMonth.csproj", "{F00FB1E6-0B44-48AE-8D04-2465D83E4523}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -255,6 +257,18 @@ Global
 		{28C9919D-38BE-4F13-8DF2-6B81280DB507}.Release|x64.Build.0 = Release|Any CPU
 		{28C9919D-38BE-4F13-8DF2-6B81280DB507}.Release|x86.ActiveCfg = Release|Any CPU
 		{28C9919D-38BE-4F13-8DF2-6B81280DB507}.Release|x86.Build.0 = Release|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Debug|x64.Build.0 = Debug|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Debug|x86.Build.0 = Debug|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Release|x64.ActiveCfg = Release|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Release|x64.Build.0 = Release|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Release|x86.ActiveCfg = Release|Any CPU
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -278,5 +292,6 @@ Global
 		{7BAE549D-B6D6-4CD5-A58A-F0A07582BB7E} = {E1F2A3B4-C5D6-7890-ABCD-EF1234567890}
 		{E1F2A3B4-C5D6-7890-ABCD-EF1234567890} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{28C9919D-38BE-4F13-8DF2-6B81280DB507} = {E1F2A3B4-C5D6-7890-ABCD-EF1234567890}
+		{F00FB1E6-0B44-48AE-8D04-2465D83E4523} = {E1F2A3B4-C5D6-7890-ABCD-EF1234567890}
 	EndGlobalSection
 EndGlobal
