@@ -19,6 +19,7 @@ public sealed class ModoModule : InteractionModuleBase<SocketInteractionContext>
     [AllowedBotRole(BotRole.Everyone)]
     public async Task ModoAsync()
     {
+        await DeferAsync(ephemeral: true);
         var config = await LoadConfigAsync();
 
         if (config.ModoChannel == 0)
@@ -115,6 +116,7 @@ public sealed class ModoModule : InteractionModuleBase<SocketInteractionContext>
     [AllowedBotRole(BotRole.Helper)]
     public async Task CloseTicketAsync()
     {
+        await DeferAsync(ephemeral: true);
         if (Context.Channel is not SocketThreadChannel thread)
             return;
 
