@@ -11,16 +11,13 @@ namespace Bidibip.Plugins.Warn.Commands;
 public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly DiscordSocketClient _client;
-    private readonly BotConfig _botConfig;
 
     // Key: moderator user ID → (target user ID, action)
-    // A user can only have one modal open at a time.
     private static readonly ConcurrentDictionary<ulong, (ulong TargetId, string Action)> PendingModals = new();
 
-    public WarnModule(DiscordSocketClient client, BotConfig botConfig)
+    public WarnModule(DiscordSocketClient client)
     {
         _client = client;
-        _botConfig = botConfig;
     }
 
     // ── Slash commands ──────────────────────────────────────────────
@@ -68,8 +65,8 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
 
         foreach (var record in records.OrderByDescending(r => r.Date))
         {
-            var fieldTitle = $"{FormatAction(record.Action)} - {record.Date:dd/MM/yyyy HH:mm}";
-            var fieldValue = Truncate(record.Reason, 800);
+            var fieldTitle = $"{WarnPlugin.FormatAction(record.Action)} - {record.Date:dd/MM/yyyy HH:mm}";
+            var fieldValue = WarnPlugin.Truncate(record.Reason, 800);
 
             if (!string.IsNullOrEmpty(record.FullMessageLink))
                 fieldValue += $"\n{record.FullMessageLink}";
@@ -116,7 +113,7 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
     {
         PendingModals[Context.User.Id] = (target.Id, action);
 
-        var modalTitle = $"{FormatAction(action)} de {target.Username}";
+        var modalTitle = $"{WarnPlugin.FormatAction(action)} de {target.Username}";
         if (modalTitle.Length > 45) modalTitle = modalTitle[..45];
 
         var modal = new ModalBuilder()
@@ -167,7 +164,26 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
         var details = string.IsNullOrWhiteSpace(modal.Other) ? null : modal.Other;
         var url = string.IsNullOrWhiteSpace(modal.Url) ? null : modal.Url;
 
-        await ProcessSanctionAsync(target, pending.Action, modal.Reason, details, url);
+        var record = new WarnRecord
+        {
+            Date = DateTime.UtcNow,
+            FromUser = Context.User.Username,
+            FromId = Context.User.Id,
+            ToUser = target.Username,
+            ToId = target.Id,
+            Reason = modal.Reason,
+            Details = details,
+            Link = url,
+            Action = pending.Action
+        };
+
+        // Send mod message, store, public message, DM (shared code)
+        await WarnPlugin.ProcessWarnRecordAsync(Context.Guild, target, record);
+
+        // Apply the sanction (only for bot-initiated actions)
+        await ApplySanctionAsync(Context.Guild, target, record);
+
+        await FollowupAsync("Sanction appliquée.", ephemeral: true);
     }
 
     // ── History button ──────────────────────────────────────────────
@@ -191,8 +207,8 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
             {
                 var date = warn.Date.ToString("dd MMMM yyyy", new CultureInfo("fr-FR"));
                 embed.AddField(
-                    $"{FormatAction(warn.Action)} ({date})",
-                    $"{Truncate(warn.Reason, 800)}\n{warn.FullMessageLink}",
+                    $"{WarnPlugin.FormatAction(warn.Action)} ({date})",
+                    $"{WarnPlugin.Truncate(warn.Reason, 800)}\n{warn.FullMessageLink}",
                     false);
 
                 if (embed.Fields.Count >= 25) break;
@@ -201,177 +217,6 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
             await RespondAsync(embed: embed.Build(), ephemeral: true);
             return;
         }
-    }
-
-    // ── Core processing ─────────────────────────────────────────────
-
-    private async Task ProcessSanctionAsync(
-        IUser target, string action, string reason, string? details, string? link)
-    {
-        var guild = Context.Guild;
-        if (guild is null)
-        {
-            await FollowupAsync("Cette commande ne peut être utilisée que dans un serveur.", ephemeral: true);
-            return;
-        }
-
-        var moderator = Context.User;
-
-        var record = new WarnRecord
-        {
-            Date = DateTime.UtcNow,
-            FromUser = moderator.Username,
-            FromId = moderator.Id,
-            ToUser = target.Username,
-            ToId = target.Id,
-            Reason = reason,
-            Details = details,
-            Link = link,
-            Action = action
-        };
-
-        // 1. Send moderation message (with "Historique" button)
-        var modMessage = await SendModerationMessageAsync(guild, record);
-        if (modMessage is not null)
-            record.FullMessageLink = modMessage.GetJumpUrl();
-
-        // 2. Store the record
-        await WarnPlugin.StoreWarnAsync(record);
-
-        // 3. Send public message
-        await SendPublicMessageAsync(guild, record);
-
-        // 4. DM the user
-        await SendPrivateMessageAsync(target, guild.Name, record);
-
-        // 5. Apply the sanction
-        await ApplySanctionAsync(guild, target, record);
-    }
-
-    // ── Moderation message ──────────────────────────────────────────
-
-    private async Task<IUserMessage?> SendModerationMessageAsync(SocketGuild guild, WarnRecord record)
-    {
-        var data = await WarnPlugin.LoadDataAsync();
-        var channelId = data.ModerationChannel != 0
-            ? data.ModerationChannel
-            : _botConfig.Channels.StaffChannel;
-
-        var channel = guild.GetTextChannel(channelId);
-        if (channel is null)
-            return null;
-
-        var existingCount = 0;
-        if (data.Warns.TryGetValue(record.ToId.ToString(), out var existing))
-            existingCount = existing.Count;
-
-        var embed = new EmbedBuilder()
-            .WithTitle(FormatAction(record.Action))
-            .WithDescription(Truncate(record.Reason, 4000))
-            .WithColor(GetActionColor(record.Action))
-            .WithTimestamp(record.Date);
-
-        if (!string.IsNullOrEmpty(record.Details))
-            embed.AddField("Details", Truncate(record.Details, 1024), false);
-
-        if (!string.IsNullOrEmpty(record.Link))
-            embed.AddField("Url", Truncate(record.Link, 1024), true);
-
-        if (existingCount > 0)
-            embed.AddField("Encore lui !", $"Déjà {existingCount} warn(s)", true);
-
-        var adminRoleId = _botConfig.Roles.Administrator;
-        var content = $"Sanction de {record.ToUser} (<@{record.ToId}>) par {record.FromUser} (<@{record.FromId}>) <@&{adminRoleId}>";
-
-        var components = new ComponentBuilder()
-            .WithButton("Historique", "warn_update_message", ButtonStyle.Secondary)
-            .Build();
-
-        try
-        {
-            return await channel.SendMessageAsync(text: content, embed: embed.Build(), components: components);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // ── Public message ──────────────────────────────────────────────
-
-    private async Task SendPublicMessageAsync(SocketGuild guild, WarnRecord record)
-    {
-        var data = await WarnPlugin.LoadDataAsync();
-        if (data.PublicWarnChannel == 0) return;
-
-        var channel = guild.GetTextChannel(data.PublicWarnChannel);
-        if (channel is null) return;
-
-        EmbedBuilder? embed = record.Action switch
-        {
-            "ban" => new EmbedBuilder()
-                .WithTitle($"{record.ToUser} a été banni par {record.FromUser}")
-                .WithDescription(Truncate(record.Reason, 4000)),
-            "kick" => new EmbedBuilder()
-                .WithTitle($"{record.ToUser} a été kick par {record.FromUser}")
-                .WithDescription(Truncate(record.Reason, 4000)),
-            "ban_vocal" => new EmbedBuilder()
-                .WithTitle($"{record.ToUser} a été exclu du vocal par {record.FromUser}")
-                .WithDescription(Truncate(record.Reason, 4000)),
-            "mute_1h" => new EmbedBuilder()
-                .WithTitle($"{record.ToUser} a été exclu par {record.FromUser}")
-                .WithDescription(Truncate(record.Reason, 4000))
-                .AddField("durée", "une heure", true),
-            "mute_1d" => new EmbedBuilder()
-                .WithTitle($"{record.ToUser} a été exclu par {record.FromUser}")
-                .WithDescription(Truncate(record.Reason, 4000))
-                .AddField("durée", "une journée", true),
-            "mute_1w" => new EmbedBuilder()
-                .WithTitle($"{record.ToUser} a été exclu par {record.FromUser}")
-                .WithDescription(Truncate(record.Reason, 4000))
-                .AddField("durée", "une semaine", true),
-            _ => null // "warn" → no public message
-        };
-
-        if (embed is null) return;
-
-        try
-        {
-            await channel.SendMessageAsync(embed: embed.Build());
-        }
-        catch { /* ignore */ }
-    }
-
-    // ── Private DM ──────────────────────────────────────────────────
-
-    private async Task SendPrivateMessageAsync(IUser target, string serverName, WarnRecord record)
-    {
-        try
-        {
-            var dmChannel = await target.CreateDMChannelAsync();
-            var reason = Truncate(record.Reason, 1000);
-
-            var message = record.Action switch
-            {
-                "ban" =>
-                    $"## Hello :wave:\nTu as été banni de **{serverName}** pour raison :\n\n> `{reason}`\n\nBonne continuation à toi ! :wave:",
-                "kick" =>
-                    $"## Hello :wave:\nTu as été exclu de **{serverName}** pour raison :\n\n> `{reason}`\n\nNous tolérerons ton retour à la seule condition que tu sois en mesure de respecter notre communauté. :point_up:\nBien à toi.",
-                "ban_vocal" =>
-                    $"## Hello :wave:\nTu as été banni des salons vocaux de **{serverName}**.\nJe tiens à te rappeler que certains comportements ne sont pas tolérés sur notre communauté, à savoir :\n\n> `{reason}`\n\nMerci de prendre cet avertissement en considération. :point_up:",
-                "mute_1h" =>
-                    $"## Hello :wave:\nTu as été exclu de **{serverName}** pour une heure.\nJe tiens à te rappeler que certains comportements ne sont pas tolérés sur notre communauté, à savoir :\n\n> `{reason}`\n\nMerci de prendre cet avertissement en considération. :point_up:",
-                "mute_1d" =>
-                    $"## Hello :wave:\nTu as été exclu de **{serverName}** pour un jour.\nJe tiens à te rappeler que certains comportements ne sont pas tolérés sur notre communauté, à savoir :\n\n> `{reason}`\n\nMerci de prendre cet avertissement en considération. :point_up:",
-                "mute_1w" =>
-                    $"## Hello :wave:\nTu as été exclu de **{serverName}** pour une semaine.\nJe tiens à te rappeler que certains comportements ne sont pas tolérés sur notre communauté, à savoir :\n\n> `{reason}`\n\nMerci de prendre cet avertissement en considération. :point_up:",
-                _ => // warn (default)
-                    $"## Hello :wave:\nJe suis le robot de **{serverName}**.\nJe tiens à te rappeler que certains comportements ne sont pas tolérés sur notre communauté, à savoir :\n\n> `{reason}`\n\nMerci de prendre cet avertissement en considération. :point_up:"
-            };
-
-            await dmChannel.SendMessageAsync(message);
-        }
-        catch { /* User may have DMs disabled or has already left */ }
     }
 
     // ── Sanction application ────────────────────────────────────────
@@ -423,39 +268,10 @@ public sealed class WarnModule : InteractionModuleBase<SocketInteractionContext>
                     if (mute1w is not null)
                         await mute1w.SetTimeOutAsync(TimeSpan.FromDays(7));
                     break;
-
-                // "warn" => no further action
             }
         }
         catch { /* Insufficient permissions or user already gone */ }
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────
-
-    internal static string FormatAction(string action) => action switch
-    {
-        "warn" => "warn",
-        "ban_vocal" => "exclusion du vocal",
-        "mute_1h" => "exclusion du serveur (1h)",
-        "mute_1d" => "exclusion du serveur (1 jour)",
-        "mute_1w" => "exclusion du serveur (une semaine)",
-        "kick" => "kick",
-        "ban" => "ban",
-        _ => action
-    };
-
-    private static Color GetActionColor(string action) => action switch
-    {
-        "warn" => Color.Gold,
-        "kick" => Color.Orange,
-        "ban" => Color.DarkRed,
-        "mute_1h" or "mute_1d" or "mute_1w" => Color.LightOrange,
-        "ban_vocal" => Color.LightOrange,
-        _ => Color.Red
-    };
-
-    private static string Truncate(string text, int maxLength) =>
-        text.Length > maxLength ? text[..maxLength] + "..." : text;
 }
 
 public class WarnModal : IModal

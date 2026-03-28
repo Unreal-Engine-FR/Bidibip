@@ -566,33 +566,113 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
             }
         };
 
-        _client.UserJoined += async user =>
+        _client.UserJoined += user =>
         {
-            foreach (var plugin in _plugins.Values)
+            _ = Task.Run(async () =>
             {
-                try
+                foreach (var plugin in _plugins.Values)
                 {
-                    await plugin.EventBus.DispatchUserJoined(user);
+                    try
+                    {
+                        await plugin.EventBus.DispatchUserJoined(user);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error in plugin {Name} user joined handler",
+                            plugin.Instance.Name);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error in plugin {Name} user joined handler",
-                        plugin.Instance.Name);
-                }
-            }
+            });
+            return Task.CompletedTask;
         };
 
-        _client.UserLeft += async (guild, user) =>
+        _client.UserLeft += (guild, user) =>
         {
+            _ = Task.Run(async () =>
+            {
+                foreach (var plugin in _plugins.Values)
+                {
+                    try
+                    {
+                        await plugin.EventBus.DispatchUserLeft(guild, user);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error in plugin {Name} user left handler",
+                            plugin.Instance.Name);
+                    }
+                }
+            });
+            return Task.CompletedTask;
+        };
+
+        _client.AuditLogCreated += async (socketEntry, guild) =>
+        {
+            // Skip actions performed by the bot itself
+            if (socketEntry.User?.Id == _client.CurrentUser?.Id)
+                return;
+
+            Plugin.Sdk.AuditLogActionType actionType;
+            ulong? targetId = null;
+            IUser? targetUser = null;
+            DateTimeOffset? timeoutUntil = null;
+
+            switch (socketEntry.Action)
+            {
+                case ActionType.Kick:
+                    actionType = Plugin.Sdk.AuditLogActionType.Kick;
+                    if (socketEntry.Data is Discord.WebSocket.SocketKickAuditLogData kickData)
+                    {
+                        targetId = kickData.Target.Id;
+                        try { targetUser = await kickData.Target.GetOrDownloadAsync(); } catch { }
+                    }
+                    break;
+                case ActionType.Ban:
+                    actionType = Plugin.Sdk.AuditLogActionType.Ban;
+                    if (socketEntry.Data is Discord.WebSocket.SocketBanAuditLogData banData)
+                    {
+                        targetId = banData.Target.Id;
+                        try { targetUser = await banData.Target.GetOrDownloadAsync(); } catch { }
+                    }
+                    break;
+                case ActionType.MemberUpdated:
+                    actionType = Plugin.Sdk.AuditLogActionType.MemberUpdate;
+                    if (socketEntry.Data is Discord.WebSocket.SocketMemberUpdateAuditLogData memberData)
+                    {
+                        targetId = memberData.Target.Id;
+                        try { targetUser = await memberData.Target.GetOrDownloadAsync(); } catch { }
+                        if (targetId.HasValue)
+                        {
+                            var member = guild.GetUser(targetId.Value);
+                            if (member?.TimedOutUntil is not null && member.TimedOutUntil > DateTimeOffset.UtcNow)
+                                timeoutUntil = member.TimedOutUntil;
+                        }
+                    }
+                    break;
+                default:
+                    return;
+            }
+
+            var entry = new Plugin.Sdk.AuditLogEntry
+            {
+                UserId = socketEntry.User?.Id ?? 0,
+                TargetId = targetId,
+                ActionType = actionType,
+                Reason = socketEntry.Reason,
+                Guild = guild,
+                TargetUser = targetUser,
+                TimeoutUntil = timeoutUntil
+            };
+
             foreach (var plugin in _plugins.Values)
             {
                 try
                 {
-                    await plugin.EventBus.DispatchUserLeft(guild, user);
+                    await plugin.EventBus.DispatchAuditLogCreated(entry);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error in plugin {Name} user left handler",
+                    _logger.LogError(ex, "Error in plugin {Name} audit log handler",
                         plugin.Instance.Name);
                 }
             }

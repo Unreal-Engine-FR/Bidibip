@@ -11,6 +11,7 @@ internal sealed class PluginEventBus : IEventBus
     private readonly List<Func<IReaction, IMessageChannel, Task>> _reactionHandlers = [];
     private readonly List<Func<IGuildUser, Task>> _userJoinedHandlers = [];
     private readonly List<Func<IGuild, IUser, Task>> _userLeftHandlers = [];
+    private readonly List<Func<Plugin.Sdk.AuditLogEntry, Task>> _auditLogHandlers = [];
 
     public void OnMessageReceived(Func<IMessage, Task> handler) =>
         _messageHandlers.Add(handler);
@@ -29,6 +30,9 @@ internal sealed class PluginEventBus : IEventBus
 
     public void OnUserLeft(Func<IGuild, IUser, Task> handler) =>
         _userLeftHandlers.Add(handler);
+
+    public void OnAuditLogCreated(Func<Plugin.Sdk.AuditLogEntry, Task> handler) =>
+        _auditLogHandlers.Add(handler);
 
     internal async Task DispatchMessageReceived(IMessage message)
     {
@@ -66,6 +70,12 @@ internal sealed class PluginEventBus : IEventBus
             await handler(guild, user);
     }
 
+    internal async Task DispatchAuditLogCreated(Plugin.Sdk.AuditLogEntry entry)
+    {
+        foreach (var handler in _auditLogHandlers)
+            await handler(entry);
+    }
+
     internal void Clear()
     {
         _messageHandlers.Clear();
@@ -74,5 +84,6 @@ internal sealed class PluginEventBus : IEventBus
         _reactionHandlers.Clear();
         _userJoinedHandlers.Clear();
         _userLeftHandlers.Clear();
+        _auditLogHandlers.Clear();
     }
 }
