@@ -8,58 +8,51 @@ namespace Bidibip.Plugins.UserCount;
 [BidibipPlugin]
 public sealed class UserCountPlugin : IBidibipPlugin
 {
-    public string Name => "UserCount";
-    public string Description => "Tracks guild member count and displays it as the bot's custom status.";
+    public string Name => "member-count";
+    public string Description => "Compte le nombre de membres et l'affiche dans l'activité de Bidibip";
 
     private ILogger _logger = null!;
+    private DiscordSocketClient _client = null!;
     private int _memberCount;
-    private bool _initialized;
 
     public Task InitializeAsync(PluginContext context)
     {
         _logger = context.Logger;
+        _client = context.Client;
 
-        context.Events.OnUserJoined(async user =>
+        context.Events.OnBotReady(async () =>
         {
-            if (!_initialized && user is SocketGuildUser sgu)
-                await InitializeMemberCountAsync(sgu.Guild);
+            var guild = _client.GetGuild(context.BotConfig.GuildId);
+            if (guild is null) return;
 
-            Interlocked.Increment(ref _memberCount);
-            if (user is SocketGuildUser su)
-                await UpdateStatusAsync(su.Guild);
+            await guild.DownloadUsersAsync();
+            var count = guild.MemberCount;
+            Interlocked.Exchange(ref _memberCount, count);
+            _logger.LogInformation("There is {Count} users", count);
+            UpdateStatus();
         });
 
-        context.Events.OnUserLeft(async (guild, _) =>
+        context.Events.OnUserJoined(_ =>
         {
-            if (!_initialized && guild is SocketGuild sg)
-                await InitializeMemberCountAsync(sg);
+            Interlocked.Increment(ref _memberCount);
+            UpdateStatus();
+            return Task.CompletedTask;
+        });
 
+        context.Events.OnUserLeft((_, _) =>
+        {
             Interlocked.Decrement(ref _memberCount);
-            if (guild is SocketGuild sg2)
-                await UpdateStatusAsync(sg2);
+            UpdateStatus();
+            return Task.CompletedTask;
         });
 
         return Task.CompletedTask;
     }
 
-    private async Task InitializeMemberCountAsync(SocketGuild guild)
-    {
-        await guild.DownloadUsersAsync();
-        Interlocked.Exchange(ref _memberCount, guild.MemberCount);
-        _initialized = true;
-        _logger.LogInformation("Initialized member count: {Count}", _memberCount);
-        await UpdateStatusAsync(guild);
-    }
-
-    private async Task UpdateStatusAsync(SocketGuild guild)
+    private void UpdateStatus()
     {
         var count = Interlocked.CompareExchange(ref _memberCount, 0, 0);
-        var client = (guild as IGuild).GetType().GetProperty("Discord",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.GetValue(guild) as DiscordSocketClient;
-
-        if (client is not null)
-            await client.SetActivityAsync(new Game($"Nous sommes {count} membres", ActivityType.CustomStatus));
+        _client.SetActivityAsync(new CustomStatusGame($"Nous sommes {count} membres"));
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

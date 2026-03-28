@@ -15,6 +15,7 @@ internal sealed class PluginEventBus : IEventBus
     private readonly List<Func<Plugin.Sdk.AuditLogEntry, Task>> _auditLogHandlers = [];
     private readonly List<Func<SocketInteraction, Task>> _interactionHandlers = [];
     private readonly List<Func<SocketThreadChannel, Task>> _threadCreatedHandlers = [];
+    private readonly List<Func<Task>> _botReadyHandlers = [];
 
     public void OnMessageReceived(Func<IMessage, Task> handler) =>
         _messageHandlers.Add(handler);
@@ -42,6 +43,9 @@ internal sealed class PluginEventBus : IEventBus
 
     public void OnThreadCreated(Func<SocketThreadChannel, Task> handler) =>
         _threadCreatedHandlers.Add(handler);
+
+    public void OnBotReady(Func<Task> handler) =>
+        _botReadyHandlers.Add(handler);
 
     internal async Task DispatchMessageReceived(IMessage message)
     {
@@ -97,6 +101,12 @@ internal sealed class PluginEventBus : IEventBus
             await handler(thread);
     }
 
+    internal async Task DispatchBotReady()
+    {
+        foreach (var handler in _botReadyHandlers)
+            await handler();
+    }
+
     internal void Clear()
     {
         _messageHandlers.Clear();
@@ -108,5 +118,6 @@ internal sealed class PluginEventBus : IEventBus
         _auditLogHandlers.Clear();
         _interactionHandlers.Clear();
         _threadCreatedHandlers.Clear();
+        _botReadyHandlers.Clear();
     }
 }

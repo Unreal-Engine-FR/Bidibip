@@ -14,6 +14,7 @@ public interface IEventBus
     void OnAuditLogCreated(Func<AuditLogEntry, Task> handler);
     void OnInteractionCreated(Func<SocketInteraction, Task> handler);
     void OnThreadCreated(Func<SocketThreadChannel, Task> handler);
+    void OnBotReady(Func<Task> handler);
 }
 
 /// <summary>

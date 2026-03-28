@@ -1,3 +1,4 @@
+using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -10,6 +11,7 @@ public sealed class PluginContext
     public required IEventBus Events { get; init; }
     public required BotConfig BotConfig { get; init; }
     public required ICommandRegistry Commands { get; init; }
+    public required DiscordSocketClient Client { get; init; }
 
     /// <summary>
     /// Directory path where the plugin can persist data files.

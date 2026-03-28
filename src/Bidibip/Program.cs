@@ -50,6 +50,23 @@ try
             config.AddJsonFile(configPath,
                 optional: true,
                 reloadOnChange: true);
+            // Load .env file from the working directory if it exists.
+            // Values set here become environment variables and override appsettings.
+            var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+            if (File.Exists(envPath))
+            {
+                foreach (var line in File.ReadAllLines(envPath))
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.Length == 0 || trimmed.StartsWith('#'))
+                        continue;
+                    var sep = trimmed.IndexOf('=');
+                    if (sep < 0) continue;
+                    var key = trimmed[..sep].Trim();
+                    var value = trimmed[(sep + 1)..].Trim();
+                    Environment.SetEnvironmentVariable(key, value);
+                }
+            }
             // Re-add env vars so they override appsettings values (e.g. Token)
             config.AddEnvironmentVariables();
         })

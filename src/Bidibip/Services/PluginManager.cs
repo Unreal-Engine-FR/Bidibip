@@ -255,6 +255,7 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
                 Events = eventBus,
                 BotConfig = _botConfig,
                 Commands = this,
+                Client = _client,
                 DataPath = dataPath
             };
 
@@ -346,7 +347,22 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         await LoadPluginAsync(dllPath);
     }
 
-    public void MarkBotReady() => _botReady = true;
+    public async Task MarkBotReadyAsync()
+    {
+        _botReady = true;
+
+        foreach (var plugin in _plugins.Values)
+        {
+            try
+            {
+                await plugin.EventBus.DispatchBotReady();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in plugin {Name} bot ready handler", plugin.Instance.Name);
+            }
+        }
+    }
 
     public async Task RegisterCommandsAsync()
     {
