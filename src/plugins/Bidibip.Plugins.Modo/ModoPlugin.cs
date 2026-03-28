@@ -11,10 +11,11 @@ public sealed class ModoPlugin : IBidibipPlugin
 
     internal static string DataPath { get; private set; } = "";
 
-    public Task InitializeAsync(PluginContext context)
+    public async Task InitializeAsync(PluginContext context)
     {
         DataPath = context.DataPath;
-        return Task.CompletedTask;
+        var configPath = Path.Combine(context.DataPath, "config.json");
+        await PluginData.LoadAsync<ModoConfig>(configPath);
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
