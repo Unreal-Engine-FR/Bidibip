@@ -149,10 +149,16 @@ public sealed class AdReviewModule : InteractionModuleBase<SocketInteractionCont
 
                 var embeds = AdPreview.BuildPreviewEmbeds(ad, adUser ?? Context.User);
 
+                var tagIds = ad.GetTags(config.Tags);
+                var forumTags = forumChannel.Tags
+                    .Where(t => tagIds.Contains(t.Id))
+                    .ToArray();
+
                 var forumThread = await forumChannel.CreatePostAsync(
                     title: postTitle,
                     text: " ",
-                    embeds: embeds);
+                    embeds: embeds,
+                    tags: forumTags);
 
                 var messages = await forumThread.GetMessagesAsync(1).FlattenAsync();
                 var firstMsg = messages.FirstOrDefault();

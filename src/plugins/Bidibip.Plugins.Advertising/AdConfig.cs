@@ -16,6 +16,9 @@ public sealed class AdConfig
     [JsonPropertyName("max_ad_per_user")]
     public int MaxAdPerUser { get; set; } = 2;
 
+    [JsonPropertyName("tags")]
+    public AdvertisingTags Tags { get; set; } = new();
+
     /// <summary>Key: threadId (string) -> AdInProgress</summary>
     [JsonPropertyName("in_progress")]
     public Dictionary<string, AdInProgress> InProgress { get; set; } = new();
@@ -23,6 +26,49 @@ public sealed class AdConfig
     /// <summary>Key: userId (string) -> { channelId (string) -> StoredAd }</summary>
     [JsonPropertyName("stored_ads")]
     public Dictionary<string, Dictionary<string, StoredAd>> StoredAds { get; set; } = new();
+}
+
+/// <summary>Forum tag IDs for auto-tagging published ads.</summary>
+public sealed class AdvertisingTags
+{
+    [JsonPropertyName("freelance")]
+    public ulong Freelance { get; set; }
+
+    [JsonPropertyName("volunteer")]
+    public ulong Volunteer { get; set; }
+
+    [JsonPropertyName("paid")]
+    public ulong Paid { get; set; }
+
+    [JsonPropertyName("unpaid")]
+    public ulong Unpaid { get; set; }
+
+    [JsonPropertyName("internship")]
+    public ulong Internship { get; set; }
+
+    [JsonPropertyName("fixed_term")]
+    public ulong FixedTerm { get; set; }
+
+    [JsonPropertyName("open_ended")]
+    public ulong OpenEnded { get; set; }
+
+    [JsonPropertyName("work_study")]
+    public ulong WorkStudy { get; set; }
+
+    [JsonPropertyName("worker")]
+    public ulong Worker { get; set; }
+
+    [JsonPropertyName("recruiter")]
+    public ulong Recruiter { get; set; }
+
+    [JsonPropertyName("remote")]
+    public ulong Remote { get; set; }
+
+    [JsonPropertyName("on_site")]
+    public ulong OnSite { get; set; }
+
+    [JsonPropertyName("on_site_flex")]
+    public ulong OnSiteFlex { get; set; }
 }
 
 public sealed class StoredAd
@@ -143,4 +189,62 @@ public sealed class AdInProgress
 
     [JsonPropertyName("preview_message_id")]
     public ulong? PreviewMessageId { get; set; }
+
+    /// <summary>Computes the forum tag IDs to apply based on this ad's data.</summary>
+    public ulong[] GetTags(AdvertisingTags tags)
+    {
+        var result = new List<ulong>();
+
+        // Role + location tags
+        if (Role == "recruiter")
+        {
+            if (tags.Recruiter != 0) result.Add(tags.Recruiter);
+            var loc = LocationType;
+            if (loc == "remote" && tags.Remote != 0) result.Add(tags.Remote);
+            else if (loc == "flex" && tags.OnSiteFlex != 0) result.Add(tags.OnSiteFlex);
+            else if (loc == "on_site" && tags.OnSite != 0) result.Add(tags.OnSite);
+        }
+        else if (Role == "worker")
+        {
+            if (tags.Worker != 0) result.Add(tags.Worker);
+            var loc = WorkerLocationType;
+            if (loc == "remote" && tags.Remote != 0) result.Add(tags.Remote);
+            else if (loc == "anywhere" && tags.OnSiteFlex != 0) result.Add(tags.OnSiteFlex);
+            else if (loc == "on_site" && tags.OnSite != 0) result.Add(tags.OnSite);
+        }
+
+        // Contract type tags
+        switch (ContractType)
+        {
+            case "volunteering":
+                if (tags.Volunteer != 0) result.Add(tags.Volunteer);
+                if (tags.Unpaid != 0) result.Add(tags.Unpaid);
+                break;
+            case "internship":
+                if (tags.Internship != 0) result.Add(tags.Internship);
+                if (HasCompensation == "yes")
+                { if (tags.Paid != 0) result.Add(tags.Paid); }
+                else
+                { if (tags.Unpaid != 0) result.Add(tags.Unpaid); }
+                break;
+            case "freelance":
+                if (tags.Freelance != 0) result.Add(tags.Freelance);
+                if (tags.Paid != 0) result.Add(tags.Paid);
+                break;
+            case "work_study":
+                if (tags.WorkStudy != 0) result.Add(tags.WorkStudy);
+                if (tags.Paid != 0) result.Add(tags.Paid);
+                break;
+            case "fixed_term":
+                if (tags.FixedTerm != 0) result.Add(tags.FixedTerm);
+                if (tags.Paid != 0) result.Add(tags.Paid);
+                break;
+            case "open_ended":
+                if (tags.OpenEnded != 0) result.Add(tags.OpenEnded);
+                if (tags.Paid != 0) result.Add(tags.Paid);
+                break;
+        }
+
+        return result.ToArray();
+    }
 }
