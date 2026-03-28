@@ -83,7 +83,6 @@ public class BotService : IHostedService
     private async Task HandleInteractionAsync(SocketInteraction interaction)
     {
         var commandName = interaction is SocketSlashCommand slash ? slash.CommandName : "N/A";
-        _logger.LogInformation("Interaction received: {Type} {Name}", interaction.Type, commandName);
 
         // ── GATE CHECK 1: Early permission validation before any processing ──
         // This runs before deferral so we can reject unauthorized users immediately.

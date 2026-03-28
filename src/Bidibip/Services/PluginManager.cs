@@ -530,6 +530,22 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
 
     private void WireDiscordEvents()
     {
+        _client.InteractionCreated += async interaction =>
+        {
+            foreach (var plugin in _plugins.Values)
+            {
+                try
+                {
+                    await plugin.EventBus.DispatchInteractionCreated(interaction);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in plugin {Name} interaction handler",
+                        plugin.Instance.Name);
+                }
+            }
+        };
+
         _client.MessageReceived += async msg =>
         {
             foreach (var plugin in _plugins.Values)

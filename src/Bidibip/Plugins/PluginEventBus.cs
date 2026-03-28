@@ -1,5 +1,6 @@
 using Bidibip.Plugin.Sdk;
 using Discord;
+using Discord.WebSocket;
 
 namespace Bidibip.Plugins;
 
@@ -12,6 +13,7 @@ internal sealed class PluginEventBus : IEventBus
     private readonly List<Func<IGuildUser, Task>> _userJoinedHandlers = [];
     private readonly List<Func<IGuild, IUser, Task>> _userLeftHandlers = [];
     private readonly List<Func<Plugin.Sdk.AuditLogEntry, Task>> _auditLogHandlers = [];
+    private readonly List<Func<SocketInteraction, Task>> _interactionHandlers = [];
 
     public void OnMessageReceived(Func<IMessage, Task> handler) =>
         _messageHandlers.Add(handler);
@@ -33,6 +35,9 @@ internal sealed class PluginEventBus : IEventBus
 
     public void OnAuditLogCreated(Func<Plugin.Sdk.AuditLogEntry, Task> handler) =>
         _auditLogHandlers.Add(handler);
+
+    public void OnInteractionCreated(Func<SocketInteraction, Task> handler) =>
+        _interactionHandlers.Add(handler);
 
     internal async Task DispatchMessageReceived(IMessage message)
     {
@@ -76,6 +81,12 @@ internal sealed class PluginEventBus : IEventBus
             await handler(entry);
     }
 
+    internal async Task DispatchInteractionCreated(SocketInteraction interaction)
+    {
+        foreach (var handler in _interactionHandlers)
+            await handler(interaction);
+    }
+
     internal void Clear()
     {
         _messageHandlers.Clear();
@@ -85,5 +96,6 @@ internal sealed class PluginEventBus : IEventBus
         _userJoinedHandlers.Clear();
         _userLeftHandlers.Clear();
         _auditLogHandlers.Clear();
+        _interactionHandlers.Clear();
     }
 }

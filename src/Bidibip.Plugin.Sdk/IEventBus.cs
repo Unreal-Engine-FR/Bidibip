@@ -1,4 +1,5 @@
 using Discord;
+using Discord.WebSocket;
 
 namespace Bidibip.Plugin.Sdk;
 
@@ -11,6 +12,7 @@ public interface IEventBus
     void OnUserJoined(Func<IGuildUser, Task> handler);
     void OnUserLeft(Func<IGuild, IUser, Task> handler);
     void OnAuditLogCreated(Func<AuditLogEntry, Task> handler);
+    void OnInteractionCreated(Func<SocketInteraction, Task> handler);
 }
 
 /// <summary>
