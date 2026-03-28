@@ -119,6 +119,13 @@ public sealed class AdReviewModule : InteractionModuleBase<SocketInteractionCont
                         var embeds = AdPreview.BuildPreviewEmbeds(ad, adUser ?? Context.User);
                         await existingUserMsg.ModifyAsync(props => props.Embeds = embeds);
                     }
+
+                    // Update thread title to match the ad title
+                    var emoji = AdPreview.GetContractEmoji(ad.ContractType);
+                    var postTitle = string.IsNullOrWhiteSpace(emoji)
+                        ? (ad.Title ?? "Annonce")
+                        : $"{emoji} {AdPreview.Truncate(ad.Title ?? "Annonce", 100)}";
+                    await existingChannel.ModifyAsync(t => t.Name = postTitle);
                 }
 
                 AdvertisingModule.StoreAd(config, ad, ad.EditedPostChannel.Value, ad.EditedPostMessage.Value);

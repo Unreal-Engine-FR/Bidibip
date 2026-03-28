@@ -11,6 +11,12 @@ public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContex
     [AllowedBotRole(BotRole.Member)]
     public async Task EditFieldAsync(string stepName)
     {
+        if (AdQuestions.IsRegenerating(Context.Channel.Id))
+        {
+            await RespondAsync("Une minute ! Merci d'attendre que ton annonce soit entièrement régénérée ici avant de la modifier.", ephemeral: true);
+            return;
+        }
+
         var config = await AdvertisingPlugin.LoadConfigAsync();
         var ad = FindAd(config);
         if (ad is null) return;
@@ -60,6 +66,20 @@ public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContex
 
         AdStepRegistry.GetStep(stepName)?.SetValue(ad, newValue);
 
+        // If the title was changed and the ad is being edited, rename the forum thread
+        if (stepName == "title" && ad.EditedPostChannel.HasValue)
+        {
+            var thread = Context.Guild.GetThreadChannel(ad.EditedPostChannel.Value);
+            if (thread is not null)
+            {
+                var emoji = AdPreview.GetContractEmoji(ad.ContractType);
+                var postTitle = string.IsNullOrWhiteSpace(emoji)
+                    ? newValue
+                    : $"{emoji} {AdPreview.Truncate(newValue, 100)}";
+                await thread.ModifyAsync(t => t.Name = postTitle);
+            }
+        }
+
         await AdQuestions.EditQuestionWithAnswer(Context.Channel, ad, stepName, newValue);
 
         ad.Step = AdStepRegistry.FindNextMissingStep(ad);
@@ -75,6 +95,12 @@ public sealed class AdEditModule : InteractionModuleBase<SocketInteractionContex
     [AllowedBotRole(BotRole.Member)]
     public async Task ClearFieldAsync(string stepName)
     {
+        if (AdQuestions.IsRegenerating(Context.Channel.Id))
+        {
+            await RespondAsync("Une minute ! Merci d'attendre que ton annonce soit entièrement régénérée ici avant de la modifier.", ephemeral: true);
+            return;
+        }
+
         await DeferAsync(ephemeral: true);
         var config = await AdvertisingPlugin.LoadConfigAsync();
         var ad = FindAd(config);

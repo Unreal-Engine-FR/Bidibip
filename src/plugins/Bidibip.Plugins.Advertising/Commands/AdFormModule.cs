@@ -13,6 +13,12 @@ public sealed class AdFormModule : InteractionModuleBase<SocketInteractionContex
     [AllowedBotRole(BotRole.Member)]
     public async Task HandleChoiceAsync(string payload)
     {
+        if (AdQuestions.IsRegenerating(Context.Channel.Id))
+        {
+            await RespondAsync("Une minute ! Merci d'attendre que ton annonce soit entièrement régénérée ici avant de la modifier.", ephemeral: true);
+            return;
+        }
+
         var sep = payload.IndexOf(':');
         if (sep < 0) return;
 
