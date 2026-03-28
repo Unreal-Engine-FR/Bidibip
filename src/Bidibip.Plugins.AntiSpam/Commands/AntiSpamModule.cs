@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Bidibip.Plugin.Sdk;
 using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
 using Discord.Interactions;
@@ -7,86 +9,101 @@ namespace Bidibip.Plugins.AntiSpam.Commands;
 
 public sealed class AntiSpamModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly DiscordSocketClient _client;
-
-    public AntiSpamModule(DiscordSocketClient client)
-    {
-        _client = client;
-    }
-
-    [ComponentInteraction("antispam::kick::*")]
+    [ComponentInteraction("antispam_kick_*")]
     [AllowedBotRole(BotRole.Moderator)]
     public async Task KickUserAsync()
     {
-        await DeferAsync(ephemeral: true);
-        var customId = ((IComponentInteraction)Context.Interaction).Data.CustomId;
-        var parts = customId.Split("::");
-        if (parts.Length < 3 || !ulong.TryParse(parts[2], out var userId))
+        await DeferAsync();
+
+        var component = (IComponentInteraction)Context.Interaction;
+        var config = await LoadConfigAsync();
+        var messageId = component.Message.Id.ToString();
+
+        if (!config.Spammers.TryGetValue(messageId, out var spammer) ||
+            spammer.KickButton != component.Data.CustomId)
         {
-            await FollowupAsync("ID utilisateur invalide.", ephemeral: true);
+            await FollowupAsync("Interaction invalide.", ephemeral: true);
             return;
         }
 
         var guild = Context.Guild;
-        var user = guild.GetUser(userId);
+        var user = guild.GetUser(spammer.Spammer);
 
-        if (user is null)
+        if (user is not null)
         {
-            await FollowupAsync($"Utilisateur `{userId}` introuvable sur le serveur.", ephemeral: true);
-            return;
-        }
-
-        try
-        {
-            // Remove timeout before kicking
-            await user.RemoveTimeOutAsync();
-        }
-        catch
-        {
-            // Timeout may already have expired
+            await user.KickAsync("Spam détecté");
         }
 
-        try
-        {
-            await user.KickAsync($"Spam detecte - kick par {Context.User.Username}");
-            await FollowupAsync($"L'utilisateur {user.Username} (`{userId}`) a ete kick.");
-        }
-        catch (Exception ex)
-        {
-            await FollowupAsync($"Erreur lors du kick : {ex.Message}", ephemeral: true);
-        }
+        // Delete the moderation message
+        await component.Message.DeleteAsync();
+
+        // Respond with result
+        await FollowupAsync(
+            $"<@{spammer.Spammer}> a été kick par {Context.User.Mention} pour cause de spam");
+
+        // Clean up config
+        config.Spammers.Remove(messageId);
+        await SaveConfigAsync(config);
     }
 
-    [ComponentInteraction("antispam::pardon::*")]
+    [ComponentInteraction("antispam_pardon_*")]
     [AllowedBotRole(BotRole.Moderator)]
     public async Task PardonUserAsync()
     {
-        await DeferAsync(ephemeral: true);
-        var customId = ((IComponentInteraction)Context.Interaction).Data.CustomId;
-        var parts = customId.Split("::");
-        if (parts.Length < 3 || !ulong.TryParse(parts[2], out var userId))
+        await DeferAsync();
+
+        var component = (IComponentInteraction)Context.Interaction;
+        var config = await LoadConfigAsync();
+        var messageId = component.Message.Id.ToString();
+
+        if (!config.Spammers.TryGetValue(messageId, out var spammer) ||
+            spammer.PardonButton != component.Data.CustomId)
         {
-            await FollowupAsync("ID utilisateur invalide.", ephemeral: true);
+            await FollowupAsync("Interaction invalide.", ephemeral: true);
             return;
         }
 
         var guild = Context.Guild;
-        var user = guild.GetUser(userId);
+        var user = guild.GetUser(spammer.Spammer);
 
-        if (user is null)
+        // Remove mute role (use the antispam config's mute_role, same as what was applied)
+        if (user is not null && config.MuteRole != 0)
         {
-            await FollowupAsync($"Utilisateur `{userId}` introuvable sur le serveur.", ephemeral: true);
-            return;
+            await user.RemoveRoleAsync(config.MuteRole);
         }
 
-        try
+        // Respond with result
+        await FollowupAsync(
+            $"<@{spammer.Spammer}> a été pardonné par {Context.User.Mention}");
+
+        // Delete the moderation message
+        await component.Message.DeleteAsync();
+
+        // Clear user spam history so they aren't immediately re-flagged
+        AntiSpamPlugin.ClearUserHistory(spammer.Spammer);
+
+        // Clean up config
+        config.Spammers.Remove(messageId);
+        await SaveConfigAsync(config);
+    }
+
+    private async Task<AntiSpamConfig> LoadConfigAsync()
+    {
+        var configPath = Path.Combine(AntiSpamPlugin.DataPath, "config.json");
+        if (File.Exists(configPath))
         {
-            await user.RemoveTimeOutAsync();
-            await FollowupAsync($"L'utilisateur {user.Username} (`{userId}`) a ete pardonne, timeout retire.");
+            var json = await File.ReadAllTextAsync(configPath);
+            return JsonSerializer.Deserialize<AntiSpamConfig>(json, PluginJsonOptions.Default) ?? new AntiSpamConfig();
         }
-        catch (Exception ex)
-        {
-            await FollowupAsync($"Erreur lors du pardon : {ex.Message}", ephemeral: true);
-        }
+
+        return new AntiSpamConfig();
+    }
+
+    private async Task SaveConfigAsync(AntiSpamConfig config)
+    {
+        var configPath = Path.Combine(AntiSpamPlugin.DataPath, "config.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+        var json = JsonSerializer.Serialize(config, PluginJsonOptions.Default);
+        await File.WriteAllTextAsync(configPath, json);
     }
 }
