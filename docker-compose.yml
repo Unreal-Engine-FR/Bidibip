@@ -1,6 +1,7 @@
 services:
   bot:
-    image: ghcr.io/unreal-engine-fr/bidibip:latest
+    image: ghcr.io/unreal-engine-fr/bidibip-v5:latest
+    container_name: bidibip-v5
     restart: unless-stopped
     volumes:
       - ./Saved:/opt/bidibip/Saved
