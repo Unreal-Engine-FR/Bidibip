@@ -10,15 +10,17 @@ namespace Bidibip.Plugins.History;
 public sealed class HistoryPlugin : IBidibipPlugin
 {
     public string Name => "History";
-    public string Description => "Tracks message deletions and edits, posts alerts to a configured history channel.";
+    public string Description => "Historique des messages modifiés et supprimés";
 
     private HistoryConfig _config = new();
+    private BotConfig _botConfig = null!;
     private ILogger _logger = null!;
     private string _configPath = null!;
 
     public async Task InitializeAsync(PluginContext context)
     {
         _logger = context.Logger;
+        _botConfig = context.BotConfig;
         _configPath = Path.Combine(context.DataPath, "config.json");
 
         await LoadConfigAsync();
@@ -40,13 +42,12 @@ public sealed class HistoryPlugin : IBidibipPlugin
             _config = new HistoryConfig();
             var json = JsonSerializer.Serialize(_config, PluginJsonOptions.Default);
             await File.WriteAllTextAsync(_configPath, json);
-            _logger.LogWarning("History config not found, created default at {Path}. Please configure history_channel.", _configPath);
         }
     }
 
     private async Task HandleMessageDeletedAsync(Cacheable<IMessage, ulong> cachedMessage, Cacheable<IMessageChannel, ulong> cachedChannel)
     {
-        if (_config.HistoryChannel == 0)
+        if (_botConfig.Channels.LogChannel == 0)
             return;
 
         var channel = await cachedChannel.GetOrDownloadAsync();
@@ -57,49 +58,58 @@ public sealed class HistoryPlugin : IBidibipPlugin
             return;
 
         var guild = textChannel.Guild;
-        var historyChannel = guild.GetTextChannel(_config.HistoryChannel);
-        if (historyChannel is null)
-        {
-            _logger.LogWarning("History channel {ChannelId} not found in guild.", _config.HistoryChannel);
+        var logChannel = guild.GetTextChannel(_botConfig.Channels.LogChannel);
+        if (logChannel is null)
             return;
-        }
+
+        var messageId = cachedMessage.Id;
+        var date = SnowflakeUtils.FromSnowflake(messageId);
+        var dateStr = date.ToString("dd MMMM yyyy");
+        var messageLink = $"https://discord.com/channels/{guild.Id}/{textChannel.Id}/{messageId}";
 
         if (cachedMessage.HasValue)
         {
             var message = cachedMessage.Value;
 
-            if (message.Author.IsBot)
+            // Skip bot's own messages
+            if (message.Author.Id == guild.CurrentUser.Id)
                 return;
+
+            var content = message.Content;
+            if (string.IsNullOrEmpty(content) && message.Attachments.Count > 0)
+                content = string.Join(" ", message.Attachments.Select(a => a.Url));
+            if (string.IsNullOrEmpty(content))
+                content = messageLink;
+
+            var userName = $"{message.Author.Username} ({message.Author.Id})";
 
             var embed = new EmbedBuilder()
                 .WithColor(Color.Red)
-                .WithTitle("Message Deleted")
-                .AddField("Author", $"{message.Author.Username} ({message.Author.Id})", inline: true)
-                .AddField("Channel", $"<#{textChannel.Id}>", inline: true)
-                .AddField("Content", string.IsNullOrEmpty(message.Content) ? "*empty*" : Truncate(message.Content, 1024))
-                .WithTimestamp(DateTimeOffset.UtcNow)
-                .Build();
+                .WithTitle($"Message du {dateStr} supprimé")
+                .WithDescription(messageLink)
+                .AddField($"de : {userName}", Truncate(content, 1024), false);
 
-            await historyChannel.SendMessageAsync(embed: embed);
+            _logger.LogInformation("Message {Link} de {User} du {Date} supprimé : {Content}",
+                messageLink, userName, dateStr, content);
+
+            await logChannel.SendMessageAsync(embed: embed.Build());
         }
         else
         {
             var embed = new EmbedBuilder()
                 .WithColor(Color.Red)
-                .WithTitle("Message Deleted")
-                .AddField("Message ID", cachedMessage.Id.ToString(), inline: true)
-                .AddField("Channel", $"<#{textChannel.Id}>", inline: true)
-                .AddField("Content", "*message was not cached*")
-                .WithTimestamp(DateTimeOffset.UtcNow)
-                .Build();
+                .WithTitle($"Ancien message du {dateStr} supprimé")
+                .WithDescription(messageLink);
 
-            await historyChannel.SendMessageAsync(embed: embed);
+            _logger.LogInformation("Ancien message du {Date} supprimé : {Link}", dateStr, messageLink);
+
+            await logChannel.SendMessageAsync(embed: embed.Build());
         }
     }
 
     private async Task HandleMessageUpdatedAsync(Cacheable<IMessage, ulong> cachedBefore, IMessage after, IMessageChannel channel)
     {
-        if (_config.HistoryChannel == 0)
+        if (_botConfig.Channels.LogChannel == 0)
             return;
 
         if (channel is not SocketTextChannel textChannel)
@@ -108,37 +118,51 @@ public sealed class HistoryPlugin : IBidibipPlugin
         if (_config.ChannelBlacklist.Contains(textChannel.Id))
             return;
 
-        if (after.Author.IsBot)
+        // Skip bot's own messages
+        if (after.Author.Id == textChannel.Guild.CurrentUser.Id)
             return;
 
         var guild = textChannel.Guild;
-        var historyChannel = guild.GetTextChannel(_config.HistoryChannel);
-        if (historyChannel is null)
-        {
-            _logger.LogWarning("History channel {ChannelId} not found in guild.", _config.HistoryChannel);
+        var logChannel = guild.GetTextChannel(_botConfig.Channels.LogChannel);
+        if (logChannel is null)
             return;
+
+        // Resolve old text
+        var oldText = "";
+        if (cachedBefore.HasValue)
+        {
+            oldText = cachedBefore.Value.Content;
+            if (string.IsNullOrEmpty(oldText) && cachedBefore.Value.Attachments.Count > 0)
+                oldText = string.Join(" ", cachedBefore.Value.Attachments.Select(a => a.Url));
         }
 
-        var beforeContent = cachedBefore.HasValue
-            ? (string.IsNullOrEmpty(cachedBefore.Value.Content) ? "*empty*" : Truncate(cachedBefore.Value.Content, 1024))
-            : "*message was not cached*";
+        // Resolve new text
+        var newText = after.Content;
+        if (string.IsNullOrEmpty(newText) && after.Attachments.Count > 0)
+            newText = string.Join(" ", after.Attachments.Select(a => a.Url));
 
-        var afterContent = string.IsNullOrEmpty(after.Content) ? "*empty*" : Truncate(after.Content, 1024);
-
+        // Skip if content didn't change (embed updates, etc.)
         if (cachedBefore.HasValue && cachedBefore.Value.Content == after.Content)
             return;
 
+        var messageLink = $"https://discord.com/channels/{guild.Id}/{textChannel.Id}/{after.Id}";
+        var userName = $"{after.Author.Username} ({after.Author.Id})";
+
         var embed = new EmbedBuilder()
             .WithColor(Color.Orange)
-            .WithTitle("Message Edited")
-            .AddField("Author", $"{after.Author.Username} ({after.Author.Id})", inline: true)
-            .AddField("Channel", $"<#{textChannel.Id}>", inline: true)
-            .AddField("Before", beforeContent)
-            .AddField("After", afterContent)
-            .WithTimestamp(DateTimeOffset.UtcNow)
-            .Build();
+            .WithTitle(userName)
+            .WithDescription($"Message modifié : {messageLink}");
 
-        await historyChannel.SendMessageAsync(embed: embed);
+        if (!string.IsNullOrEmpty(oldText))
+            embed.AddField("ancien", Truncate(oldText, 1024), false);
+
+        if (!string.IsNullOrEmpty(newText))
+            embed.AddField("nouveau", Truncate(newText, 1024), false);
+
+        _logger.LogInformation("Message de {User} modifié : [[FROM]] {Old} [[TO]] {New}",
+            userName, oldText, newText);
+
+        await logChannel.SendMessageAsync(embed: embed.Build());
     }
 
     private static string Truncate(string value, int maxLength)

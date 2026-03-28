@@ -30,18 +30,6 @@ public sealed class LogPlugin : IBidibipPlugin
             return Task.CompletedTask;
         });
 
-        context.Events.OnMessageReceived(msg =>
-        {
-            if (msg.Author.IsBot) return Task.CompletedTask;
-
-            _logger.LogInformation("Message from {Username} in #{Channel}: {Content}",
-                msg.Author.Username,
-                msg.Channel.Name,
-                msg.Content.Length > 100 ? msg.Content[..100] + "..." : msg.Content);
-
-            return Task.CompletedTask;
-        });
-
         return Task.CompletedTask;
     }
 

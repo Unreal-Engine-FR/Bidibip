@@ -58,6 +58,7 @@ try
             var config = new DiscordSocketConfig
             {
                 GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent | GatewayIntents.GuildMembers | GatewayIntents.GuildBans,
+                MessageCacheSize = 10000,
                 LogLevel = LogSeverity.Info,
                 UseInteractionSnowflakeDate = false
             };
