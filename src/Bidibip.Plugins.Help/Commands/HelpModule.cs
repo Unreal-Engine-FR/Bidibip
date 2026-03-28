@@ -1,4 +1,3 @@
-using System.Text;
 using Bidibip.Plugin.Sdk;
 using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
@@ -18,7 +17,7 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
         _botConfig = botConfig;
     }
 
-    [SlashCommand("help", "Lists all available commands")]
+    [SlashCommand("help", "Liste des commandes disponibles")]
     [AllowedBotRole(BotRole.Everyone)]
     public async Task HelpAsync()
     {
@@ -30,29 +29,15 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
             .ToList();
 
         var embed = new EmbedBuilder()
-            .WithTitle("Available Commands")
-            .WithColor(Color.Blue);
+            .WithTitle("Aide de Bidibip")
+            .WithDescription("Liste des commandes disponibles :")
+            .WithColor(Color.DarkGreen);
 
-        if (commands.Count == 0)
+        foreach (var cmd in commands.OrderBy(c => c.Name))
         {
-            embed.WithDescription("No commands are currently registered.");
-        }
-        else
-        {
-            var grouped = commands
-                .GroupBy(c => c.PluginName ?? "Core")
-                .OrderBy(g => g.Key);
-
-            foreach (var group in grouped)
-            {
-                var sb = new StringBuilder();
-                foreach (var cmd in group.OrderBy(c => c.Name))
-                {
-                    sb.AppendLine($"`/{cmd.Name}` — {cmd.Description}");
-                }
-
-                embed.AddField(group.Key, sb.ToString());
-            }
+            var name = cmd.Name.Length > 256 ? cmd.Name[..256] : cmd.Name;
+            var description = cmd.Description.Length > 1024 ? cmd.Description[..1024] : cmd.Description;
+            embed.AddField(name, description, inline: false);
         }
 
         await FollowupAsync(embed: embed.Build(), ephemeral: true);

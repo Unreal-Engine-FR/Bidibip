@@ -10,19 +10,19 @@ namespace Bidibip.Plugins.Say.Commands;
 
 public class SayModule : InteractionModuleBase<SocketInteractionContext>
 {
-    [SlashCommand("say", "Envoie un message via le bot dans le canal actuel")]
+    [SlashCommand("say", "Ma parole sera la votre")]
     [AllowedBotRole(BotRole.Member)]
     public async Task SayAsync(
-        [Summary("message", "Le texte à envoyer")] string message)
+        [Summary("message", "Que dois-je dire à votre place ?")] string message)
     {
         await Context.Channel.SendMessageAsync(message);
         await FollowupAsync("Message envoyé.", ephemeral: true);
     }
 
-    [SlashCommand("say-file", "Envoie des messages formatés depuis un fichier JSON")]
+    [SlashCommand("say-file", "Ma parole sera la votre, via un fichier formaté")]
     [AllowedBotRole(BotRole.Helper)]
     public async Task SayFileAsync(
-        [Summary("fichier", "Le fichier JSON contenant les messages")] IAttachment fichier)
+        [Summary("fichier", "Fichier json pour afficher un message formaté")] IAttachment fichier)
     {
         if (!fichier.Filename.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
         {

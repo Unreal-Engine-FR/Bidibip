@@ -57,7 +57,7 @@ try
         {
             var config = new DiscordSocketConfig
             {
-                GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent,
+                GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent | GatewayIntents.GuildMembers,
                 LogLevel = LogSeverity.Info,
                 UseInteractionSnowflakeDate = false
             };

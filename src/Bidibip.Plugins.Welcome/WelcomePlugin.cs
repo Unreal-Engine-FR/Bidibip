@@ -28,13 +28,18 @@ public sealed class WelcomePlugin : IBidibipPlugin
 
         context.Events.OnUserJoined(async user =>
         {
-            if (_config.JoinChannel == 0 || _config.WelcomeMessages.Length == 0) return;
+            _logger.LogInformation("{User} a rejoint le serveur", user.GlobalName ?? user.Username);
+
+            if (_config.JoinChannel == 0) return;
 
             var guild = user is SocketGuildUser sgu ? sgu.Guild : null;
             var channel = guild?.GetTextChannel(_config.JoinChannel);
             if (channel is null) return;
 
-            var template = _config.WelcomeMessages[Rng.Next(_config.WelcomeMessages.Length)];
+            var template = _config.WelcomeMessages.Length > 0
+                ? _config.WelcomeMessages[Rng.Next(_config.WelcomeMessages.Length)]
+                : "Bienvenue parmi nous {user} :wave: !";
+
             var reglementMention = _config.ReglementChannel != 0
                 ? $"<#{_config.ReglementChannel}>"
                 : "#reglement";
@@ -43,19 +48,32 @@ public sealed class WelcomePlugin : IBidibipPlugin
                 .Replace("{user}", user.Mention)
                 .Replace("{reglement}", reglementMention);
 
+            message += $"\n> N'oublies pas de lire le {reglementMention} pour accéder au serveur.";
+
+            if (message.Length > 2000)
+                message = message[..2000];
+
             await channel.SendMessageAsync(message);
         });
 
         context.Events.OnUserLeft(async (guild, user) =>
         {
-            if (_config.LeaveChannel == 0 || _config.LeaveMessages.Length == 0) return;
+            _logger.LogInformation("{User} a quitté le serveur", user.GlobalName ?? user.Username);
+
+            if (_config.LeaveChannel == 0) return;
 
             var socketGuild = guild as SocketGuild;
             var channel = socketGuild?.GetTextChannel(_config.LeaveChannel);
             if (channel is null) return;
 
-            var template = _config.LeaveMessages[Rng.Next(_config.LeaveMessages.Length)];
-            var message = template.Replace("{user}", user.GlobalName ?? user.Username);
+            var template = _config.LeaveMessages.Length > 0
+                ? _config.LeaveMessages[Rng.Next(_config.LeaveMessages.Length)]
+                : "{user} nous a quitté !";
+
+            var message = template.Replace("{user}", $"<@{user.Id}>");
+
+            if (message.Length > 2000)
+                message = message[..2000];
 
             await channel.SendMessageAsync(message);
         });
