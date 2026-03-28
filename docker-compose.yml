@@ -1,8 +1,8 @@
 services:
   bot:
-    build: .
+    image: ghcr.io/unreal-engine-fr/bidibip:latest
     restart: unless-stopped
-    environment:
-      - DISCORD__TOKEN=${DISCORD_TOKEN}
     volumes:
-      - ./plugins:/app/plugins
+      - ./Saved:/opt/bidibip/Saved
+      - ./plugins:/opt/bidibip/plugins
+      - ./.env:/opt/bidibip/.env
