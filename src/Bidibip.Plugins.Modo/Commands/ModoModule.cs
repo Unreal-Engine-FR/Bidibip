@@ -9,17 +9,15 @@ namespace Bidibip.Plugins.Modo.Commands;
 
 public sealed class ModoModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly DiscordSocketClient _client;
     private readonly BotConfig _botConfig;
 
-    public ModoModule(DiscordSocketClient client, BotConfig botConfig)
+    public ModoModule(BotConfig botConfig)
     {
-        _client = client;
         _botConfig = botConfig;
     }
 
-    [SlashCommand("modo", "Ouvrir un ticket de support")]
-    [AllowedBotRole(BotRole.Member)]
+    [SlashCommand("modo", "ouvre un canal direct avec la modération")]
+    [AllowedBotRole(BotRole.Everyone)]
     public async Task ModoAsync()
     {
         var config = await LoadConfigAsync();
@@ -39,69 +37,97 @@ public sealed class ModoModule : InteractionModuleBase<SocketInteractionContext>
         }
 
         var userId = Context.User.Id.ToString();
+        SocketThreadChannel? thread = null;
 
-        // Check if user already has an open ticket
+        // Check if user already has an existing ticket thread
         if (config.Tickets.TryGetValue(userId, out var existingThreadId))
         {
             var existingThread = guild.GetThreadChannel(existingThreadId);
-            if (existingThread is not null && !existingThread.IsArchived)
+            if (existingThread is not null)
             {
-                await FollowupAsync($"Tu as deja un ticket ouvert : <#{existingThread.Id}>", ephemeral: true);
-                return;
+                thread = existingThread;
             }
-
-            // Thread no longer exists or is archived, remove from tracking
-            config.Tickets.Remove(userId);
+            else
+            {
+                config.Tickets.Remove(userId);
+            }
         }
 
-        // Create private thread
-        var thread = await modoChannel.CreateThreadAsync(
-            name: Context.User.Username,
-            type: ThreadType.PrivateThread,
-            autoArchiveDuration: ThreadArchiveDuration.OneWeek
-        );
+        // Create new thread if none found
+        if (thread is null)
+        {
+            var restThread = await modoChannel.CreateThreadAsync(
+                name: Context.User.Username,
+                type: ThreadType.PrivateThread,
+                invitable: false
+            );
+            thread = guild.GetThreadChannel(restThread.Id) ?? (SocketThreadChannel)(IThreadChannel)restThread;
+
+            config.Tickets[userId] = thread.Id;
+            await SaveConfigAsync(config);
+        }
 
         // Add the user to the thread
         await thread.AddUserAsync(Context.User as IGuildUser ?? (IGuildUser)Context.User);
 
+        var adminRoleMention = $"<@&{_botConfig.Roles.Administrator}>";
+
+        // Build embed
+        var embed = new EmbedBuilder();
+
+        var avatarUrl = Context.User.GetAvatarUrl();
+        if (avatarUrl is not null)
+            embed.WithAuthor($"{Context.User.Username} < A l'aide ! \ud83d\udd90", avatarUrl);
+        else
+            embed.WithTitle($"{Context.User.Username} < A l'aide ! \ud83d\udd90");
+
+        embed.AddField("Canal de communication ouvert :robot:",
+            $"Tu es maintenant en communication directe avec les {adminRoleMention}.\nA toi de nous dire ce qui ne va pas.",
+            inline: false);
+
         // Build close button
         var components = new ComponentBuilder()
-            .WithButton("Fermer le ticket", "modo::close", ButtonStyle.Danger)
+            .WithButton("Fermer la discussion", "modo_close_thread", ButtonStyle.Secondary)
             .Build();
 
-        var adminRoleId = _botConfig.Roles.Administrator;
         await thread.SendMessageAsync(
-            $"Bienvenue dans ton ticket de support, {Context.User.Mention} !\n" +
-            $"<@&{adminRoleId}> sera avec toi sous peu.",
+            $"{Context.User.Mention} {adminRoleMention}",
+            embed: embed.Build(),
             components: components
         );
 
-        // Save ticket
-        config.Tickets[userId] = thread.Id;
-        await SaveConfigAsync(config);
+        // Unarchive thread if needed
+        await thread.ModifyAsync(props =>
+        {
+            props.Archived = false;
+            props.Locked = false;
+        });
 
-        await FollowupAsync($"Ton ticket a ete cree : <#{thread.Id}>", ephemeral: true);
+        // Ephemeral response
+        var responseEmbed = new EmbedBuilder()
+            .WithTitle("Canal de communication ouvert")
+            .WithDescription($"Parle avec la modération ici : <#{thread.Id}>")
+            .Build();
+
+        await FollowupAsync(embed: responseEmbed, ephemeral: true);
     }
 
-    [ComponentInteraction("modo::close")]
+    [ComponentInteraction("modo_close_thread")]
     [AllowedBotRole(BotRole.Helper)]
     public async Task CloseTicketAsync()
     {
-        await DeferAsync(ephemeral: true);
+        if (Context.Channel is not SocketThreadChannel thread)
+            return;
+
         var config = await LoadConfigAsync();
 
-        if (Context.Channel is not SocketThreadChannel thread)
-        {
-            await FollowupAsync("Cette action ne peut etre effectuee que dans un ticket.", ephemeral: true);
-            return;
-        }
-
-        await FollowupAsync("Ce ticket va etre ferme. Merci !");
-
-        // Remove ticket from tracking
+        // Find and remove user from thread
         var ticketEntry = config.Tickets.FirstOrDefault(kv => kv.Value == thread.Id);
         if (ticketEntry.Key is not null)
         {
+            if (ulong.TryParse(ticketEntry.Key, out var ticketUserId))
+                await thread.RemoveUserAsync(Context.Guild.GetUser(ticketUserId));
+
             config.Tickets.Remove(ticketEntry.Key);
             await SaveConfigAsync(config);
         }
