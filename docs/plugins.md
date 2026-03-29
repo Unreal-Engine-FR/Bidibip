@@ -144,6 +144,40 @@ This plugin is meant to be copied as a starting point for new plugins. See [Crea
 
 ---
 
+## FreeForTheMonth
+
+**Announces free assets from the Fab.com marketplace.**
+
+Every month, Fab.com (the Unreal Engine / Epic Games marketplace) offers a selection of assets for free. This plugin automatically detects when the free assets change and posts an announcement with rich embeds (title, image, rating, price, seller info).
+
+### How it works
+
+1. A **background task** checks the Fab.com API periodically (default: every 6 hours)
+2. When new free listings are detected (compared by UID against the last known set), an announcement is posted to the configured channel
+3. Users can also run `/freeforthemonth` to see the current free listings on demand
+4. Users can **subscribe** to a notification role to be pinged when new assets are announced
+
+### Technical note
+
+Fab.com uses Cloudflare with TLS fingerprinting that blocks standard HTTP clients. The plugin uses [curl-impersonate](https://github.com/lexiforest/curl-impersonate) (Chrome profile) to bypass this protection. This requires `curl-impersonate` to be installed in the Docker container (included in the default Dockerfile).
+
+| Command | Permission | Description |
+|---|---|---|
+| `/freeforthemonth` | Member | View current free assets, optionally subscribe/unsubscribe to notifications |
+
+### Config
+
+`Saved/data/FreeForTheMonth/config.json`:
+
+| Field | Description |
+|---|---|
+| `channel` | Channel ID where automatic announcements are posted |
+| `notify_ffm_role` | Role ID to ping when new free assets are detected. Users can self-assign this role via the `/freeforthemonth subscribe:Oui` option |
+| `check_interval_hours` | How often the background task checks for new assets (default: 6 hours, minimum: 1) |
+| `known_listings` | Internal state: UIDs of the last announced listings (do not edit) |
+
+---
+
 ## Help
 
 **Lists all available commands.**

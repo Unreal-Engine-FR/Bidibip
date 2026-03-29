@@ -3,6 +3,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Bidibip.Plugins.Example;
 
+/// <summary>
+/// A minimal reference plugin that demonstrates the core plugin patterns:
+///   - The [BidibipPlugin] + IBidibipPlugin structure
+///   - Subscribing to events via the event bus
+///   - A slash command defined in a separate module (see Commands/PingModule.cs)
+///
+/// Copy this plugin as a starting point for new plugins.
+/// See docs/creating-a-plugin.md for a full walkthrough.
+/// </summary>
 [BidibipPlugin]
 public sealed class ExamplePlugin : IBidibipPlugin
 {
@@ -15,6 +24,8 @@ public sealed class ExamplePlugin : IBidibipPlugin
     {
         _logger = context.Logger;
 
+        // Example: subscribe to message events.
+        // Always check IsBot to avoid infinite loops with the bot's own messages.
         context.Events.OnMessageReceived(async msg =>
         {
             if (msg.Author.IsBot) return;

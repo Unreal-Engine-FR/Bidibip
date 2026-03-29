@@ -1,3 +1,24 @@
+// ──────────────────────────────────────────────────────────────────────────────
+// BotService.cs — Core Discord connection and interaction handler
+//
+// This hosted service manages the bot's connection to Discord and handles all
+// incoming interactions (slash commands, user context menus, buttons, modals).
+//
+// Interaction flow:
+//   1. Discord sends an interaction via the gateway
+//   2. HandleInteractionAsync runs on a background thread (to avoid blocking
+//      the gateway thread which would freeze the bot)
+//   3. Permission gate #1: check the user's role BEFORE acknowledging
+//   4. Auto-defer: acknowledge the interaction so we have 15 minutes to respond
+//      (instead of the default 3 seconds). Excluded for commands that need modals.
+//   5. Permission gate #2: re-check after defer (defense-in-depth)
+//   6. ExecuteCommandAsync: Discord.Net routes to the correct module method,
+//      which runs permission gate #3 via the [AllowedBotRole] precondition
+//
+// The triple-gate approach ensures that even if one check is bypassed due to
+// a race condition or framework quirk, the others will catch it.
+// ──────────────────────────────────────────────────────────────────────────────
+
 using Bidibip.Plugin.Sdk;
 using Bidibip.Plugin.Sdk.Permissions;
 using Discord;
@@ -44,8 +65,10 @@ public class BotService : IHostedService
 
         _client.Log += LogAsync;
 
-        // These handlers must not block the gateway thread.
-        // Return Task.CompletedTask immediately and do work on background threads.
+        // IMPORTANT: Discord.Net gateway event handlers MUST return immediately.
+        // If a handler awaits a long operation, it blocks the gateway thread,
+        // which freezes ALL bot activity (no events received, heartbeats missed).
+        // That's why we use Task.Run() to offload work to the thread pool.
         _client.Ready += () =>
         {
             _ = Task.Run(OnReadyAsync);
@@ -59,6 +82,8 @@ public class BotService : IHostedService
         };
 
         _interactions.Log += LogAsync;
+        // This fires after a slash command completes (success or failure).
+        // Used to report precondition failures back to the user.
         _interactions.SlashCommandExecuted += SlashCommandExecutedAsync;
 
         var token = _configuration["Discord:Token"]
@@ -73,11 +98,19 @@ public class BotService : IHostedService
         await _client.StopAsync();
     }
 
+    /// <summary>
+    /// Called once when the bot has connected and received the READY event from Discord.
+    /// This is the earliest point where we can interact with the Discord API
+    /// (fetch guilds, register commands, etc.).
+    /// </summary>
     private async Task OnReadyAsync()
     {
         _logger.LogInformation("Bot is connected as {User}", _client.CurrentUser);
+        // Start forwarding queued log entries to the Discord log channel
         _discordLogService.MarkReady();
+        // Notify all loaded plugins that the bot is ready
         await _pluginManager.MarkBotReadyAsync();
+        // Sync slash commands with Discord (only if they changed)
         await _pluginManager.RegisterCommandsAsync();
     }
 
@@ -106,9 +139,20 @@ public class BotService : IHostedService
             return;
         }
 
-        // Auto-defer slash commands so handlers can use FollowupAsync.
-        // User context menu commands are NOT auto-deferred so handlers can respond with modals.
-        // Specific slash commands that need modals (e.g. "sanction") are also excluded.
+        // ── Auto-defer ──────────────────────────────────────────────────────
+        // Discord gives us 3 seconds to respond to an interaction. After that,
+        // the interaction token expires and the user sees "interaction failed".
+        // DeferAsync() acknowledges the interaction immediately (shows "Bot is
+        // thinking..."), giving us up to 15 minutes to send the real response
+        // via FollowupAsync().
+        //
+        // Exceptions to auto-defer:
+        //   - User context menu commands: may need to show a modal as the
+        //     initial response (modals can only be the FIRST response)
+        //   - "sanction" slash command: also needs a modal for the reason input
+        //
+        // If a command is deferred, it MUST use FollowupAsync() to respond.
+        // If it's NOT deferred, it MUST use RespondAsync() or RespondWithModalAsync().
         if (interaction is SocketSlashCommand slashCmd && slashCmd.CommandName != "sanction")
         {
             try
@@ -178,9 +222,16 @@ public class BotService : IHostedService
     /// by inspecting the precondition attributes on the matched command and its module.
     /// Defaults to <see cref="BotRole.Administrator"/> if no attribute is found (secure by default).
     /// </summary>
+    /// <remarks>
+    /// This works for all interaction types:
+    /// <list type="bullet">
+    ///   <item><description>Slash commands — matched by command name</description></item>
+    ///   <item><description>User/message context menus — matched by name + type</description></item>
+    ///   <item><description>Button/select/modal interactions — matched by custom ID pattern (supports * wildcard)</description></item>
+    /// </list>
+    /// </remarks>
     private BotRole ResolveMinimumRoleForInteraction(SocketInteraction interaction)
     {
-        // Try to find command-level precondition first, then fall back to module-level
         if (interaction is SocketSlashCommand slashCommand)
         {
             var cmd = _interactions.Modules
@@ -283,6 +334,11 @@ public class BotService : IHostedService
         }
     }
 
+    /// <summary>
+    /// Bridges Discord.Net's <see cref="LogMessage"/> to Serilog via <see cref="ILogger"/>.
+    /// This lets Discord.Net internal logs (connection events, rate limits, etc.)
+    /// appear alongside our own logs in all three sinks (console, file, Discord channel).
+    /// </summary>
     private Task LogAsync(LogMessage msg)
     {
         var level = msg.Severity switch

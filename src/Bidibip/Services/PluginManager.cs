@@ -1,3 +1,28 @@
+// ──────────────────────────────────────────────────────────────────────────────
+// PluginManager.cs — Plugin lifecycle management and command registration
+//
+// This is the heart of Bidibip's plugin system. It handles:
+//
+//   1. DISCOVERY: Scans the plugins/ folder for .dll files at startup
+//   2. LOADING: Each DLL is loaded in an isolated AssemblyLoadContext, its
+//      [BidibipPlugin] class is instantiated, and its InitializeAsync is called
+//   3. HOT-RELOAD: A FileSystemWatcher monitors the folder — when a DLL changes,
+//      the old plugin is unloaded and the new one loaded automatically
+//   4. COMMAND REGISTRATION: Slash commands from all plugins are collected and
+//      synced with Discord (only when they actually changed, to avoid rate limits)
+//   5. UNLOADING: On shutdown (or DLL deletion), plugins are gracefully disposed
+//      and their AssemblyLoadContext is unloaded for garbage collection
+//
+// Shadow copying:
+//   DLLs are copied to a .shadow/ folder before loading. This prevents file
+//   locks on the original files, allowing you to rebuild a plugin while the bot
+//   is running. The new DLL triggers the FileSystemWatcher and gets hot-reloaded.
+//
+// SDK version compatibility:
+//   The plugin's referenced SDK version (major.minor) must match the host's.
+//   This prevents subtle type-mismatch bugs when the SDK interface changes.
+// ──────────────────────────────────────────────────────────────────────────────
+
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
@@ -15,6 +40,11 @@ using SdkCommandInfo = Bidibip.Plugin.Sdk.CommandInfo;
 
 namespace Bidibip.Services;
 
+/// <summary>
+/// Manages the full lifecycle of plugins: discovery, loading, hot-reload, command
+/// registration, and graceful shutdown. Also implements <see cref="ICommandRegistry"/>
+/// and <see cref="IPluginManager"/> which are exposed to plugins via the SDK.
+/// </summary>
 public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginManager, IAsyncDisposable
 {
     private readonly DiscordSocketClient _client;
@@ -24,12 +54,21 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
     private readonly ILoggerFactory _loggerFactory;
     private readonly BotConfig _botConfig;
 
+    /// <summary>Loaded plugins keyed by DLL file name (e.g. "Bidibip.Plugins.Help.dll").</summary>
     private readonly ConcurrentDictionary<string, LoadedPlugin> _plugins = new();
+    /// <summary>DLL file names that should not be loaded (persisted in disabled.json).</summary>
     private readonly HashSet<string> _disabledPlugins = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Serializes all load/unload operations to prevent concurrent modification.</summary>
     private readonly SemaphoreSlim _loadLock = new(1, 1);
+    /// <summary>
+    /// Shared DI container for all plugin command modules. Contains the Discord client,
+    /// BotConfig, and SDK interfaces so modules can inject them via constructor parameters.
+    /// </summary>
     internal IServiceProvider ServiceProvider => _globalServiceProvider;
     private readonly IServiceProvider _globalServiceProvider;
+    /// <summary>Cached Discord role permissions used to compute DefaultMemberPermissions.</summary>
     private readonly PermissionData _permissionData = new();
+    /// <summary>True after the Discord READY event has fired. Commands are only registered after this.</summary>
     private volatile bool _botReady;
     private FileSystemWatcher? _watcher;
     private string _pluginsPath = null!;
@@ -299,6 +338,11 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         }
     }
 
+    /// <summary>
+    /// Gracefully unloads a plugin: disposes the instance, removes its command modules
+    /// from the InteractionService, unloads the AssemblyLoadContext, and re-syncs
+    /// commands with Discord.
+    /// </summary>
     private async Task UnloadPluginAsync(string dllPath)
     {
         await _loadLock.WaitAsync();
@@ -308,8 +352,10 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
             if (!_plugins.TryRemove(fileName, out var loaded))
                 return;
 
+            // Detach all event handlers to prevent the plugin from receiving events
             loaded.EventBus.Clear();
 
+            // Remove the plugin's slash commands from the InteractionService
             foreach (var module in loaded.RegisteredModules)
             {
                 await _interactions.RemoveModuleAsync(module);
@@ -318,11 +364,14 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
             await loaded.Instance.DisposeAsync();
             loaded.LoadContext.Unload();
 
+            // Re-register commands so the unloaded plugin's commands disappear from Discord
             await RegisterCommandsAsync();
 
             _logger.LogInformation("Unloaded plugin: {Name}", loaded.Instance.Name);
 
-            // Check if the assembly was properly collected
+            // Verify the assembly was garbage-collected. If WeakRef is still alive
+            // after several GC cycles, the plugin has leaked references (e.g., a
+            // static field or an undisposed event handler holding the assembly).
             for (var i = 0; i < 8 && loaded.WeakRef.IsAlive; i++)
             {
                 GC.Collect();
@@ -364,20 +413,34 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         }
     }
 
+    /// <summary>
+    /// Synchronizes slash commands with Discord if they have changed.
+    /// <para>
+    /// The process works as follows:
+    /// <list type="number">
+    ///   <item><description>Build the list of commands from all loaded plugin modules</description></item>
+    ///   <item><description>Compute a "fingerprint" (name + permission bits) for each command</description></item>
+    ///   <item><description>Fetch the currently registered commands from Discord</description></item>
+    ///   <item><description>Compare fingerprints — if identical, skip registration entirely</description></item>
+    ///   <item><description>If different, bulk-overwrite all commands in a single API call</description></item>
+    /// </list>
+    /// </para>
+    /// This fingerprinting avoids unnecessary API calls which would hit Discord's
+    /// rate limits (especially problematic during development with frequent restarts).
+    /// </summary>
     public async Task RegisterCommandsAsync()
     {
         if (!_botReady)
             return;
 
-        // Fetch actual role permissions from Discord (like the Rust implementation's fetch_roles)
+        // Fetch actual role permissions from Discord to compute DefaultMemberPermissions.
+        // This determines which users can SEE each command in the Discord UI.
         if (!_permissionData.IsLoaded)
             await _permissionData.FetchRolesAsync(_client, _botConfig, _logger);
 
-        // Build command properties with DefaultMemberPermissions derived from AllowedBotRole
         var commandProperties = BuildCommandProperties();
 
-        // Build a fingerprint of what we want registered: "name:perms"
-        // Use raw numeric permission values to ensure consistent comparison
+        // Fingerprint format: "commandname:permissionbits" (or "commandname:none")
         var localFingerprint = commandProperties
             .Select(c =>
             {
@@ -561,6 +624,11 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         return ulong.TryParse(devGuildIdStr, out var parsed) ? parsed : 0;
     }
 
+    /// <summary>
+    /// Subscribes to all Discord gateway events and fans them out to every loaded plugin
+    /// via their individual <see cref="PluginEventBus"/> instances. Each plugin only
+    /// receives events it has subscribed to (handlers registered in InitializeAsync).
+    /// </summary>
     private void WireDiscordEvents()
     {
         _client.InteractionCreated += async interaction =>
@@ -655,9 +723,13 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
             return Task.CompletedTask;
         };
 
+        // Audit log events are used by the Warn/Log plugins to detect moderation
+        // actions performed outside the bot (e.g., right-click kick in Discord UI).
+        // We translate Discord.Net's typed audit log data into our SDK's simpler
+        // AuditLogEntry model so plugins don't depend on Discord.Net internals.
         _client.AuditLogCreated += async (socketEntry, guild) =>
         {
-            // Skip actions performed by the bot itself
+            // Skip actions performed by the bot itself to avoid infinite loops
             if (socketEntry.User?.Id == _client.CurrentUser?.Id)
                 return;
 
@@ -801,8 +873,14 @@ public sealed class PluginManager : IHostedService, ICommandRegistry, IPluginMan
         await ReloadPluginAsync(e.FullPath);
     }
 
-    // --- IPluginManager implementation ---
+    // ── IPluginManager implementation ──────────────────────────────────────
+    // These methods are exposed to plugins via the SDK interface, allowing
+    // the Admin plugin to list/enable/disable other plugins at runtime.
 
+    /// <summary>
+    /// Returns info about all plugins found in the plugins folder, whether loaded or not.
+    /// Used by the Admin plugin's <c>/plugin</c> command.
+    /// </summary>
     public IReadOnlyList<Bidibip.Plugin.Sdk.PluginInfo> GetAllPlugins()
     {
         var result = new List<Bidibip.Plugin.Sdk.PluginInfo>();

@@ -1,9 +1,33 @@
+// ──────────────────────────────────────────────────────────────────────────────
+// FabListingService.cs — Fetches free assets from the Fab.com marketplace
+//
+// Fab.com (formerly Unreal Engine Marketplace) offers free assets each month.
+// This service fetches the current list from Fab's internal API and parses the
+// JSON response into FabListing objects.
+//
+// Why curl-impersonate instead of HttpClient?
+//   Fab.com sits behind Cloudflare which uses TLS fingerprinting to block
+//   automated requests. .NET's HttpClient and standard curl on Linux produce
+//   TLS fingerprints that Cloudflare detects as non-browser traffic. The
+//   curl-impersonate tool mimics Chrome's exact TLS handshake (cipher suites,
+//   extensions, ALPN) to bypass this check.
+//
+// Why shell out to a process?
+//   There's no .NET library that can replicate Chrome's TLS fingerprint.
+//   curl-impersonate is a C binary with its own BoringSSL build, so we must
+//   invoke it as an external process.
+// ──────────────────────────────────────────────────────────────────────────────
+
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Bidibip.Plugins.FreeForTheMonth;
 
+/// <summary>
+/// Represents a single free asset listing from Fab.com, with all the metadata
+/// needed to build a Discord embed (title, image, rating, seller info, etc.).
+/// </summary>
 internal sealed partial class FabListing
 {
     public required string Uid { get; init; }
@@ -35,6 +59,10 @@ internal sealed partial class FabListing
         _ => ListingType.Replace('-', ' ')
     };
 
+    /// <summary>
+    /// Renders a star rating string for Discord embeds.
+    /// Example: "★★★★☆ **4.2**/5 (128 votes, 45 reviews)"
+    /// </summary>
     public string StarsDisplay
     {
         get
@@ -49,9 +77,14 @@ internal sealed partial class FabListing
         }
     }
 
+    /// <summary>Compiled regex for stripping HTML tags from descriptions.</summary>
     [GeneratedRegex("<[^>]+>")]
     private static partial Regex HtmlTagsRegex();
 
+    /// <summary>
+    /// Strips HTML tags from a description and truncates to a readable snippet.
+    /// Fab's API returns descriptions as HTML, but Discord embeds need plain text.
+    /// </summary>
     public static string? ExtractSnippet(string? html, int maxLength = 150)
     {
         if (string.IsNullOrWhiteSpace(html)) return null;
@@ -63,10 +96,30 @@ internal sealed partial class FabListing
     }
 }
 
+/// <summary>
+/// Fetches the current month's free asset listings from Fab.com's internal API.
+/// Uses curl-impersonate to bypass Cloudflare's TLS fingerprinting.
+/// </summary>
 internal static class FabListingService
 {
+    /// <summary>
+    /// Fab's internal "blade" endpoint that returns the free content listings.
+    /// This is the same endpoint the Fab.com website calls when rendering the
+    /// "Free for the month" section on the homepage.
+    /// </summary>
     private const string ApiUrl = "https://www.fab.com/i/blades/free_content_blade";
 
+    /// <summary>
+    /// Fetches and parses the current free listings. The response JSON has this structure:
+    /// <code>
+    /// {
+    ///   "tiles": [
+    ///     { "listing": { "uid": "...", "title": "...", "user": {...}, "ratings": {...}, ... } },
+    ///     ...
+    ///   ]
+    /// }
+    /// </code>
+    /// </summary>
     public static async Task<List<FabListing>> FetchListingsAsync()
     {
         // Fab.com uses Cloudflare with TLS fingerprinting that blocks .NET's HttpClient
@@ -78,10 +131,10 @@ internal static class FabListingService
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        psi.ArgumentList.Add("-s");
-        psi.ArgumentList.Add("-L");
+        psi.ArgumentList.Add("-s");         // Silent mode (no progress bar)
+        psi.ArgumentList.Add("-L");         // Follow redirects
         psi.ArgumentList.Add("-H");
-        psi.ArgumentList.Add("Accept: application/json");
+        psi.ArgumentList.Add("Accept: application/json"); // Request JSON (not HTML)
         psi.ArgumentList.Add(ApiUrl);
 
         using var process = Process.Start(psi)

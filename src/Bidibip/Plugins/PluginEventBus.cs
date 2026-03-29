@@ -1,11 +1,36 @@
+// ──────────────────────────────────────────────────────────────────────────────
+// PluginEventBus.cs — Per-plugin event dispatcher
+//
+// Each loaded plugin gets its own PluginEventBus instance. The plugin registers
+// handlers via the IEventBus interface (e.g., OnMessageReceived), and the host
+// calls the internal Dispatch* methods when Discord events arrive.
+//
+// This design isolates plugins from each other: if one plugin's handler throws,
+// it doesn't affect other plugins (the PluginManager catches exceptions per-plugin).
+//
+// Clear() is called during unload to detach all handlers and prevent the
+// unloaded plugin from receiving further events.
+// ──────────────────────────────────────────────────────────────────────────────
+
 using Bidibip.Plugin.Sdk;
 using Discord;
 using Discord.WebSocket;
 
 namespace Bidibip.Plugins;
 
+/// <summary>
+/// Concrete implementation of <see cref="IEventBus"/> that stores handler
+/// registrations and dispatches events. One instance per loaded plugin.
+/// <para>
+/// Public On* methods are called by plugins during initialization.
+/// Internal Dispatch* methods are called by <see cref="Bidibip.Services.PluginManager"/>
+/// when Discord events arrive.
+/// </para>
+/// </summary>
 internal sealed class PluginEventBus : IEventBus
 {
+    // Each handler list stores the lambda callbacks registered by the plugin.
+    // A plugin may register multiple handlers for the same event type.
     private readonly List<Func<IMessage, Task>> _messageHandlers = [];
     private readonly List<Func<Cacheable<IMessage, ulong>, Cacheable<IMessageChannel, ulong>, Task>> _messageDeletedHandlers = [];
     private readonly List<Func<Cacheable<IMessage, ulong>, IMessage, IMessageChannel, Task>> _messageUpdatedHandlers = [];
@@ -107,6 +132,10 @@ internal sealed class PluginEventBus : IEventBus
             await handler();
     }
 
+    /// <summary>
+    /// Removes all registered handlers. Called during plugin unload to ensure
+    /// the disposed plugin no longer receives events.
+    /// </summary>
     internal void Clear()
     {
         _messageHandlers.Clear();
