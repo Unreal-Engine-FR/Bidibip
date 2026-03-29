@@ -69,9 +69,9 @@ internal static class FabListingService
 
     public static async Task<List<FabListing>> FetchListingsAsync()
     {
-        // Fab.com uses Cloudflare with TLS fingerprinting that blocks .NET's HttpClient.
-        // Shell out to curl which has a trusted TLS fingerprint.
-        var psi = new ProcessStartInfo("curl")
+        // Fab.com uses Cloudflare with TLS fingerprinting that blocks .NET's HttpClient
+        // and standard curl on Linux. Use curl-impersonate (Chrome profile) to bypass.
+        var psi = new ProcessStartInfo("curl_chrome116")
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -81,11 +81,7 @@ internal static class FabListingService
         psi.ArgumentList.Add("-s");
         psi.ArgumentList.Add("-L");
         psi.ArgumentList.Add("-H");
-        psi.ArgumentList.Add("User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
-        psi.ArgumentList.Add("-H");
         psi.ArgumentList.Add("Accept: application/json");
-        psi.ArgumentList.Add("-H");
-        psi.ArgumentList.Add("Accept-Language: en-US,en;q=0.9");
         psi.ArgumentList.Add(ApiUrl);
 
         using var process = Process.Start(psi)

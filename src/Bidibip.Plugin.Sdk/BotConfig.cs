@@ -14,6 +14,7 @@ public sealed class RolesConfig
     public ulong Helper { get; set; }
     public ulong Member { get; set; }
     public ulong Mute { get; set; }
+    public ulong Support { get; set; }
 }
 
 public sealed class ChannelsConfig

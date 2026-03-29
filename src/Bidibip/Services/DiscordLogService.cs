@@ -119,9 +119,9 @@ public sealed class DiscordLogService
         sb.Append(' ');
         sb.Append(source);
 
-        if (entry.Level >= LogEventLevel.Error && _config?.Roles.Administrator is > 0)
+        if (entry.Level >= LogEventLevel.Error && _config?.Roles.Support is > 0)
         {
-            sb.Append($"<@&{_config.Roles.Administrator}>");
+            sb.Append($"<@&{_config.Roles.Support}>");
             sb.Append(' ');
         }
 
