@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk add --no-cache wget ca-certificates libstdc++ libgcc icu-libs
+RUN apk add --no-cache wget bash ca-certificates libstdc++ libgcc icu-libs
 
 # Install curl-impersonate (Chrome variant) to bypass Cloudflare TLS fingerprinting
 RUN wget -O /tmp/curl-impersonate.tar.gz \
