@@ -19,7 +19,6 @@ public sealed class ModoModule : InteractionModuleBase<SocketInteractionContext>
     [AllowedBotRole(BotRole.Everyone)]
     public async Task ModoAsync()
     {
-        await DeferAsync(ephemeral: true);
         var config = await LoadConfigAsync();
 
         if (config.ModoChannel == 0)

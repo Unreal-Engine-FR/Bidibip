@@ -205,7 +205,7 @@ public sealed class DiscordLogService
             // AllowedMentions controls which @mentions Discord actually processes.
             // We only allow role pings for error messages to avoid unnecessary noise.
             var mentions = hasRolePing
-                ? new AllowedMentions { RoleIds = GetAdminRoleList() }
+                ? new AllowedMentions { RoleIds = GetSupportRoleList() }
                 : AllowedMentions.None;
 
             await channel.SendMessageAsync(text, allowedMentions: mentions);
@@ -217,10 +217,10 @@ public sealed class DiscordLogService
         }
     }
 
-    private List<ulong> GetAdminRoleList()
+    private List<ulong> GetSupportRoleList()
     {
-        if (_config?.Roles.Administrator is > 0)
-            return [_config.Roles.Administrator];
+        if (_config?.Roles.Support is > 0)
+            return [_config.Roles.Support];
         return [];
     }
 

@@ -186,11 +186,13 @@ public sealed class RepostModule : InteractionModuleBase<SocketInteractionContex
         if (!config.Votes.TryGetValue(threadKey, out var voteData))
             return;
 
+        await DeferAsync(ephemeral: true);
+
         // Check if source thread is archived
         var sourceThread = Context.Guild.GetChannel(voteData.SourceThread) as SocketThreadChannel;
         if (sourceThread?.IsArchived == true)
         {
-            await Context.Interaction.RespondAsync(
+            await FollowupAsync(
                 "Ce thread a été archivé. tu ne peux plus voter.", ephemeral: true);
             return;
         }
@@ -218,7 +220,7 @@ public sealed class RepostModule : InteractionModuleBase<SocketInteractionContex
         await RepostPlugin.SaveConfigAsync(config);
         await RepostPlugin.UpdateVoteMessagesAsync(Context.Guild, threadId, config);
 
-        await Context.Interaction.RespondAsync(
+        await FollowupAsync(
             "Ton vote a bien été pris en compte !", ephemeral: true);
     }
 }
