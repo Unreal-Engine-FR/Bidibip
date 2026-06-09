@@ -18,9 +18,11 @@
 //   invoke it as an external process.
 // ──────────────────────────────────────────────────────────────────────────────
 
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace Bidibip.Plugins.FreeForTheMonth;
 
@@ -124,7 +126,14 @@ internal static class FabListingService
     {
         // Fab.com uses Cloudflare with TLS fingerprinting that blocks .NET's HttpClient
         // and standard curl on Linux. Use curl-impersonate (Chrome profile) to bypass.
-        var psi = new ProcessStartInfo("curl_chrome116")
+        // The executable is overridable via the FFM_CURL_IMPERSONATE env var (loaded from
+        // .env): the Docker image installs `curl_chrome116` on PATH, while a local dev box
+        // can point it at a curl-impersonate build (e.g. C:\tools\curl_chrome116.exe).
+        var curlExe = Environment.GetEnvironmentVariable("FFM_CURL_IMPERSONATE");
+        if (string.IsNullOrWhiteSpace(curlExe))
+            curlExe = "curl_chrome116";
+
+        var psi = new ProcessStartInfo(curlExe)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -137,8 +146,7 @@ internal static class FabListingService
         psi.ArgumentList.Add("Accept: application/json"); // Request JSON (not HTML)
         psi.ArgumentList.Add(ApiUrl);
 
-        using var process = Process.Start(psi)
-            ?? throw new InvalidOperationException("Failed to start curl");
+        using var process = StartCurlImpersonate(psi, curlExe);
 
         var json = await process.StandardOutput.ReadToEndAsync();
         await process.WaitForExitAsync();
@@ -156,114 +164,202 @@ internal static class FabListingService
 
         var results = new List<FabListing>();
 
-        if (!doc.RootElement.TryGetProperty("tiles", out var tiles))
+        if (!doc.RootElement.TryGetProp("tiles", out var tiles))
             return results;
 
-        foreach (var tile in tiles.EnumerateArray())
+        foreach (var tile in tiles.EnumerateArrayOrEmpty())
         {
-            if (!tile.TryGetProperty("listing", out var listing))
+            if (!tile.TryGetProp("listing", out var listing))
                 continue;
 
-            var uid = listing.GetProperty("uid").GetString() ?? "";
-            var title = listing.GetProperty("title").GetString() ?? "";
-            var listingType = listing.TryGetProperty("listingType", out var lt) ? lt.GetString() ?? "" : "";
-
-            // Seller
-            var seller = "";
-            string? sellerAvatarUrl = null;
-            if (listing.TryGetProperty("user", out var user))
+            try
             {
-                seller = user.TryGetProperty("sellerName", out var sn) ? sn.GetString() ?? "" : "";
-                sellerAvatarUrl = user.TryGetProperty("profileImageUrl", out var av) ? av.GetString() : null;
+                if (ParseListing(listing) is { } parsed)
+                    results.Add(parsed);
             }
-
-            // Price (USD) & discount end
-            decimal startingPriceUsd = 0;
-            DateTimeOffset? discountEnd = null;
-            if (listing.TryGetProperty("startingPrice", out var sp) && sp.TryGetProperty("price", out var spv))
-                startingPriceUsd = spv.GetDecimal();
-            if (listing.TryGetProperty("licenses", out var licenses))
+            catch (Exception ex)
             {
-                foreach (var license in licenses.EnumerateArray())
-                {
-                    if (license.TryGetProperty("priceTier", out var pt) &&
-                        pt.TryGetProperty("discountEndDate", out var de))
-                        discountEnd = DateTimeOffset.Parse(de.GetString()!);
-                    break;
-                }
+                // Fab's API is external and undocumented; a single listing with an
+                // unexpected shape must not abort (and thus drop) the whole batch.
+                FreeForTheMonthPlugin.Logger.LogWarning(ex, "FreeForTheMonth: skipped a malformed listing");
             }
-
-            // Description snippet
-            var descHtml = listing.TryGetProperty("description", out var desc) ? desc.GetString() : null;
-            var snippet = FabListing.ExtractSnippet(descHtml);
-
-            // Review count
-            var reviewCount = listing.TryGetProperty("reviewCount", out var rc) ? rc.GetInt32() : 0;
-
-            // Image (pick large ~960px for embed image)
-            string? imageUrl = null;
-            if (listing.TryGetProperty("thumbnails", out var thumbs))
-            {
-                foreach (var thumb in thumbs.EnumerateArray())
-                {
-                    if (!thumb.TryGetProperty("images", out var images)) continue;
-                    string? best = null;
-                    int bestWidth = 0;
-                    foreach (var img in images.EnumerateArray())
-                    {
-                        var url = img.TryGetProperty("url", out var u) ? u.GetString() : null;
-                        var width = img.TryGetProperty("width", out var w) ? w.GetInt32() : 0;
-                        if (url is null) continue;
-                        // Prefer ~960px for a good large embed image
-                        if (best is null || (width <= 960 && width > bestWidth) || (bestWidth > 960 && width < bestWidth))
-                        {
-                            best = url;
-                            bestWidth = width;
-                        }
-                    }
-                    imageUrl = best;
-                }
-            }
-
-            // Ratings
-            double avgRating = 0;
-            int totalRatings = 0;
-            if (listing.TryGetProperty("ratings", out var ratings))
-            {
-                if (ratings.TryGetProperty("averageRating", out var ar)) avgRating = ar.GetDouble();
-                if (ratings.TryGetProperty("total", out var tr)) totalRatings = tr.GetInt32();
-            }
-
-            // Formats
-            var formats = new List<string>();
-            if (listing.TryGetProperty("assetFormats", out var af))
-            {
-                foreach (var fmt in af.EnumerateArray())
-                {
-                    if (fmt.TryGetProperty("assetFormatType", out var aft) &&
-                        aft.TryGetProperty("name", out var name))
-                        formats.Add(name.GetString() ?? "");
-                }
-            }
-
-            results.Add(new FabListing
-            {
-                Uid = uid,
-                Title = title,
-                Seller = seller,
-                SellerAvatarUrl = sellerAvatarUrl,
-                ListingType = listingType,
-                StartingPriceUsd = startingPriceUsd,
-                DiscountEnd = discountEnd,
-                ImageUrl = imageUrl,
-                AverageRating = avgRating,
-                TotalRatings = totalRatings,
-                ReviewCount = reviewCount,
-                DescriptionSnippet = snippet,
-                Formats = formats
-            });
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Starts the curl-impersonate process, turning the "executable not found" failure
+    /// (Win32Exception) into a clear, actionable message instead of the raw OS error.
+    /// </summary>
+    private static Process StartCurlImpersonate(ProcessStartInfo psi, string curlExe)
+    {
+        try
+        {
+            return Process.Start(psi)
+                ?? throw new InvalidOperationException("curl-impersonate process could not be started.");
+        }
+        catch (Win32Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"curl-impersonate executable '{curlExe}' was not found. It is required to bypass " +
+                "Cloudflare's TLS fingerprinting when reaching Fab. The Docker image installs it on " +
+                "PATH automatically; for local runs install a curl-impersonate build and add it to " +
+                "PATH, or set FFM_CURL_IMPERSONATE (in .env) to the executable's full path.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Parses one <c>listing</c> JSON object into a <see cref="FabListing"/>, or returns null
+    /// when it has no usable uid. Every access goes through the null-safe helpers in
+    /// <see cref="JsonElementExtensions"/>: Fab regularly returns explicit nulls for optional
+    /// fields (e.g. <c>"user": null</c>, <c>"ratings": null</c>, <c>"startingPrice": null</c>),
+    /// and the raw JsonElement accessors throw on those instead of reporting "absent".
+    /// </summary>
+    private static FabListing? ParseListing(JsonElement listing)
+    {
+        var uid = listing.TryGetProp("uid", out var uidEl) ? uidEl.GetString() ?? "" : "";
+        if (string.IsNullOrEmpty(uid))
+            return null;
+
+        var title = listing.TryGetProp("title", out var titleEl) ? titleEl.GetString() ?? "" : "";
+        var listingType = listing.TryGetProp("listingType", out var lt) ? lt.GetString() ?? "" : "";
+
+        // Seller
+        var seller = "";
+        string? sellerAvatarUrl = null;
+        if (listing.TryGetProp("user", out var user))
+        {
+            seller = user.TryGetProp("sellerName", out var sn) ? sn.GetString() ?? "" : "";
+            sellerAvatarUrl = user.TryGetProp("profileImageUrl", out var av) ? av.GetString() : null;
+        }
+
+        // Price (USD) & discount end
+        decimal startingPriceUsd = 0;
+        DateTimeOffset? discountEnd = null;
+        if (listing.TryGetProp("startingPrice", out var sp) && sp.TryGetProp("price", out var spv))
+            startingPriceUsd = spv.GetDecimal();
+        if (listing.TryGetProp("licenses", out var licenses))
+        {
+            foreach (var license in licenses.EnumerateArrayOrEmpty())
+            {
+                if (license.TryGetProp("priceTier", out var pt) &&
+                    pt.TryGetProp("discountEndDate", out var de) &&
+                    DateTimeOffset.TryParse(de.GetString(), out var parsedEnd))
+                    discountEnd = parsedEnd;
+                break;
+            }
+        }
+
+        // Description snippet
+        var descHtml = listing.TryGetProp("description", out var desc) ? desc.GetString() : null;
+        var snippet = FabListing.ExtractSnippet(descHtml);
+
+        // Review count
+        var reviewCount = listing.TryGetProp("reviewCount", out var rc) ? rc.GetInt32() : 0;
+
+        // Image (pick large ~960px for embed image)
+        string? imageUrl = null;
+        if (listing.TryGetProp("thumbnails", out var thumbs))
+        {
+            foreach (var thumb in thumbs.EnumerateArrayOrEmpty())
+            {
+                if (!thumb.TryGetProp("images", out var images)) continue;
+                string? best = null;
+                int bestWidth = 0;
+                foreach (var img in images.EnumerateArrayOrEmpty())
+                {
+                    var url = img.TryGetProp("url", out var u) ? u.GetString() : null;
+                    var width = img.TryGetProp("width", out var w) ? w.GetInt32() : 0;
+                    if (url is null) continue;
+                    // Prefer ~960px for a good large embed image
+                    if (best is null || (width <= 960 && width > bestWidth) || (bestWidth > 960 && width < bestWidth))
+                    {
+                        best = url;
+                        bestWidth = width;
+                    }
+                }
+                imageUrl = best;
+            }
+        }
+
+        // Ratings
+        double avgRating = 0;
+        int totalRatings = 0;
+        if (listing.TryGetProp("ratings", out var ratings))
+        {
+            if (ratings.TryGetProp("averageRating", out var ar)) avgRating = ar.GetDouble();
+            if (ratings.TryGetProp("total", out var tr)) totalRatings = tr.GetInt32();
+        }
+
+        // Formats
+        var formats = new List<string>();
+        if (listing.TryGetProp("assetFormats", out var af))
+        {
+            foreach (var fmt in af.EnumerateArrayOrEmpty())
+            {
+                if (fmt.TryGetProp("assetFormatType", out var aft) &&
+                    aft.TryGetProp("name", out var name))
+                    formats.Add(name.GetString() ?? "");
+            }
+        }
+
+        return new FabListing
+        {
+            Uid = uid,
+            Title = title,
+            Seller = seller,
+            SellerAvatarUrl = sellerAvatarUrl,
+            ListingType = listingType,
+            StartingPriceUsd = startingPriceUsd,
+            DiscountEnd = discountEnd,
+            ImageUrl = imageUrl,
+            AverageRating = avgRating,
+            TotalRatings = totalRatings,
+            ReviewCount = reviewCount,
+            DescriptionSnippet = snippet,
+            Formats = formats
+        };
+    }
+}
+
+/// <summary>
+/// Null-safe navigation helpers for <see cref="JsonElement"/>.
+///
+/// The built-in <see cref="JsonElement.TryGetProperty(string, out JsonElement)"/> and
+/// <see cref="JsonElement.EnumerateArray"/> THROW an <see cref="InvalidOperationException"/>
+/// ("The requested operation requires an element of type 'Object'/'Array', but the target
+/// element has type 'Null'.") when the element is not an object/array — which includes the
+/// common case of an explicit JSON null. Fab returns nulls for optional fields, so the raw
+/// accessors crashed the whole fetch. These helpers report "nothing here" instead.
+/// </summary>
+internal static class JsonElementExtensions
+{
+    /// <summary>
+    /// Returns true (with the value) only when <paramref name="element"/> is a JSON object
+    /// containing <paramref name="name"/> with a non-null value; otherwise false. Unlike the
+    /// built-in TryGetProperty it never throws on non-object elements, and it reports an
+    /// explicit JSON null as absent so callers never invoke Get*/Parse on a null leaf.
+    /// </summary>
+    public static bool TryGetProp(this JsonElement element, string name, out JsonElement value)
+    {
+        if (element.ValueKind == JsonValueKind.Object &&
+            element.TryGetProperty(name, out value) &&
+            value.ValueKind != JsonValueKind.Null)
+            return true;
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Enumerates <paramref name="element"/> as a JSON array, or yields nothing when it is not
+    /// an array (null, object, scalar, or absent) — instead of throwing.
+    /// </summary>
+    public static IEnumerable<JsonElement> EnumerateArrayOrEmpty(this JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Array)
+            return [];
+        return element.EnumerateArray();
     }
 }
